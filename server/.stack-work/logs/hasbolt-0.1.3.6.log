@@ -1,0 +1,20 @@
+Configuring hasbolt-0.1.3.6...
+Preprocessing library for hasbolt-0.1.3.6..
+Building library for hasbolt-0.1.3.6..
+[ 1 of 15] Compiling Database.Bolt.Connection.Connection ( src\Database\Bolt\Connection\Connection.hs, .stack-work\dist\e626a42b\build\Database\Bolt\Connection\Connection.o )
+[ 2 of 15] Compiling Database.Bolt.Value.Helpers ( src\Database\Bolt\Value\Helpers.hs, .stack-work\dist\e626a42b\build\Database\Bolt\Value\Helpers.o )
+[ 3 of 15] Compiling Database.Bolt.Value.Type ( src\Database\Bolt\Value\Type.hs, .stack-work\dist\e626a42b\build\Database\Bolt\Value\Type.o )
+[ 4 of 15] Compiling Database.Bolt.Value.Structure ( src\Database\Bolt\Value\Structure.hs, .stack-work\dist\e626a42b\build\Database\Bolt\Value\Structure.o )
+[ 5 of 15] Compiling Database.Bolt.Value.Instances ( src\Database\Bolt\Value\Instances.hs, .stack-work\dist\e626a42b\build\Database\Bolt\Value\Instances.o )
+[ 6 of 15] Compiling Database.Bolt.Serialization ( src\Database\Bolt\Serialization.hs, .stack-work\dist\e626a42b\build\Database\Bolt\Serialization.o )
+[ 7 of 15] Compiling Database.Bolt.Connection.Type ( src\Database\Bolt\Connection\Type.hs, .stack-work\dist\e626a42b\build\Database\Bolt\Connection\Type.o )
+[ 8 of 15] Compiling Database.Bolt.Connection.Instances ( src\Database\Bolt\Connection\Instances.hs, .stack-work\dist\e626a42b\build\Database\Bolt\Connection\Instances.o )
+[ 9 of 15] Compiling Database.Bolt.Record ( src\Database\Bolt\Record.hs, .stack-work\dist\e626a42b\build\Database\Bolt\Record.o )
+[10 of 15] Compiling Database.Bolt.Connection.Pipe ( src\Database\Bolt\Connection\Pipe.hs, .stack-work\dist\e626a42b\build\Database\Bolt\Connection\Pipe.o )
+[11 of 15] Compiling Database.Bolt.Connection ( src\Database\Bolt\Connection.hs, .stack-work\dist\e626a42b\build\Database\Bolt\Connection.o )
+[12 of 15] Compiling Database.Bolt.Transaction ( src\Database\Bolt\Transaction.hs, .stack-work\dist\e626a42b\build\Database\Bolt\Transaction.o )
+[13 of 15] Compiling Database.Bolt    ( src\Database\Bolt.hs, .stack-work\dist\e626a42b\build\Database\Bolt.o )
+[14 of 15] Compiling Database.Bolt.Lens ( src\Database\Bolt\Lens.hs, .stack-work\dist\e626a42b\build\Database\Bolt\Lens.o )
+[15 of 15] Compiling Database.Bolt.Lazy ( src\Database\Bolt\Lazy.hs, .stack-work\dist\e626a42b\build\Database\Bolt\Lazy.o )
+Installing library in C:\sr\snapshots\1b0bbf2a\lib\x86_64-windows-ghc-8.6.5\hasbolt-0.1.3.6-LNsQfX43QYxIuTp4M5RV5W
+Registering library for hasbolt-0.1.3.6..

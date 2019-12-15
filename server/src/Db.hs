@@ -1,55 +1,49 @@
-{-# LANGUAGE TemplateHaskell #-}
-{-# LANGUAGE QuasiQuotes #-}
-{-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE EmptyDataDecls #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE GADTs #-}
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE OverloadedStrings #-}
--- for runSqlite
-{-# LANGUAGE TypeApplications #-}
-
 module Db where
 
-import Database.Persist.TH
--- import Ch11.Gender (Gender (..))
--- for runSqlite
-import Database.Persist.Postgresql
-import Control.Monad.Logger
+import Database.Bolt
+import Data.Default
+import Data.Text
+import Control.Monad
+import Control.Monad.Except
+import Data.Aeson
 
-share [mkPersist sqlSettings, mkMigrate "migrateAll"] [persistLowerCase|
-Country
-    name        String
-    canWeSend   Bool default=True
-    UniqueCountryName name
-    deriving Show
-Client
-    firstName   String
-    lastName    String
-    address     String
-    country     CountryId
-    age         Int Maybe
-    gender      Gender Maybe
-    UniqueClient firstName lastName address country
-    deriving Show
-Product
-    name        String
-    description String
-    price       Double
-    number      Int
-    deriving Show
-Purchase
-    client  ClientId
-    product ProductId
-    number  Int
-    amount  Double
-    deriving Show
-|]
+import qualified Data.Text.Lazy as LT
+import qualified Data.Text.Lazy.Builder as B
+import qualified Data.Text.Lazy.Builder.Int as B
+import Data.Conduit
+import qualified Data.Conduit.Binary as B
+import qualified Data.Conduit.List as L
+import qualified Data.Conduit.Text as T
 
-mig = runSqlite @IO @SqlBackend "example.db" $ runMigration migrateAll
+-- import Database.Bolt (connect, run, query, close, Node(..))
+-- import Data.Default (def)
 
--- ins = runSqlite @IO @SqlBackend "example.db" $ do
---     spain       <- insert $ Country "Spain"
---     _client1    <- insert $ Client "Alejandro" "Serrano" "Hometown, 1" spain (Just 30) (Just Male)
---     return ()
+myConfiguration :: BoltCfg
+myConfiguration = def { user = "neo4j", password = "Pfg5NlqJ", host = "localhost" }
+ 
+main :: IO ()
+main = do pipe <- connect myConfiguration
+          records <- run pipe $ query "MATCH (tom {name: 'Tom Hanks'}) RETURN tom"
+          let first = Prelude.head records
+          cruise <- first `at` "tom" >>= exact :: IO Node
+          print cruise
+          close pipe
+
+
+createPerson :: String -> IO ()
+createPerson name = do
+    pipe <- connect myConfiguration
+    result <- run pipe $ query $ pack $ "CREATE (p:Person { name: '" ++ name ++ "' })"
+    print result
+
+matchPerson :: String -> IO ()
+matchPerson name = do
+    pipe <- connect myConfiguration
+    records <- run pipe $ query $ pack $ "MATCH (p:Person) WHERE p.name = '" ++ name ++ "' RETURN p;"
+    print records
+
+
+data Person = Person { name :: String }
+    deriving (Show, Eq, Ord)
+

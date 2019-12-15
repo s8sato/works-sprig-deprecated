@@ -1,0 +1,6 @@
+Configuring asn1-parse-0.9.5...
+Preprocessing library for asn1-parse-0.9.5..
+Building library for asn1-parse-0.9.5..
+[1 of 1] Compiling Data.ASN1.Parse  ( Data\ASN1\Parse.hs, .stack-work\dist\e626a42b\build\Data\ASN1\Parse.o )
+Installing library in C:\sr\snapshots\1b0bbf2a\lib\x86_64-windows-ghc-8.6.5\asn1-parse-0.9.5-7SjTIpHzOIz8pned02p29X
+Registering library for asn1-parse-0.9.5..

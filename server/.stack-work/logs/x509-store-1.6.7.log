@@ -1,0 +1,46 @@
+Configuring x509-store-1.6.7...
+Preprocessing library for x509-store-1.6.7..
+Building library for x509-store-1.6.7..
+[1 of 3] Compiling Data.X509.CertificateStore ( Data\X509\CertificateStore.hs, .stack-work\dist\e626a42b\build\Data\X509\CertificateStore.o )
+
+[;1mData\X509\CertificateStore.hs:15:1: [;1m[35mwarning:[0m[0m[;1m [[;1m[35m-Wunused-imports[0m[0m[;1m][0m[0m[;1m
+    The import of ‘Data.Semigroup’ is redundant
+      except perhaps to import instances from ‘Data.Semigroup’
+    To import instances alone, use: import Data.Semigroup()[0m[0m
+[;1m[34m   |[0m[0m
+[;1m[34m15 |[0m[0m [;1m[35mimport           Data.Semigroup[0m[0m
+[;1m[34m   |[0m[0m[;1m[35m ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m[0m
+[0m[0m[0m[2 of 3] Compiling Data.X509.Memory ( Data\X509\Memory.hs, .stack-work\dist\e626a42b\build\Data\X509\Memory.o )
+[3 of 3] Compiling Data.X509.File   ( Data\X509\File.hs, .stack-work\dist\e626a42b\build\Data\X509\File.o )
+
+[;1mData\X509\File.hs:6:1: [;1m[35mwarning:[0m[0m[;1m [[;1m[35m-Wunused-imports[0m[0m[;1m][0m[0m[;1m
+    The import of ‘Control.Applicative’ is redundant
+      except perhaps to import instances from ‘Control.Applicative’
+    To import instances alone, use: import Control.Applicative()[0m[0m
+[;1m[34m  |[0m[0m
+[;1m[34m6 |[0m[0m [;1m[35mimport Control.Applicative[0m[0m
+[;1m[34m  |[0m[0m[;1m[35m ^^^^^^^^^^^^^^^^^^^^^^^^^^[0m[0m
+[0m[0m[0m
+[;1mData\X509\File.hs:8:1: [;1m[35mwarning:[0m[0m[;1m [[;1m[35m-Wunused-imports[0m[0m[;1m][0m[0m[;1m
+    The import of ‘Data.ASN1.BinaryEncoding’ is redundant
+      except perhaps to import instances from ‘Data.ASN1.BinaryEncoding’
+    To import instances alone, use: import Data.ASN1.BinaryEncoding()[0m[0m
+[;1m[34m  |[0m[0m
+[;1m[34m8 |[0m[0m [;1m[35mimport Data.ASN1.BinaryEncoding[0m[0m
+[;1m[34m  |[0m[0m[;1m[35m ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m[0m
+[0m[0m[0m
+[;1mData\X509\File.hs:9:1: [;1m[35mwarning:[0m[0m[;1m [[;1m[35m-Wunused-imports[0m[0m[;1m][0m[0m[;1m
+    The import of ‘Data.ASN1.Encoding’ is redundant
+      except perhaps to import instances from ‘Data.ASN1.Encoding’
+    To import instances alone, use: import Data.ASN1.Encoding()[0m[0m
+[;1m[34m  |[0m[0m
+[;1m[34m9 |[0m[0m [;1m[35mimport Data.ASN1.Encoding[0m[0m
+[;1m[34m  |[0m[0m[;1m[35m ^^^^^^^^^^^^^^^^^^^^^^^^^[0m[0m
+[0m[0m[0m
+[;1mData\X509\File.hs:13:1: [;1m[35mwarning:[0m[0m[;1m [[;1m[35m-Wunused-imports[0m[0m[;1m][0m[0m[;1m
+    The import of ‘PEM(pemName)’ from module ‘Data.PEM’ is redundant[0m[0m
+[;1m[34m   |[0m[0m
+[;1m[34m13 |[0m[0m [;1m[35mimport Data.PEM (pemParseLBS, pemContent, pemName, PEM)[0m[0m
+[;1m[34m   |[0m[0m[;1m[35m ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m[0m
+[0m[0m[0mInstalling library in C:\sr\snapshots\1b0bbf2a\lib\x86_64-windows-ghc-8.6.5\x509-store-1.6.7-DHClGX075gHKfsG6u6Tnr4
+Registering library for x509-store-1.6.7..

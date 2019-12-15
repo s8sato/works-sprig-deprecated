@@ -95,3 +95,5 @@ model = Model day
         [ Task False True "curry" (DateTime "2019/12/15" "06:35'00") (DateTime "2019/12/16" "06:36:00") 30 (Bar 12 15 16)
         , Task True False "hayasi" (DateTime "2019/12/17" "06:37'00") (DateTime "2019/12/18" "06:38:00") 60 (Bar 9 15 16)
         ]
+
+-- 

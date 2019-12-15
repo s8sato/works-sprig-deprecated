@@ -1,0 +1,15 @@
+Configuring connection-0.3.1...
+Preprocessing library for connection-0.3.1..
+Building library for connection-0.3.1..
+[1 of 2] Compiling Network.Connection.Types ( Network\Connection\Types.hs, .stack-work\dist\e626a42b\build\Network\Connection\Types.o )
+[2 of 2] Compiling Network.Connection ( Network\Connection.hs, .stack-work\dist\e626a42b\build\Network\Connection.o )
+
+[;1mNetwork\Connection.hs:68:1: [;1m[35mwarning:[0m[0m[;1m [[;1m[35m-Wunused-imports[0m[0m[;1m][0m[0m[;1m
+    The import of ‘Data.Tuple’ is redundant
+      except perhaps to import instances from ‘Data.Tuple’
+    To import instances alone, use: import Data.Tuple()[0m[0m
+[;1m[34m   |[0m[0m
+[;1m[34m68 |[0m[0m [;1m[35mimport Data.Tuple (swap)[0m[0m
+[;1m[34m   |[0m[0m[;1m[35m ^^^^^^^^^^^^^^^^^^^^^^^^[0m[0m
+[0m[0m[0mInstalling library in C:\sr\snapshots\1b0bbf2a\lib\x86_64-windows-ghc-8.6.5\connection-0.3.1-5gZ0JcBDqj51jmt8qxCeld
+Registering library for connection-0.3.1..

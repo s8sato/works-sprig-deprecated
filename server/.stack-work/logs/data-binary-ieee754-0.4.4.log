@@ -1,0 +1,13 @@
+Configuring data-binary-ieee754-0.4.4...
+Preprocessing library for data-binary-ieee754-0.4.4..
+Building library for data-binary-ieee754-0.4.4..
+[1 of 1] Compiling Data.Binary.IEEE754 ( lib\Data\Binary\IEEE754.hs, .stack-work\dist\e626a42b\build\Data\Binary\IEEE754.o )
+
+[;1mlib\Data\Binary\IEEE754.hs:12:1: [;1m[35mwarning:[0m[0m[;1m [[;1m[35m-Wtabs[0m[0m[;1m][0m[0m[;1m
+    Tab character found here, and in 70 further locations.
+    Please use spaces instead.[0m[0m
+[;1m[34m   |[0m[0m
+[;1m[34m12 |[0m[0m [;1m[35m        [0m[0m-- * Parsing
+[;1m[34m   |[0m[0m[;1m[35m ^^^^^^^^[0m[0m
+[0m[0m[0mInstalling library in C:\sr\snapshots\1b0bbf2a\lib\x86_64-windows-ghc-8.6.5\data-binary-ieee754-0.4.4-Jh3qq4jPu7AAxCF7JMXnJo
+Registering library for data-binary-ieee754-0.4.4..

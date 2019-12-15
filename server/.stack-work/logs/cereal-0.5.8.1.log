@@ -1,0 +1,16 @@
+Configuring cereal-0.5.8.1...
+Preprocessing library for cereal-0.5.8.1..
+Building library for cereal-0.5.8.1..
+[1 of 4] Compiling Data.Serialize.Get ( src\Data\Serialize\Get.hs, .stack-work\dist\e626a42b\build\Data\Serialize\Get.o )
+[2 of 4] Compiling Data.Serialize.Put ( src\Data\Serialize\Put.hs, .stack-work\dist\e626a42b\build\Data\Serialize\Put.o )
+[3 of 4] Compiling Data.Serialize.IEEE754 ( src\Data\Serialize\IEEE754.hs, .stack-work\dist\e626a42b\build\Data\Serialize\IEEE754.o )
+[4 of 4] Compiling Data.Serialize   ( src\Data\Serialize.hs, .stack-work\dist\e626a42b\build\Data\Serialize.o )
+
+[;1msrc\Data\Serialize.hs:291:9: [;1m[35mwarning:[0m[0m[;1m [[;1m[35m-Wincomplete-patterns[0m[0m[;1m][0m[0m[;1m
+    Pattern match(es) are non-exhaustive
+    In an equation for ‘findNr’: Patterns not matched: _ _[0m[0m
+[;1m[34m    |[0m[0m
+[;1m[34m291 |[0m[0m         [;1m[35mfindNr lo hi[0m[0m
+[;1m[34m    |[0m[0m[;1m[35m         ^^^^^^^^^^^^...[0m[0m
+[0m[0m[0mInstalling library in C:\sr\snapshots\1b0bbf2a\lib\x86_64-windows-ghc-8.6.5\cereal-0.5.8.1-2v8l8XjvcW5E2rmy0u7N7
+Registering library for cereal-0.5.8.1..

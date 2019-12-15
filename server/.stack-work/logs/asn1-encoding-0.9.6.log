@@ -1,0 +1,65 @@
+Configuring asn1-encoding-0.9.6...
+Preprocessing library for asn1-encoding-0.9.6..
+Building library for asn1-encoding-0.9.6..
+[ 1 of 12] Compiling Data.ASN1.Error  ( Data\ASN1\Error.hs, .stack-work\dist\e626a42b\build\Data\ASN1\Error.o )
+[ 2 of 12] Compiling Data.ASN1.Get    ( Data\ASN1\Get.hs, .stack-work\dist\e626a42b\build\Data\ASN1\Get.o )
+[ 3 of 12] Compiling Data.ASN1.Internal ( Data\ASN1\Internal.hs, .stack-work\dist\e626a42b\build\Data\ASN1\Internal.o )
+[ 4 of 12] Compiling Data.ASN1.Object ( Data\ASN1\Object.hs, .stack-work\dist\e626a42b\build\Data\ASN1\Object.o )
+[ 5 of 12] Compiling Data.ASN1.Serialize ( Data\ASN1\Serialize.hs, .stack-work\dist\e626a42b\build\Data\ASN1\Serialize.o )
+[ 6 of 12] Compiling Data.ASN1.BinaryEncoding.Writer ( Data\ASN1\BinaryEncoding\Writer.hs, .stack-work\dist\e626a42b\build\Data\ASN1\BinaryEncoding\Writer.o )
+[ 7 of 12] Compiling Data.ASN1.BinaryEncoding.Parse ( Data\ASN1\BinaryEncoding\Parse.hs, .stack-work\dist\e626a42b\build\Data\ASN1\BinaryEncoding\Parse.o )
+[ 8 of 12] Compiling Data.ASN1.BinaryEncoding.Raw ( Data\ASN1\BinaryEncoding\Raw.hs, .stack-work\dist\e626a42b\build\Data\ASN1\BinaryEncoding\Raw.o )
+[ 9 of 12] Compiling Data.ASN1.Stream ( Data\ASN1\Stream.hs, .stack-work\dist\e626a42b\build\Data\ASN1\Stream.o )
+[10 of 12] Compiling Data.ASN1.Prim   ( Data\ASN1\Prim.hs, .stack-work\dist\e626a42b\build\Data\ASN1\Prim.o )
+
+[;1mData\ASN1\Prim.hs:55:1: [;1m[35mwarning:[0m[0m[;1m [[;1m[35m-Wunused-imports[0m[0m[;1m][0m[0m[;1m
+    The import of ‘Data.Monoid’ is redundant
+      except perhaps to import instances from ‘Data.Monoid’
+    To import instances alone, use: import Data.Monoid()[0m[0m
+[;1m[34m   |[0m[0m
+[;1m[34m55 |[0m[0m [;1m[35mimport Data.Monoid[0m[0m
+[;1m[34m   |[0m[0m[;1m[35m ^^^^^^^^^^^^^^^^^^[0m[0m
+[0m[0m[0m
+[;1mData\ASN1\Prim.hs:65:1: [;1m[35mwarning:[0m[0m[;1m [[;1m[35m-Wunused-imports[0m[0m[;1m][0m[0m[;1m
+    The import of ‘Control.Applicative’ is redundant
+      except perhaps to import instances from ‘Control.Applicative’
+    To import instances alone, use: import Control.Applicative()[0m[0m
+[;1m[34m   |[0m[0m
+[;1m[34m65 |[0m[0m [;1m[35mimport Control.Applicative[0m[0m
+[;1m[34m   |[0m[0m[;1m[35m ^^^^^^^^^^^^^^^^^^^^^^^^^^[0m[0m
+[0m[0m[0m
+[;1mData\ASN1\Prim.hs:259:11: [;1m[35mwarning:[0m[0m[;1m [[;1m[35m-Wname-shadowing[0m[0m[;1m][0m[0m[;1m
+    This binding for ‘exponent’ shadows the existing binding
+      imported from ‘Prelude’ at Data\ASN1\Prim.hs:13:8-21
+      (and originally defined in ‘GHC.Float’)[0m[0m
+[;1m[34m    |[0m[0m
+[;1m[34m259 |[0m[0m           [;1m[35mexponent[0m[0m = exp' - fromIntegral scaleFactor
+[;1m[34m    |[0m[0m[;1m[35m           ^^^^^^^^[0m[0m
+[0m[0m[0m
+[;1mData\ASN1\Prim.hs:428:9: [;1m[35mwarning:[0m[0m[;1m [[;1m[35m-Wname-shadowing[0m[0m[;1m][0m[0m[;1m
+    This binding for ‘exp’ shadows the existing binding
+      imported from ‘Prelude’ at Data\ASN1\Prim.hs:13:8-21
+      (and originally defined in ‘GHC.Float’)[0m[0m
+[;1m[34m    |[0m[0m
+[;1m[34m428 |[0m[0m   (man, [;1m[35mexp[0m[0m) = decodeFloat d
+[;1m[34m    |[0m[0m[;1m[35m         ^^^[0m[0m
+[0m[0m[0m
+[;1mData\ASN1\Prim.hs:429:14: [;1m[35mwarning:[0m[0m[;1m [[;1m[35m-Wname-shadowing[0m[0m[;1m][0m[0m[;1m
+    This binding for ‘exponent’ shadows the existing binding
+      imported from ‘Prelude’ at Data\ASN1\Prim.hs:13:8-21
+      (and originally defined in ‘GHC.Float’)[0m[0m
+[;1m[34m    |[0m[0m
+[;1m[34m429 |[0m[0m   (mantissa, [;1m[35mexponent[0m[0m) = normalize (fromIntegral $ mkUnsigned man, exp)
+[;1m[34m    |[0m[0m[;1m[35m              ^^^^^^^^[0m[0m
+[0m[0m[0m
+[;1mData\ASN1\Prim.hs:441:22: [;1m[35mwarning:[0m[0m[;1m [[;1m[35m-Wname-shadowing[0m[0m[;1m][0m[0m[;1m
+    This binding for ‘exponent’ shadows the existing binding
+      imported from ‘Prelude’ at Data\ASN1\Prim.hs:13:8-21
+      (and originally defined in ‘GHC.Float’)[0m[0m
+[;1m[34m    |[0m[0m
+[;1m[34m441 |[0m[0m normalize (mantissa, [;1m[35mexponent[0m[0m) = (mantissa `shiftR` sh, exponent + sh)
+[;1m[34m    |[0m[0m[;1m[35m                      ^^^^^^^^[0m[0m
+[0m[0m[0m[11 of 12] Compiling Data.ASN1.Encoding ( Data\ASN1\Encoding.hs, .stack-work\dist\e626a42b\build\Data\ASN1\Encoding.o )
+[12 of 12] Compiling Data.ASN1.BinaryEncoding ( Data\ASN1\BinaryEncoding.hs, .stack-work\dist\e626a42b\build\Data\ASN1\BinaryEncoding.o )
+Installing library in C:\sr\snapshots\1b0bbf2a\lib\x86_64-windows-ghc-8.6.5\asn1-encoding-0.9.6-1E7iVclyfA6GPksDO6p77p
+Registering library for asn1-encoding-0.9.6..

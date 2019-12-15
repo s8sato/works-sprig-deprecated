@@ -18,9 +18,12 @@ library
   exposed-modules:     Lib
                     --  , Cook
                        -- https://qiita.com/jabaraster/items/e8ebbe6d25b535947aba
-                     , DataStore
-                     , DataStore.Internal
-                     , App
+                    --  , DataStore
+                    --  , DataStore.Internal
+                    --  , App
+                    -- hasbolt
+                     , Db
+                     , Data.Text
   build-depends:       base >= 4.7 && < 5
                       -- servant
                      , aeson
@@ -51,6 +54,10 @@ library
                     --  , postgresql-simple
                     --  , http-client
                     --  , servant-client
+                     -- Hasbolt
+                     , hasbolt
+                     , mtl
+                     , data-default
                      -- CORS
                      , wai-cors
                     --  , servant-options
