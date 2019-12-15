@@ -1,0 +1,8 @@
+Configuring servant-foreign-0.15...
+Preprocessing library for servant-foreign-0.15..
+Building library for servant-foreign-0.15..
+[1 of 3] Compiling Servant.Foreign.Internal ( src\Servant\Foreign\Internal.hs, .stack-work\dist\e626a42b\build\Servant\Foreign\Internal.o )
+[2 of 3] Compiling Servant.Foreign.Inflections ( src\Servant\Foreign\Inflections.hs, .stack-work\dist\e626a42b\build\Servant\Foreign\Inflections.o )
+[3 of 3] Compiling Servant.Foreign  ( src\Servant\Foreign.hs, .stack-work\dist\e626a42b\build\Servant\Foreign.o )
+Installing library in C:\sr\snapshots\1b0bbf2a\lib\x86_64-windows-ghc-8.6.5\servant-foreign-0.15-GgVxOMD828RHyrh6eoXpBf
+Registering library for servant-foreign-0.15..

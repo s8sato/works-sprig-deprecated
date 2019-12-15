@@ -1,0 +1,6 @@
+Configuring persistent-template-2.6.0...
+Preprocessing library for persistent-template-2.6.0..
+Building library for persistent-template-2.6.0..
+[1 of 1] Compiling Database.Persist.TH ( Database\Persist\TH.hs, .stack-work\dist\e626a42b\build\Database\Persist\TH.o )
+Installing library in C:\sr\snapshots\1b0bbf2a\lib\x86_64-windows-ghc-8.6.5\persistent-template-2.6.0-BHUv6ybl7s6L399hqtAdN7
+Registering library for persistent-template-2.6.0..

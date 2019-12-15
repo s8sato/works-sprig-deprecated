@@ -1,0 +1,60 @@
+Configuring aeson-compat-0.3.9...
+Preprocessing library for aeson-compat-0.3.9..
+Building library for aeson-compat-0.3.9..
+[1 of 1] Compiling Data.Aeson.Compat ( src\Data\Aeson\Compat.hs, .stack-work\dist\e626a42b\build\Data\Aeson\Compat.o )
+
+[;1msrc\Data\Aeson\Compat.hs:119:1: [;1m[35mwarning:[0m[0m[;1m [[;1m[35m-Wunused-imports[0m[0m[;1m][0m[0m[;1m
+    The import of ‘typeMismatch’
+    from module ‘Data.Aeson.Types’ is redundant[0m[0m
+[;1m[34m    |[0m[0m
+[;1m[34m119 |[0m[0m [;1m[35mimport           Data.Aeson.Types (Parser, modifyFailure, typeMismatch, defaultOptions)[0m[0m
+[;1m[34m    |[0m[0m[;1m[35m ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m[0m
+[0m[0m[0m
+[;1msrc\Data\Aeson\Compat.hs:125:1: [;1m[35mwarning:[0m[0m[;1m [[;1m[35m-Wunused-imports[0m[0m[;1m][0m[0m[;1m
+    The qualified import of ‘Data.Text.Encoding’ is redundant
+      except perhaps to import instances from ‘Data.Text.Encoding’
+    To import instances alone, use: import Data.Text.Encoding()[0m[0m
+[;1m[34m    |[0m[0m
+[;1m[34m125 |[0m[0m [;1m[35mimport qualified Data.Text.Encoding as TE[0m[0m
+[;1m[34m    |[0m[0m[;1m[35m ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m[0m
+[0m[0m[0m
+[;1msrc\Data\Aeson\Compat.hs:158:1: [;1m[35mwarning:[0m[0m[;1m [[;1m[35m-Wdeprecations[0m[0m[;1m][0m[0m[;1m
+    Module ‘Data.Attoparsec.Number’ is deprecated:
+      This module will be removed in the next major release.[0m[0m
+[;1m[34m    |[0m[0m
+[;1m[34m158 |[0m[0m [;1m[35mimport Data.Attoparsec.Number (Number (..))[0m[0m
+[;1m[34m    |[0m[0m[;1m[35m ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m[0m
+[0m[0m[0m
+[;1msrc\Data\Aeson\Compat.hs:457:26: [;1m[35mwarning:[0m[0m[;1m [[;1m[35m-Wdeprecations[0m[0m[;1m][0m[0m[;1m
+    In the use of type constructor or class ‘Number’
+    (imported from Data.Attoparsec.Number):
+    Deprecated: "This module will be removed in the next major release."[0m[0m
+[;1m[34m    |[0m[0m
+[;1m[34m457 |[0m[0m withNumber :: String -> ([;1m[35mNumber[0m[0m -> Parser a) -> Value -> Parser a
+[;1m[34m    |[0m[0m[;1m[35m                          ^^^^^^[0m[0m
+[0m[0m[0m
+[;1msrc\Data\Aeson\Compat.hs:462:48: [;1m[35mwarning:[0m[0m[;1m [[;1m[35m-Wdeprecations[0m[0m[;1m][0m[0m[;1m
+    In the use of type constructor or class ‘Number’
+    (imported from Data.Attoparsec.Number):
+    Deprecated: "This module will be removed in the next major release."[0m[0m
+[;1m[34m    |[0m[0m
+[;1m[34m462 |[0m[0m scientificToNumber :: Scientific.Scientific -> [;1m[35mNumber[0m[0m
+[;1m[34m    |[0m[0m[;1m[35m                                                ^^^^^^[0m[0m
+[0m[0m[0m
+[;1msrc\Data\Aeson\Compat.hs:464:27: [;1m[35mwarning:[0m[0m[;1m [[;1m[35m-Wdeprecations[0m[0m[;1m][0m[0m[;1m
+    In the use of data constructor ‘D’
+    (imported from Data.Attoparsec.Number):
+    Deprecated: "This module will be removed in the next major release."[0m[0m
+[;1m[34m    |[0m[0m
+[;1m[34m464 |[0m[0m     | e < 0 || e > 1024 = [;1m[35mD[0m[0m $ Scientific.toRealFloat s
+[;1m[34m    |[0m[0m[;1m[35m                           ^[0m[0m
+[0m[0m[0m
+[;1msrc\Data\Aeson\Compat.hs:465:27: [;1m[35mwarning:[0m[0m[;1m [[;1m[35m-Wdeprecations[0m[0m[;1m][0m[0m[;1m
+    In the use of data constructor ‘I’
+    (imported from Data.Attoparsec.Number):
+    Deprecated: "This module will be removed in the next major release."[0m[0m
+[;1m[34m    |[0m[0m
+[;1m[34m465 |[0m[0m     | otherwise         = [;1m[35mI[0m[0m $ c * 10 ^ e
+[;1m[34m    |[0m[0m[;1m[35m                           ^[0m[0m
+[0m[0m[0mInstalling library in C:\sr\snapshots\1b0bbf2a\lib\x86_64-windows-ghc-8.6.5\aeson-compat-0.3.9-6Uih0Dk0E1f25Gq1nqhT5o
+Registering library for aeson-compat-0.3.9..

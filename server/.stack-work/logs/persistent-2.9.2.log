@@ -1,0 +1,29 @@
+Configuring persistent-2.9.2...
+Preprocessing library for persistent-2.9.2..
+Building library for persistent-2.9.2..
+[ 1 of 24] Compiling Database.Persist.Class.PersistConfig ( Database\Persist\Class\PersistConfig.hs, .stack-work\dist\e626a42b\build\Database\Persist\Class\PersistConfig.o )
+[ 2 of 24] Compiling Database.Persist.Types.Base ( Database\Persist\Types\Base.hs, .stack-work\dist\e626a42b\build\Database\Persist\Types\Base.o )
+[ 3 of 24] Compiling Database.Persist.Class.PersistField ( Database\Persist\Class\PersistField.hs, .stack-work\dist\e626a42b\build\Database\Persist\Class\PersistField.o )
+[ 4 of 24] Compiling Database.Persist.Class.PersistEntity ( Database\Persist\Class\PersistEntity.hs, .stack-work\dist\e626a42b\build\Database\Persist\Class\PersistEntity.o )
+[ 5 of 24] Compiling Database.Persist.Types ( Database\Persist\Types.hs, .stack-work\dist\e626a42b\build\Database\Persist\Types.o )
+[ 6 of 24] Compiling Database.Persist.Quasi ( Database\Persist\Quasi.hs, .stack-work\dist\e626a42b\build\Database\Persist\Quasi.o )
+[ 7 of 24] Compiling Database.Persist.Class.PersistStore ( Database\Persist\Class\PersistStore.hs, .stack-work\dist\e626a42b\build\Database\Persist\Class\PersistStore.o )
+[ 8 of 24] Compiling Database.Persist.Class.PersistUnique ( Database\Persist\Class\PersistUnique.hs, .stack-work\dist\e626a42b\build\Database\Persist\Class\PersistUnique.o )
+[ 9 of 24] Compiling Database.Persist.Class.PersistQuery ( Database\Persist\Class\PersistQuery.hs, .stack-work\dist\e626a42b\build\Database\Persist\Class\PersistQuery.o )
+[10 of 24] Compiling Database.Persist.Class.DeleteCascade ( Database\Persist\Class\DeleteCascade.hs, .stack-work\dist\e626a42b\build\Database\Persist\Class\DeleteCascade.o )
+[11 of 24] Compiling Database.Persist.Class ( Database\Persist\Class.hs, .stack-work\dist\e626a42b\build\Database\Persist\Class.o )
+[12 of 24] Compiling Database.Persist.Sql.Types.Internal ( Database\Persist\Sql\Types\Internal.hs, .stack-work\dist\e626a42b\build\Database\Persist\Sql\Types\Internal.o )
+[13 of 24] Compiling Database.Persist.Sql.Types ( Database\Persist\Sql\Types.hs, .stack-work\dist\e626a42b\build\Database\Persist\Sql\Types.o )
+[14 of 24] Compiling Database.Persist.Sql.Internal ( Database\Persist\Sql\Internal.hs, .stack-work\dist\e626a42b\build\Database\Persist\Sql\Internal.o )
+[15 of 24] Compiling Database.Persist ( Database\Persist.hs, .stack-work\dist\e626a42b\build\Database\Persist.o )
+[16 of 24] Compiling Database.Persist.Sql.Util ( Database\Persist\Sql\Util.hs, .stack-work\dist\e626a42b\build\Database\Persist\Sql\Util.o )
+[17 of 24] Compiling Database.Persist.Sql.Class ( Database\Persist\Sql\Class.hs, .stack-work\dist\e626a42b\build\Database\Persist\Sql\Class.o )
+[18 of 24] Compiling Database.Persist.Sql.Raw ( Database\Persist\Sql\Raw.hs, .stack-work\dist\e626a42b\build\Database\Persist\Sql\Raw.o )
+[19 of 24] Compiling Database.Persist.Sql.Run ( Database\Persist\Sql\Run.hs, .stack-work\dist\e626a42b\build\Database\Persist\Sql\Run.o )
+[20 of 24] Compiling Database.Persist.Sql.Orphan.PersistStore ( Database\Persist\Sql\Orphan\PersistStore.hs, .stack-work\dist\e626a42b\build\Database\Persist\Sql\Orphan\PersistStore.o )
+[21 of 24] Compiling Database.Persist.Sql.Orphan.PersistUnique ( Database\Persist\Sql\Orphan\PersistUnique.hs, .stack-work\dist\e626a42b\build\Database\Persist\Sql\Orphan\PersistUnique.o )
+[22 of 24] Compiling Database.Persist.Sql.Orphan.PersistQuery ( Database\Persist\Sql\Orphan\PersistQuery.hs, .stack-work\dist\e626a42b\build\Database\Persist\Sql\Orphan\PersistQuery.o )
+[23 of 24] Compiling Database.Persist.Sql.Migration ( Database\Persist\Sql\Migration.hs, .stack-work\dist\e626a42b\build\Database\Persist\Sql\Migration.o )
+[24 of 24] Compiling Database.Persist.Sql ( Database\Persist\Sql.hs, .stack-work\dist\e626a42b\build\Database\Persist\Sql.o )
+Installing library in C:\sr\snapshots\1b0bbf2a\lib\x86_64-windows-ghc-8.6.5\persistent-2.9.2-HjtyhOqAikOCxWZNPWgXF2
+Registering library for persistent-2.9.2..

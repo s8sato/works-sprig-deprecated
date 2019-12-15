@@ -1,0 +1,7 @@
+Configuring libyaml-0.1.1.1...
+Preprocessing library for libyaml-0.1.1.1..
+Building library for libyaml-0.1.1.1..
+[1 of 2] Compiling Paths_libyaml    ( .stack-work\dist\e626a42b\build\autogen\Paths_libyaml.hs, .stack-work\dist\e626a42b\build\Paths_libyaml.o )
+[2 of 2] Compiling Text.Libyaml     ( src\Text\Libyaml.hs, .stack-work\dist\e626a42b\build\Text\Libyaml.o )
+Installing library in C:\sr\snapshots\1b0bbf2a\lib\x86_64-windows-ghc-8.6.5\libyaml-0.1.1.1-GrMQ51MKycS3stJTDhfuWI
+Registering library for libyaml-0.1.1.1..

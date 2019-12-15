@@ -1,0 +1,19 @@
+Configuring base-unicode-symbols-0.2.3...
+Preprocessing library for base-unicode-symbols-0.2.3..
+Building library for base-unicode-symbols-0.2.3..
+[ 1 of 14] Compiling Control.Applicative.Unicode ( src\Control\Applicative\Unicode.hs, .stack-work\dist\e626a42b\build\Control\Applicative\Unicode.o )
+[ 2 of 14] Compiling Control.Category.Unicode ( src\Control\Category\Unicode.hs, .stack-work\dist\e626a42b\build\Control\Category\Unicode.o )
+[ 3 of 14] Compiling Control.Arrow.Unicode ( src\Control\Arrow\Unicode.hs, .stack-work\dist\e626a42b\build\Control\Arrow\Unicode.o )
+[ 4 of 14] Compiling Control.Monad.Unicode ( src\Control\Monad\Unicode.hs, .stack-work\dist\e626a42b\build\Control\Monad\Unicode.o )
+[ 5 of 14] Compiling Data.Bool.Unicode ( src\Data\Bool\Unicode.hs, .stack-work\dist\e626a42b\build\Data\Bool\Unicode.o )
+[ 6 of 14] Compiling Data.Eq.Unicode  ( src\Data\Eq\Unicode.hs, .stack-work\dist\e626a42b\build\Data\Eq\Unicode.o )
+[ 7 of 14] Compiling Data.Foldable.Unicode ( src\Data\Foldable\Unicode.hs, .stack-work\dist\e626a42b\build\Data\Foldable\Unicode.o )
+[ 8 of 14] Compiling Data.Function.Unicode ( src\Data\Function\Unicode.hs, .stack-work\dist\e626a42b\build\Data\Function\Unicode.o )
+[ 9 of 14] Compiling Data.List.Unicode ( src\Data\List\Unicode.hs, .stack-work\dist\e626a42b\build\Data\List\Unicode.o )
+[10 of 14] Compiling Data.Monoid.Unicode ( src\Data\Monoid\Unicode.hs, .stack-work\dist\e626a42b\build\Data\Monoid\Unicode.o )
+[11 of 14] Compiling Data.Ord.Unicode ( src\Data\Ord\Unicode.hs, .stack-work\dist\e626a42b\build\Data\Ord\Unicode.o )
+[12 of 14] Compiling Data.String.Unicode ( src\Data\String\Unicode.hs, .stack-work\dist\e626a42b\build\Data\String\Unicode.o )
+[13 of 14] Compiling Numeric.Natural.Unicode ( src\Numeric\Natural\Unicode.hs, .stack-work\dist\e626a42b\build\Numeric\Natural\Unicode.o )
+[14 of 14] Compiling Prelude.Unicode  ( src\Prelude\Unicode.hs, .stack-work\dist\e626a42b\build\Prelude\Unicode.o )
+Installing library in C:\sr\snapshots\1b0bbf2a\lib\x86_64-windows-ghc-8.6.5\base-unicode-symbols-0.2.3-KhKSDK96fD5DALaTt8Do2K
+Registering library for base-unicode-symbols-0.2.3..

@@ -1,0 +1,24 @@
+Configuring http-client-0.6.4...
+Preprocessing library for http-client-0.6.4..
+Building library for http-client-0.6.4..
+[ 1 of 19] Compiling Data.KeyedPool   ( Data\KeyedPool.hs, .stack-work\dist\e626a42b\build\Data\KeyedPool.o )
+[ 2 of 19] Compiling Network.HTTP.Client.Types ( Network\HTTP\Client\Types.hs, .stack-work\dist\e626a42b\build\Network\HTTP\Client\Types.o )
+[ 3 of 19] Compiling Network.HTTP.Client.Connection ( Network\HTTP\Client\Connection.hs, .stack-work\dist\e626a42b\build\Network\HTTP\Client\Connection.o )
+[ 4 of 19] Compiling Network.HTTP.Client.Headers ( Network\HTTP\Client\Headers.hs, .stack-work\dist\e626a42b\build\Network\HTTP\Client\Headers.o )
+[ 5 of 19] Compiling Network.HTTP.Client.Body ( Network\HTTP\Client\Body.hs, .stack-work\dist\e626a42b\build\Network\HTTP\Client\Body.o )
+[ 6 of 19] Compiling Network.HTTP.Client.Util ( Network\HTTP\Client\Util.hs, .stack-work\dist\e626a42b\build\Network\HTTP\Client\Util.o )
+[ 7 of 19] Compiling Network.HTTP.Client.Request ( Network\HTTP\Client\Request.hs, .stack-work\dist\e626a42b\build\Network\HTTP\Client\Request.o )
+[ 8 of 19] Compiling Network.HTTP.Client.Response ( Network\HTTP\Client\Response.hs, .stack-work\dist\e626a42b\build\Network\HTTP\Client\Response.o )
+[ 9 of 19] Compiling Network.HTTP.Proxy ( Network\HTTP\Proxy.hs, .stack-work\dist\e626a42b\build\Network\HTTP\Proxy.o )
+[10 of 19] Compiling Network.HTTP.Client.Manager ( Network\HTTP\Client\Manager.hs, .stack-work\dist\e626a42b\build\Network\HTTP\Client\Manager.o )
+[11 of 19] Compiling Network.PublicSuffixList.Types ( publicsuffixlist\Network\PublicSuffixList\Types.hs, .stack-work\dist\e626a42b\build\Network\PublicSuffixList\Types.o )
+[12 of 19] Compiling Network.PublicSuffixList.Serialize ( publicsuffixlist\Network\PublicSuffixList\Serialize.hs, .stack-work\dist\e626a42b\build\Network\PublicSuffixList\Serialize.o )
+[13 of 19] Compiling Network.PublicSuffixList.DataStructure ( publicsuffixlist\Network\PublicSuffixList\DataStructure.hs, .stack-work\dist\e626a42b\build\Network\PublicSuffixList\DataStructure.o )
+[14 of 19] Compiling Network.PublicSuffixList.Lookup ( publicsuffixlist\Network\PublicSuffixList\Lookup.hs, .stack-work\dist\e626a42b\build\Network\PublicSuffixList\Lookup.o )
+[15 of 19] Compiling Network.HTTP.Client.Cookies ( Network\HTTP\Client\Cookies.hs, .stack-work\dist\e626a42b\build\Network\HTTP\Client\Cookies.o )
+[16 of 19] Compiling Network.HTTP.Client.Core ( Network\HTTP\Client\Core.hs, .stack-work\dist\e626a42b\build\Network\HTTP\Client\Core.o )
+[17 of 19] Compiling Network.HTTP.Client.Internal ( Network\HTTP\Client\Internal.hs, .stack-work\dist\e626a42b\build\Network\HTTP\Client\Internal.o )
+[18 of 19] Compiling Network.HTTP.Client ( Network\HTTP\Client.hs, .stack-work\dist\e626a42b\build\Network\HTTP\Client.o )
+[19 of 19] Compiling Network.HTTP.Client.MultipartFormData ( Network\HTTP\Client\MultipartFormData.hs, .stack-work\dist\e626a42b\build\Network\HTTP\Client\MultipartFormData.o )
+Installing library in C:\sr\snapshots\1b0bbf2a\lib\x86_64-windows-ghc-8.6.5\http-client-0.6.4-2yE6gdrFKSr56OH9guEUzy
+Registering library for http-client-0.6.4..

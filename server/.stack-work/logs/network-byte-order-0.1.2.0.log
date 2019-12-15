@@ -1,0 +1,6 @@
+Configuring network-byte-order-0.1.2.0...
+Preprocessing library for network-byte-order-0.1.2.0..
+Building library for network-byte-order-0.1.2.0..
+[1 of 1] Compiling Network.ByteOrder ( Network\ByteOrder.hs, .stack-work\dist\e626a42b\build\Network\ByteOrder.o )
+Installing library in C:\sr\snapshots\1b0bbf2a\lib\x86_64-windows-ghc-8.6.5\network-byte-order-0.1.2.0-9xZNfvbd07UDHk9gRzUwxM
+Registering library for network-byte-order-0.1.2.0..

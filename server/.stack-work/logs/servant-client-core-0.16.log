@@ -1,0 +1,18 @@
+Configuring servant-client-core-0.16...
+Preprocessing library for servant-client-core-0.16..
+Building library for servant-client-core-0.16..
+[ 1 of 13] Compiling Servant.Client.Core.BaseUrl ( src\Servant\Client\Core\BaseUrl.hs, .stack-work\dist\e626a42b\build\Servant\Client\Core\BaseUrl.o )
+[ 2 of 13] Compiling Servant.Client.Core.Internal ( src\Servant\Client\Core\Internal.hs, .stack-work\dist\e626a42b\build\Servant\Client\Core\Internal.o )
+[ 3 of 13] Compiling Servant.Client.Core.Request ( src\Servant\Client\Core\Request.hs, .stack-work\dist\e626a42b\build\Servant\Client\Core\Request.o )
+[ 4 of 13] Compiling Servant.Client.Core.BasicAuth ( src\Servant\Client\Core\BasicAuth.hs, .stack-work\dist\e626a42b\build\Servant\Client\Core\BasicAuth.o )
+[ 5 of 13] Compiling Servant.Client.Core.Auth ( src\Servant\Client\Core\Auth.hs, .stack-work\dist\e626a42b\build\Servant\Client\Core\Auth.o )
+[ 6 of 13] Compiling Servant.Client.Core.Response ( src\Servant\Client\Core\Response.hs, .stack-work\dist\e626a42b\build\Servant\Client\Core\Response.o )
+[ 7 of 13] Compiling Servant.Client.Core.ClientError ( src\Servant\Client\Core\ClientError.hs, .stack-work\dist\e626a42b\build\Servant\Client\Core\ClientError.o )
+[ 8 of 13] Compiling Servant.Client.Core.RunClient ( src\Servant\Client\Core\RunClient.hs, .stack-work\dist\e626a42b\build\Servant\Client\Core\RunClient.o )
+[ 9 of 13] Compiling Servant.Client.Core.HasClient ( src\Servant\Client\Core\HasClient.hs, .stack-work\dist\e626a42b\build\Servant\Client\Core\HasClient.o )
+[10 of 13] Compiling Servant.Client.Core.Reexport ( src\Servant\Client\Core\Reexport.hs, .stack-work\dist\e626a42b\build\Servant\Client\Core\Reexport.o )
+[11 of 13] Compiling Servant.Client.Core ( src\Servant\Client\Core.hs, .stack-work\dist\e626a42b\build\Servant\Client\Core.o )
+[12 of 13] Compiling Servant.Client.Free ( src\Servant\Client\Free.hs, .stack-work\dist\e626a42b\build\Servant\Client\Free.o )
+[13 of 13] Compiling Servant.Client.Generic ( src\Servant\Client\Generic.hs, .stack-work\dist\e626a42b\build\Servant\Client\Generic.o )
+Installing library in C:\sr\snapshots\1b0bbf2a\lib\x86_64-windows-ghc-8.6.5\servant-client-core-0.16-HnmLQujIIqy2C52cGVSf8b
+Registering library for servant-client-core-0.16..

@@ -1,0 +1,63 @@
+Configuring warp-3.2.28...
+Preprocessing library for warp-3.2.28..
+Building library for warp-3.2.28..
+[ 1 of 37] Compiling Network.Wai.Handler.Warp.Date ( Network\Wai\Handler\Warp\Date.hs, .stack-work\dist\e626a42b\build\Network\Wai\Handler\Warp\Date.o )
+[ 2 of 37] Compiling Network.Wai.Handler.Warp.FdCache ( Network\Wai\Handler\Warp\FdCache.hs, .stack-work\dist\e626a42b\build\Network\Wai\Handler\Warp\FdCache.o )
+[ 3 of 37] Compiling Network.Wai.Handler.Warp.HashMap ( Network\Wai\Handler\Warp\HashMap.hs, .stack-work\dist\e626a42b\build\Network\Wai\Handler\Warp\HashMap.o )
+[ 4 of 37] Compiling Network.Wai.Handler.Warp.Imports ( Network\Wai\Handler\Warp\Imports.hs, .stack-work\dist\e626a42b\build\Network\Wai\Handler\Warp\Imports.o )
+[ 5 of 37] Compiling Network.Wai.Handler.Warp.HTTP2.EncodeFrame ( Network\Wai\Handler\Warp\HTTP2\EncodeFrame.hs, .stack-work\dist\e626a42b\build\Network\Wai\Handler\Warp\HTTP2\EncodeFrame.o )
+[ 6 of 37] Compiling Network.Wai.Handler.Warp.FileInfoCache ( Network\Wai\Handler\Warp\FileInfoCache.hs, .stack-work\dist\e626a42b\build\Network\Wai\Handler\Warp\FileInfoCache.o )
+[ 7 of 37] Compiling Network.Wai.Handler.Warp.Counter ( Network\Wai\Handler\Warp\Counter.hs, .stack-work\dist\e626a42b\build\Network\Wai\Handler\Warp\Counter.o )
+[ 8 of 37] Compiling Network.Wai.Handler.Warp.PackInt ( Network\Wai\Handler\Warp\PackInt.hs, .stack-work\dist\e626a42b\build\Network\Wai\Handler\Warp\PackInt.o )
+[ 9 of 37] Compiling Network.Wai.Handler.Warp.HTTP2.File ( Network\Wai\Handler\Warp\HTTP2\File.hs, .stack-work\dist\e626a42b\build\Network\Wai\Handler\Warp\HTTP2\File.o )
+[10 of 37] Compiling Network.Wai.Handler.Warp.ReadInt ( Network\Wai\Handler\Warp\ReadInt.hs, .stack-work\dist\e626a42b\build\Network\Wai\Handler\Warp\ReadInt.o )
+[11 of 37] Compiling Network.Wai.Handler.Warp.Types ( Network\Wai\Handler\Warp\Types.hs, .stack-work\dist\e626a42b\build\Network\Wai\Handler\Warp\Types.o )
+[12 of 37] Compiling Network.Wai.Handler.Warp.RequestHeader ( Network\Wai\Handler\Warp\RequestHeader.hs, .stack-work\dist\e626a42b\build\Network\Wai\Handler\Warp\RequestHeader.o )
+[13 of 37] Compiling Network.Wai.Handler.Warp.Header ( Network\Wai\Handler\Warp\Header.hs, .stack-work\dist\e626a42b\build\Network\Wai\Handler\Warp\Header.o )
+[14 of 37] Compiling Network.Wai.Handler.Warp.File ( Network\Wai\Handler\Warp\File.hs, .stack-work\dist\e626a42b\build\Network\Wai\Handler\Warp\File.o )
+[15 of 37] Compiling Network.Wai.Handler.Warp.Conduit ( Network\Wai\Handler\Warp\Conduit.hs, .stack-work\dist\e626a42b\build\Network\Wai\Handler\Warp\Conduit.o )
+[16 of 37] Compiling Network.Wai.Handler.Warp.Buffer ( Network\Wai\Handler\Warp\Buffer.hs, .stack-work\dist\e626a42b\build\Network\Wai\Handler\Warp\Buffer.o )
+[17 of 37] Compiling Network.Wai.Handler.Warp.SendFile ( Network\Wai\Handler\Warp\SendFile.hs, .stack-work\dist\e626a42b\build\Network\Wai\Handler\Warp\SendFile.o )
+[18 of 37] Compiling Network.Wai.Handler.Warp.ResponseHeader ( Network\Wai\Handler\Warp\ResponseHeader.hs, .stack-work\dist\e626a42b\build\Network\Wai\Handler\Warp\ResponseHeader.o )
+[19 of 37] Compiling Network.Wai.Handler.Warp.IO ( Network\Wai\Handler\Warp\IO.hs, .stack-work\dist\e626a42b\build\Network\Wai\Handler\Warp\IO.o )
+[20 of 37] Compiling Network.Wai.Handler.Warp.Windows ( Network\Wai\Handler\Warp\Windows.hs, .stack-work\dist\e626a42b\build\Network\Wai\Handler\Warp\Windows.o )
+[21 of 37] Compiling Network.Wai.Handler.Warp.Recv ( Network\Wai\Handler\Warp\Recv.hs, .stack-work\dist\e626a42b\build\Network\Wai\Handler\Warp\Recv.o )
+
+[;1mNetwork\Wai\Handler\Warp\Recv.hs:138:1: [;1m[35mwarning:[0m[0m[;1m [[;1m[35m-Wunused-top-binds[0m[0m[;1m][0m[0m[;1m
+    Defined but not used: ‘c_recv’[0m[0m
+[;1m[34m    |[0m[0m
+[;1m[34m138 |[0m[0m [;1m[35mforeign import ccall unsafe "recv"[0m[0m
+[;1m[34m    |[0m[0m[;1m[35m ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^...[0m[0m
+[0m[0m[0m[22 of 37] Compiling Paths_warp       ( .stack-work\dist\e626a42b\build\autogen\Paths_warp.hs, .stack-work\dist\e626a42b\build\Paths_warp.o )
+[23 of 37] Compiling Network.Wai.Handler.Warp.Settings ( Network\Wai\Handler\Warp\Settings.hs, .stack-work\dist\e626a42b\build\Network\Wai\Handler\Warp\Settings.o )
+[24 of 37] Compiling Network.Wai.Handler.Warp.Request ( Network\Wai\Handler\Warp\Request.hs, .stack-work\dist\e626a42b\build\Network\Wai\Handler\Warp\Request.o )
+[25 of 37] Compiling Network.Wai.Handler.Warp.HTTP2.Manager ( Network\Wai\Handler\Warp\HTTP2\Manager.hs, .stack-work\dist\e626a42b\build\Network\Wai\Handler\Warp\HTTP2\Manager.o )
+[26 of 37] Compiling Network.Wai.Handler.Warp.HTTP2.Types ( Network\Wai\Handler\Warp\HTTP2\Types.hs, .stack-work\dist\e626a42b\build\Network\Wai\Handler\Warp\HTTP2\Types.o )
+[27 of 37] Compiling Network.Wai.Handler.Warp.HTTP2.Request ( Network\Wai\Handler\Warp\HTTP2\Request.hs, .stack-work\dist\e626a42b\build\Network\Wai\Handler\Warp\HTTP2\Request.o )
+
+[;1mNetwork\Wai\Handler\Warp\HTTP2\Request.hs:52:9: [;1m[35mwarning:[0m[0m[;1m [[;1m[35m-Wdeprecations[0m[0m[;1m][0m[0m[;1m
+    In the use of ‘requestBody’ (imported from Network.Wai.Internal):
+    Deprecated: "requestBody's name is misleading because it only gets a partial chunk of the body. Use getRequestBodyChunk instead."[0m[0m
+[;1m[34m   |[0m[0m
+[;1m[34m52 |[0m[0m       , [;1m[35mrequestBody[0m[0m = body
+[;1m[34m   |[0m[0m[;1m[35m         ^^^^^^^^^^^[0m[0m
+[0m[0m[0m[28 of 37] Compiling Network.Wai.Handler.Warp.HTTP2.HPACK ( Network\Wai\Handler\Warp\HTTP2\HPACK.hs, .stack-work\dist\e626a42b\build\Network\Wai\Handler\Warp\HTTP2\HPACK.o )
+[29 of 37] Compiling Network.Wai.Handler.Warp.HTTP2.Sender ( Network\Wai\Handler\Warp\HTTP2\Sender.hs, .stack-work\dist\e626a42b\build\Network\Wai\Handler\Warp\HTTP2\Sender.o )
+[30 of 37] Compiling Network.Wai.Handler.Warp.HTTP2.Receiver ( Network\Wai\Handler\Warp\HTTP2\Receiver.hs, .stack-work\dist\e626a42b\build\Network\Wai\Handler\Warp\HTTP2\Receiver.o )
+[31 of 37] Compiling Network.Wai.Handler.Warp.Response ( Network\Wai\Handler\Warp\Response.hs, .stack-work\dist\e626a42b\build\Network\Wai\Handler\Warp\Response.o )
+[32 of 37] Compiling Network.Wai.Handler.Warp.HTTP2.Worker ( Network\Wai\Handler\Warp\HTTP2\Worker.hs, .stack-work\dist\e626a42b\build\Network\Wai\Handler\Warp\HTTP2\Worker.o )
+
+[;1mNetwork\Wai\Handler\Warp\HTTP2\Worker.hs:255:51: [;1m[35mwarning:[0m[0m[;1m [[;1m[35m-Wdeprecations[0m[0m[;1m][0m[0m[;1m
+    In the use of ‘requestBody’
+    (imported from Network.Wai, but defined in Network.Wai.Internal):
+    Deprecated: "requestBody's name is misleading because it only gets a partial chunk of the body. Use getRequestBodyChunk instead."[0m[0m
+[;1m[34m    |[0m[0m
+[;1m[34m255 |[0m[0m                 !req' = req { vault = vaultValue, [;1m[35mrequestBody[0m[0m = body' }
+[;1m[34m    |[0m[0m[;1m[35m                                                   ^^^^^^^^^^^[0m[0m
+[0m[0m[0m[33 of 37] Compiling Network.Wai.Handler.Warp.HTTP2 ( Network\Wai\Handler\Warp\HTTP2.hs, .stack-work\dist\e626a42b\build\Network\Wai\Handler\Warp\HTTP2.o )
+[34 of 37] Compiling Network.Wai.Handler.Warp.Run ( Network\Wai\Handler\Warp\Run.hs, .stack-work\dist\e626a42b\build\Network\Wai\Handler\Warp\Run.o )
+[35 of 37] Compiling Network.Wai.Handler.Warp.WithApplication ( Network\Wai\Handler\Warp\WithApplication.hs, .stack-work\dist\e626a42b\build\Network\Wai\Handler\Warp\WithApplication.o )
+[36 of 37] Compiling Network.Wai.Handler.Warp.Internal ( Network\Wai\Handler\Warp\Internal.hs, .stack-work\dist\e626a42b\build\Network\Wai\Handler\Warp\Internal.o )
+[37 of 37] Compiling Network.Wai.Handler.Warp ( Network\Wai\Handler\Warp.hs, .stack-work\dist\e626a42b\build\Network\Wai\Handler\Warp.o )
+Installing library in C:\sr\snapshots\1b0bbf2a\lib\x86_64-windows-ghc-8.6.5\warp-3.2.28-2e2mAPyhKg4GZoZmtN4zSQ
+Registering library for warp-3.2.28..

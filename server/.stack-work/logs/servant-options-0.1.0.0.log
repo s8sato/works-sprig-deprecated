@@ -1,0 +1,6 @@
+Configuring servant-options-0.1.0.0...
+Preprocessing library for servant-options-0.1.0.0..
+Building library for servant-options-0.1.0.0..
+[1 of 1] Compiling Network.Wai.Middleware.Servant.Options ( src\Network\Wai\Middleware\Servant\Options.hs, .stack-work\dist\e626a42b\build\Network\Wai\Middleware\Servant\Options.o )
+Installing library in C:\Users\pfmxx\works\sprig\server\.stack-work\install\99a5c7ce\lib\x86_64-windows-ghc-8.6.5\servant-options-0.1.0.0-IS5RaXCDPU21iESMvGkLGF
+Registering library for servant-options-0.1.0.0..

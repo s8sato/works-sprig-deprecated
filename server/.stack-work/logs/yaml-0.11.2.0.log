@@ -1,0 +1,15 @@
+Configuring yaml-0.11.2.0...
+Preprocessing library for yaml-0.11.2.0..
+Building library for yaml-0.11.2.0..
+[ 1 of 10] Compiling Data.Yaml.Internal ( src\Data\Yaml\Internal.hs, .stack-work\dist\e626a42b\build\Data\Yaml\Internal.o )
+[ 2 of 10] Compiling Data.Yaml.Include ( src\Data\Yaml\Include.hs, .stack-work\dist\e626a42b\build\Data\Yaml\Include.o )
+[ 3 of 10] Compiling Data.Yaml.Builder ( src\Data\Yaml\Builder.hs, .stack-work\dist\e626a42b\build\Data\Yaml\Builder.o )
+[ 4 of 10] Compiling Data.Yaml        ( src\Data\Yaml.hs, .stack-work\dist\e626a42b\build\Data\Yaml.o )
+[ 5 of 10] Compiling Data.Yaml.Config ( src\Data\Yaml\Config.hs, .stack-work\dist\e626a42b\build\Data\Yaml\Config.o )
+[ 6 of 10] Compiling Data.Yaml.Aeson  ( src\Data\Yaml\Aeson.hs, .stack-work\dist\e626a42b\build\Data\Yaml\Aeson.o )
+[ 7 of 10] Compiling Data.Yaml.Parser ( src\Data\Yaml\Parser.hs, .stack-work\dist\e626a42b\build\Data\Yaml\Parser.o )
+[ 8 of 10] Compiling Data.Yaml.Pretty ( src\Data\Yaml\Pretty.hs, .stack-work\dist\e626a42b\build\Data\Yaml\Pretty.o )
+[ 9 of 10] Compiling Data.Yaml.TH     ( src\Data\Yaml\TH.hs, .stack-work\dist\e626a42b\build\Data\Yaml\TH.o )
+[10 of 10] Compiling Paths_yaml       ( .stack-work\dist\e626a42b\build\autogen\Paths_yaml.hs, .stack-work\dist\e626a42b\build\Paths_yaml.o )
+Installing library in C:\sr\snapshots\1b0bbf2a\lib\x86_64-windows-ghc-8.6.5\yaml-0.11.2.0-CmtHXFoblvr1VlptBkStJu
+Registering library for yaml-0.11.2.0..

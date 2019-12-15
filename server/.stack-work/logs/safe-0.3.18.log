@@ -1,0 +1,10 @@
+Configuring safe-0.3.18...
+Preprocessing library for safe-0.3.18..
+Building library for safe-0.3.18..
+[1 of 5] Compiling Safe.Partial     ( Safe\Partial.hs, .stack-work\dist\e626a42b\build\Safe\Partial.o )
+[2 of 5] Compiling Safe.Util        ( Safe\Util.hs, .stack-work\dist\e626a42b\build\Safe\Util.o )
+[3 of 5] Compiling Safe.Foldable    ( Safe\Foldable.hs, .stack-work\dist\e626a42b\build\Safe\Foldable.o )
+[4 of 5] Compiling Safe.Exact       ( Safe\Exact.hs, .stack-work\dist\e626a42b\build\Safe\Exact.o )
+[5 of 5] Compiling Safe             ( Safe.hs, .stack-work\dist\e626a42b\build\Safe.o )
+Installing library in C:\sr\snapshots\1b0bbf2a\lib\x86_64-windows-ghc-8.6.5\safe-0.3.18-LtdH37oJsulDSBmeOJDMc3
+Registering library for safe-0.3.18..

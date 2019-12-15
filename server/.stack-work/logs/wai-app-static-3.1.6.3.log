@@ -1,0 +1,60 @@
+Configuring wai-app-static-3.1.6.3...
+Preprocessing library for wai-app-static-3.1.6.3..
+Building library for wai-app-static-3.1.6.3..
+[1 of 9] Compiling WaiAppStatic.Types ( WaiAppStatic\Types.hs, .stack-work\dist\e626a42b\build\WaiAppStatic\Types.o )
+[2 of 9] Compiling Util             ( Util.hs, .stack-work\dist\e626a42b\build\Util.o )
+[3 of 9] Compiling WaiAppStatic.Listing ( WaiAppStatic\Listing.hs, .stack-work\dist\e626a42b\build\WaiAppStatic\Listing.o )
+
+[;1mWaiAppStatic\Listing.hs:67:34: [;1m[35mwarning:[0m[0m[;1m [[;1m[35m-Wname-shadowing[0m[0m[;1m][0m[0m[;1m
+    This binding for ‘pieces’ shadows the existing binding
+      bound at WaiAppStatic\Listing.hs:27:16[0m[0m
+[;1m[34m   |[0m[0m
+[;1m[34m67 |[0m[0m     showFolder' hasTrailingSlash [;1m[35mpieces[0m[0m  = showFolder hasTrailingSlash (unsafeToPiece "root" : pieces)
+[;1m[34m   |[0m[0m[;1m[35m                                  ^^^^^^[0m[0m
+[0m[0m[0m
+[;1mWaiAppStatic\Listing.hs:120:24: [;1m[35mwarning:[0m[0m[;1m [[;1m[35m-Wunused-local-binds[0m[0m[;1m][0m[0m[;1m
+    Defined but not used: ‘isFile’[0m[0m
+[;1m[34m    |[0m[0m
+[;1m[34m120 |[0m[0m                    let [;1m[35misFile[0m[0m = either (const False) (const True) md
+[;1m[34m    |[0m[0m[;1m[35m                        ^^^^^^[0m[0m
+[0m[0m[0m[4 of 9] Compiling WaiAppStatic.Storage.Filesystem ( WaiAppStatic\Storage\Filesystem.hs, .stack-work\dist\e626a42b\build\WaiAppStatic\Storage\Filesystem.o )
+[5 of 9] Compiling WaiAppStatic.Storage.Embedded.TH ( WaiAppStatic\Storage\Embedded\TH.hs, .stack-work\dist\e626a42b\build\WaiAppStatic\Storage\Embedded\TH.o )
+
+[;1mWaiAppStatic\Storage\Embedded\TH.hs:10:1: [;1m[35mwarning:[0m[0m[;1m [[;1m[35m-Wunused-imports[0m[0m[;1m][0m[0m[;1m
+    The import of ‘Control.Applicative’ is redundant
+      except perhaps to import instances from ‘Control.Applicative’
+    To import instances alone, use: import Control.Applicative()[0m[0m
+[;1m[34m   |[0m[0m
+[;1m[34m10 |[0m[0m [;1m[35mimport Control.Applicative[0m[0m
+[;1m[34m   |[0m[0m[;1m[35m ^^^^^^^^^^^^^^^^^^^^^^^^^^[0m[0m
+[0m[0m[0m[6 of 9] Compiling WaiAppStatic.Storage.Embedded.Runtime ( WaiAppStatic\Storage\Embedded\Runtime.hs, .stack-work\dist\e626a42b\build\WaiAppStatic\Storage\Embedded\Runtime.o )
+[7 of 9] Compiling WaiAppStatic.Storage.Embedded ( WaiAppStatic\Storage\Embedded.hs, .stack-work\dist\e626a42b\build\WaiAppStatic\Storage\Embedded.o )
+[8 of 9] Compiling Network.Wai.Application.Static ( Network\Wai\Application\Static.hs, .stack-work\dist\e626a42b\build\Network\Wai\Application\Static.o )
+
+[;1mNetwork\Wai\Application\Static.hs:246:13: [;1m[35mwarning:[0m[0m[;1m [[;1m[35m-Wunused-local-binds[0m[0m[;1m][0m[0m[;1m
+    Defined but not used: ‘filesize’[0m[0m
+[;1m[34m    |[0m[0m
+[;1m[34m246 |[0m[0m         let [;1m[35mfilesize[0m[0m = fileGetSize file
+[;1m[34m    |[0m[0m[;1m[35m             ^^^^^^^^[0m[0m
+[0m[0m[0m[9 of 9] Compiling WaiAppStatic.CmdLine ( WaiAppStatic\CmdLine.hs, .stack-work\dist\e626a42b\build\WaiAppStatic\CmdLine.o )
+
+[;1mWaiAppStatic\CmdLine.hs:42:1: [;1m[35mwarning:[0m[0m[;1m [[;1m[35m-Wmissing-signatures[0m[0m[;1m][0m[0m[;1m
+    Top-level binding with no type signature:
+      option' :: Mod OptionFields Int -> Parser Int[0m[0m
+[;1m[34m   |[0m[0m
+[;1m[34m42 |[0m[0m [;1m[35moption'[0m[0m = option auto
+[;1m[34m   |[0m[0m[;1m[35m ^^^^^^^[0m[0m
+[0m[0m[0m
+[;1mWaiAppStatic\CmdLine.hs:96:5: [;1m[35mwarning:[0m[0m[;1m [[;1m[35m-Wname-shadowing[0m[0m[;1m][0m[0m[;1m
+    This binding for ‘args’ shadows the existing binding
+      defined at WaiAppStatic\CmdLine.hs:48:1[0m[0m
+[;1m[34m   |[0m[0m
+[;1m[34m96 |[0m[0m     [;1m[35margs[0m[0m@Args {..} <- execParser $ info (helperOption <*> args) fullDesc
+[;1m[34m   |[0m[0m[;1m[35m     ^^^^[0m[0m
+[0m[0m[0mPreprocessing executable 'warp' for wai-app-static-3.1.6.3..
+Building executable 'warp' for wai-app-static-3.1.6.3..
+[1 of 1] Compiling Main             ( app\warp-static.hs, .stack-work\dist\e626a42b\build\warp\warp-tmp\Main.o )
+Linking .stack-work\dist\e626a42b\build\warp\warp.exe ...
+Installing library in C:\sr\snapshots\1b0bbf2a\lib\x86_64-windows-ghc-8.6.5\wai-app-static-3.1.6.3-G2Ylz5W8T0H8k6f9pOvyWg
+Installing executable warp in C:\sr\snapshots\1b0bbf2a\bin
+Registering library for wai-app-static-3.1.6.3..

@@ -1,0 +1,70 @@
+Configuring monad-logger-0.3.31...
+Preprocessing library for monad-logger-0.3.31..
+Building library for monad-logger-0.3.31..
+[1 of 3] Compiling Control.Monad.Logger ( Control\Monad\Logger.hs, .stack-work\dist\e626a42b\build\Control\Monad\Logger.o )
+
+[;1mControl\Monad\Logger.hs:137:1: [;1m[35mwarning:[0m[0m[;1m [[;1m[35m-Wdeprecations[0m[0m[;1m][0m[0m[;1m
+    Module ‘Control.Monad.Trans.List’ is deprecated:
+      This transformer is invalid on most monads[0m[0m
+[;1m[34m    |[0m[0m
+[;1m[34m137 |[0m[0m [;1m[35mimport Control.Monad.Trans.List     ( ListT    )[0m[0m
+[;1m[34m    |[0m[0m[;1m[35m ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m[0m
+[0m[0m[0m
+[;1mControl\Monad\Logger.hs:139:1: [;1m[35mwarning:[0m[0m[;1m [[;1m[35m-Wdeprecations[0m[0m[;1m][0m[0m[;1m
+    Module ‘Control.Monad.Trans.Error’ is deprecated:
+      Use Control.Monad.Trans.Except instead[0m[0m
+[;1m[34m    |[0m[0m
+[;1m[34m139 |[0m[0m [;1m[35mimport Control.Monad.Trans.Error    ( ErrorT, Error)[0m[0m
+[;1m[34m    |[0m[0m[;1m[35m ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m[0m
+[0m[0m[0m
+[;1mControl\Monad\Logger.hs:235:40: [;1m[35mwarning:[0m[0m[;1m [[;1m[35m-Wdeprecations[0m[0m[;1m][0m[0m[;1m
+    In the use of type constructor or class ‘ListT’
+    (imported from Control.Monad.Trans.List):
+    Deprecated: "This transformer is invalid on most monads"[0m[0m
+[;1m[34m    |[0m[0m
+[;1m[34m235 |[0m[0m instance MonadLogger m => MonadLogger ([;1m[35mListT[0m[0m m) where DEF
+[;1m[34m    |[0m[0m[;1m[35m                                        ^^^^^[0m[0m
+[0m[0m[0m
+[;1mControl\Monad\Logger.hs:237:26: [;1m[35mwarning:[0m[0m[;1m [[;1m[35m-Wdeprecations[0m[0m[;1m][0m[0m[;1m
+    In the use of type constructor or class ‘Error’
+    (imported from Control.Monad.Trans.Error):
+    Deprecated: "Use Control.Monad.Trans.Except instead"[0m[0m
+[;1m[34m    |[0m[0m
+[;1m[34m237 |[0m[0m instance (MonadLogger m, [;1m[35mError[0m[0m e) => MonadLogger (ErrorT e m) where DEF
+[;1m[34m    |[0m[0m[;1m[35m                          ^^^^^[0m[0m
+[0m[0m[0m
+[;1mControl\Monad\Logger.hs:237:51: [;1m[35mwarning:[0m[0m[;1m [[;1m[35m-Wdeprecations[0m[0m[;1m][0m[0m[;1m
+    In the use of type constructor or class ‘ErrorT’
+    (imported from Control.Monad.Trans.Error):
+    Deprecated: "Use Control.Monad.Trans.Except instead"[0m[0m
+[;1m[34m    |[0m[0m
+[;1m[34m237 |[0m[0m instance (MonadLogger m, Error e) => MonadLogger ([;1m[35mErrorT[0m[0m e m) where DEF
+[;1m[34m    |[0m[0m[;1m[35m                                                   ^^^^^^[0m[0m
+[0m[0m[0m
+[;1mControl\Monad\Logger.hs:253:44: [;1m[35mwarning:[0m[0m[;1m [[;1m[35m-Wdeprecations[0m[0m[;1m][0m[0m[;1m
+    In the use of type constructor or class ‘ListT’
+    (imported from Control.Monad.Trans.List):
+    Deprecated: "This transformer is invalid on most monads"[0m[0m
+[;1m[34m    |[0m[0m
+[;1m[34m253 |[0m[0m instance MonadLoggerIO m => MonadLoggerIO ([;1m[35mListT[0m[0m m)
+[;1m[34m    |[0m[0m[;1m[35m                                            ^^^^^[0m[0m
+[0m[0m[0m
+[;1mControl\Monad\Logger.hs:255:28: [;1m[35mwarning:[0m[0m[;1m [[;1m[35m-Wdeprecations[0m[0m[;1m][0m[0m[;1m
+    In the use of type constructor or class ‘Error’
+    (imported from Control.Monad.Trans.Error):
+    Deprecated: "Use Control.Monad.Trans.Except instead"[0m[0m
+[;1m[34m    |[0m[0m
+[;1m[34m255 |[0m[0m instance (MonadLoggerIO m, [;1m[35mError[0m[0m e) => MonadLoggerIO (ErrorT e m)
+[;1m[34m    |[0m[0m[;1m[35m                            ^^^^^[0m[0m
+[0m[0m[0m
+[;1mControl\Monad\Logger.hs:255:55: [;1m[35mwarning:[0m[0m[;1m [[;1m[35m-Wdeprecations[0m[0m[;1m][0m[0m[;1m
+    In the use of type constructor or class ‘ErrorT’
+    (imported from Control.Monad.Trans.Error):
+    Deprecated: "Use Control.Monad.Trans.Except instead"[0m[0m
+[;1m[34m    |[0m[0m
+[;1m[34m255 |[0m[0m instance (MonadLoggerIO m, Error e) => MonadLoggerIO ([;1m[35mErrorT[0m[0m e m)
+[;1m[34m    |[0m[0m[;1m[35m                                                       ^^^^^^[0m[0m
+[0m[0m[0m[2 of 3] Compiling Control.Monad.Logger.CallStack ( Control\Monad\Logger\CallStack.hs, .stack-work\dist\e626a42b\build\Control\Monad\Logger\CallStack.o )
+[3 of 3] Compiling Paths_monad_logger ( .stack-work\dist\e626a42b\build\autogen\Paths_monad_logger.hs, .stack-work\dist\e626a42b\build\Paths_monad_logger.o )
+Installing library in C:\sr\snapshots\1b0bbf2a\lib\x86_64-windows-ghc-8.6.5\monad-logger-0.3.31-zIs5col8U7H0qen64tFDt
+Registering library for monad-logger-0.3.31..

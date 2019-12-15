@@ -1,0 +1,9 @@
+Configuring invariant-0.5.3...
+Preprocessing library for invariant-0.5.3..
+Building library for invariant-0.5.3..
+[1 of 4] Compiling Data.Functor.Invariant ( src\Data\Functor\Invariant.hs, .stack-work\dist\e626a42b\build\Data\Functor\Invariant.o )
+[2 of 4] Compiling Data.Functor.Invariant.TH.Internal ( src\Data\Functor\Invariant\TH\Internal.hs, .stack-work\dist\e626a42b\build\Data\Functor\Invariant\TH\Internal.o )
+[3 of 4] Compiling Data.Functor.Invariant.TH ( src\Data\Functor\Invariant\TH.hs, .stack-work\dist\e626a42b\build\Data\Functor\Invariant\TH.o )
+[4 of 4] Compiling Paths_invariant  ( .stack-work\dist\e626a42b\build\autogen\Paths_invariant.hs, .stack-work\dist\e626a42b\build\Paths_invariant.o )
+Installing library in C:\sr\snapshots\1b0bbf2a\lib\x86_64-windows-ghc-8.6.5\invariant-0.5.3-IffH1nUypDd3wb2jrGtnDY
+Registering library for invariant-0.5.3..
