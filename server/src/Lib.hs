@@ -121,22 +121,24 @@ model = Model day
 
 -- 
 
-type Graph a = [Edge a]
-type Edge a = ((Node, Node), a)
-type Node = Int
-data Attr =   TaskId       { taskId       :: Int    }
+data Graph = Graph         { edges        :: [Edge] }
+            deriving (Eq, Show)
+data Edge  = Edge          { terminal     :: Node, initial       :: Node, attrs          :: [Attr] }
+            deriving (Eq, Show)
+type Node  = Int
+data Attr  =  TaskId       { taskId       :: Int    }
             | IsDone       { isDone       :: Text }
             | IsStarred    { isStarred    :: Text }
-            | Title        { title        :: String }
-            | StartDate    { startYear    :: Int, startMonth     :: Int, startDay       :: Int }
-            | StartTime    { startHour    :: Int, startMinute    :: Int, startSecond    :: Int }
-            | DeadlineDate { deadlineYear :: Int, deadlineMonth  :: Int, deadlineDay    :: Int }
-            | DeadlineTime { deadlineHour :: Int, deadlineMinute :: Int, deadlineSecond :: Int }
-            | Weight       { weight       :: Int    }
             | Link         { link         :: String }
+            | StartDate    { startYear    :: Int, startMonth     :: Int,  startDay       :: Int    }
+            | StartTime    { startHour    :: Int, startMinute    :: Int,  startSecond    :: Int    }
+            | DeadlineDate { deadlineYear :: Int, deadlineMonth  :: Int,  deadlineDay    :: Int    }
+            | DeadlineTime { deadlineHour :: Int, deadlineMinute :: Int,  deadlineSecond :: Int    }
+            | Weight       { weight       :: Int    }
+            | Title        { title        :: String }
             deriving (Eq, Show)
 
-text2graph :: Text -> Graph [Attr]
+text2graph :: Text -> Graph
 text2graph = spanLink . assemble . markUp . chopLines
 
 type Indent = Int
@@ -191,17 +193,17 @@ aAttr =       TaskId        <$  string "@"    <*> decimal
           <|> Weight        <$  string "$"    <*> decimal
           <|> Title         <$> aString
 
-assemble  :: [((Node, Node), [Text])] -> Graph [Attr]
-assemble xs = map (assemble' []) xs
+assemble  :: [((Node, Node), [Text])] -> Graph
+assemble xs = Graph (map (assemble' []) xs)
 
-assemble' :: [Attr] -> ((Node, Node), [Text]) -> Edge [Attr]
-assemble' mem ((t,i), []) = ((t,i), mem)
+assemble' :: [Attr] -> ((Node, Node), [Text]) -> Edge
+assemble' mem ((t,i), []) = Edge t i mem
 assemble' mem ((t,i), a:as)  = 
     case parseOnly aAttr a of
-        Left _ -> ((t,i), mem)
+        Left _ -> Edge t i mem
         Right r -> assemble' (r:mem) ((t,i), as)
 
-spanLink :: Graph [Attr] -> Graph [Attr]
+spanLink :: Graph -> Graph
 spanLink g = g
 
 
@@ -224,12 +226,42 @@ fileTest inFile = do
 
 -- json2graph :: Value -> Parser Graph
 
--- graph2json :: Graph -> Value
-
-clientToJSON (Company i n p d) =
-    object  [ "type"    .= String "company"
-            , "id"      .= Number (fromInteger i)
-            , "name"    .= String (pack n)
-            , "person"  .= personToJSON p
-            , "duty"    .= String (pack d)
+graph2json :: Graph -> Value
+graph2json (Graph es) =
+    object  [ "edges"   .= object [ edge2json es ] 
             ]
+
+edge2json :: Edge -> Value
+edge2json (Edge t i as) =
+    object  [ "terminal"    .= Number (fromIntegral t)
+            , "initial"     .= Number (fromInteger i)
+            , "attrs"       .= object [ attr2json as ]
+            ]
+
+attr2json :: Attr -> Value
+attr2json (TaskId i) =
+    object  [ "taskId"      .= Number (fromInteger i)
+            ]
+
+
+
+
+                --         <
+                --         <
+                -- IsStarred     <
+                -- Link          <
+                -- StartDate     <
+                -- StartTime     <
+                -- DeadlineDate  <
+                -- DeadlineTime  <
+                -- Weight        <
+                -- Title         <
+
+
+-- clientToJSON (Company i n p d) =
+--     object  [ "type"    .= String "company"
+--             , "id"      .= Number (fromInteger i)
+--             , "name"    .= String (pack n)
+--             , "person"  .= personToJSON p
+--             , "duty"    .= String (pack d)
+--             ]
