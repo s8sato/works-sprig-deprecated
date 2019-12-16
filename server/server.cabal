@@ -15,14 +15,14 @@ cabal-version:       >=1.10
 
 library
   hs-source-dirs:      src
-  exposed-modules:     Lib
+  exposed-modules:     Db
                     --  , Cook
                        -- https://qiita.com/jabaraster/items/e8ebbe6d25b535947aba
                     --  , DataStore
                     --  , DataStore.Internal
                     --  , App
                     -- hasbolt
-                     , Db
+                    --  , Lib
                      , Data.Text
   build-depends:       base >= 4.7 && < 5
                       -- servant

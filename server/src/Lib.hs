@@ -123,8 +123,10 @@ model = Model day
 
 data Graph = Graph         { edges        :: [Edge] }
             deriving (Eq, Show)
+derivePersistField "Graph"
 data Edge  = Edge          { terminal     :: Node, initial       :: Node, attrs          :: [Attr] }
             deriving (Eq, Show)
+derivePersistField "Edge"
 type Node  = Int
 data Attr  =  TaskId       { taskId       :: Int    }
             | IsDone       { isDone       :: Text }
@@ -137,6 +139,7 @@ data Attr  =  TaskId       { taskId       :: Int    }
             | Weight       { weight       :: Int    }
             | Title        { title        :: String }
             deriving (Eq, Show)
+derivePersistField "Attr"
 
 text2graph :: Text -> Graph
 text2graph = spanLink . assemble . markUp . chopLines
@@ -226,22 +229,22 @@ fileTest inFile = do
 
 -- json2graph :: Value -> Parser Graph
 
-graph2json :: Graph -> Value
-graph2json (Graph es) =
-    object  [ "edges"   .= object [ edge2json es ] 
-            ]
+-- graph2json :: Graph -> Value
+-- graph2json (Graph es) =
+--     object  [ "edges"   .= object [ edge2json es ] 
+--             ]
 
-edge2json :: Edge -> Value
-edge2json (Edge t i as) =
-    object  [ "terminal"    .= Number (fromIntegral t)
-            , "initial"     .= Number (fromInteger i)
-            , "attrs"       .= object [ attr2json as ]
-            ]
+-- edge2json :: Edge -> Value
+-- edge2json (Edge t i as) =
+--     object  [ "terminal"    .= Number (fromIntegral t)
+--             , "initial"     .= Number (fromInteger i)
+--             , "attrs"       .= object [ attr2json as ]
+--             ]
 
-attr2json :: Attr -> Value
-attr2json (TaskId i) =
-    object  [ "taskId"      .= Number (fromInteger i)
-            ]
+-- attr2json :: Attr -> Value
+-- attr2json (TaskId i) =
+--     object  [ "taskId"      .= Number (fromInteger i)
+--             ]
 
 
 
@@ -265,3 +268,7 @@ attr2json (TaskId i) =
 --             , "person"  .= personToJSON p
 --             , "duty"    .= String (pack d)
 --             ]
+
+
+--
+

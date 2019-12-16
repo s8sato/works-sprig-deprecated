@@ -1,6 +1,7 @@
 module Main where
 
-import Lib
+-- import Lib
 
 main :: IO ()
-main = startApp
+-- main = startApp
+main = print ""
