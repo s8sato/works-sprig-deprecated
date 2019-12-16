@@ -1,49 +1,80 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TemplateHaskell            #-}
+{-# LANGUAGE FlexibleInstances          #-}
+{-# LANGUAGE MultiParamTypeClasses      #-}
+{-# LANGUAGE TypeFamilies               #-}
+{-# LANGUAGE GADTs                      #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE DeriveGeneric              #-}
+{-# LANGUAGE QuasiQuotes                #-}
+
 module Db where
 
-import Database.Bolt
-import Data.Default
-import Data.Text
-import Control.Monad
-import Control.Monad.Except
-import Data.Aeson
+import Control.Monad.Logger         ( runStdoutLoggingT )
+import Control.Monad.Trans.Reader   ( runReaderT )
+import Control.Monad.Trans.Resource ( runResourceT )
+import Database.Persist.Postgresql  ( PostgresConf (..)
+                                    , withPostgresqlConn
+                                    , createPostgresqlPool
+                                    )
+import Database.Persist.Sql         ( Migration
+                                    , ConnectionPool
+                                    , runMigration
+                                    )
 
-import qualified Data.Text.Lazy as LT
-import qualified Data.Text.Lazy.Builder as B
-import qualified Data.Text.Lazy.Builder.Int as B
-import Data.Conduit
-import qualified Data.Conduit.Binary as B
-import qualified Data.Conduit.List as L
-import qualified Data.Conduit.Text as T
+import Control.Lens                 ((^.))
+import Data.Text                    (Text)
+import Database.Persist
+import Database.Persist.Sql         (ConnectionPool
+                                   , runSqlPool
+                                    )
+import Database.Persist.TH          (mkMigrate
+                                   , mkPersist
+                                   , persistLowerCase
+                                   , share
+                                   , sqlSettings
+                                   , mpsGenerateLenses
+                                    )
+import GHC.Generics
 
--- import Database.Bolt (connect, run, query, close, Node(..))
--- import Data.Default (def)
+pgPool :: IO ConnectionPool
+pgPool = do
+    -- conf <- pgConf
+    let conf = PostgresConf "host=localhost port=5432 user=postgres dbname=postgres password=Pfg5NlqJ" 5
+    runStdoutLoggingT $ createPostgresqlPool (pgConnStr conf) (pgPoolSize conf)
 
-myConfiguration :: BoltCfg
-myConfiguration = def { user = "neo4j", password = "Pfg5NlqJ", host = "localhost" }
- 
-main :: IO ()
-main = do pipe <- connect myConfiguration
-          records <- run pipe $ query "MATCH (tom {name: 'Tom Hanks'}) RETURN tom"
-          let first = Prelude.head records
-          cruise <- first `at` "tom" >>= exact :: IO Node
-          print cruise
-          close pipe
+doMigration :: Migration -> IO ()
+doMigration action = do
+    -- conf <- pgConf
+    let conf = PostgresConf "host=localhost port=5432 user=postgres dbname=postgres password=Pfg5NlqJ" 5
+    runStdoutLoggingT $ runResourceT $ withPostgresqlConn (pgConnStr conf) $ runReaderT $ runMigration action
+
+share [mkPersist sqlSettings { mpsGenerateLenses = True }, mkMigrate "migrateAll"] [persistLowerCase|
+User json
+    name Text
+    age Int
+    UniqueUserName name
+    deriving Eq Show Generic
+|]
+
+getUsers :: ConnectionPool -> IO [Entity User]
+getUsers pool = flip runSqlPool pool $ selectList [] []
+
+getUser :: ConnectionPool -> Key User -> IO (Maybe (Entity User))
+getUser pool = flip runSqlPool pool . getEntity
+
+insertUser :: ConnectionPool -> User -> IO (Maybe (Entity User))
+insertUser pool user = flip runSqlPool pool $ do
+    mInDb <- getBy $ UniqueUserName $ user^.userName
+    case mInDb of
+      Just inDb -> pure Nothing
+      Nothing   -> do
+                     key <- insert user
+                     pure $ Just $ Entity key user
+
+migrateDb :: IO ()
+migrateDb = doMigration migrateAll
 
 
-createPerson :: String -> IO ()
-createPerson name = do
-    pipe <- connect myConfiguration
-    result <- run pipe $ query $ pack $ "CREATE (p:Person { name: '" ++ name ++ "' })"
-    print result
-
-matchPerson :: String -> IO ()
-matchPerson name = do
-    pipe <- connect myConfiguration
-    records <- run pipe $ query $ pack $ "MATCH (p:Person) WHERE p.name = '" ++ name ++ "' RETURN p;"
-    print records
-
-
-data Person = Person { name :: String }
-    deriving (Show, Eq, Ord)
+--
 
