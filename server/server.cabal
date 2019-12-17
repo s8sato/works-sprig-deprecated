@@ -22,7 +22,7 @@ library
                     --  , DataStore.Internal
                     --  , App
                     -- hasbolt
-                    --  , Lib
+                     , Lib
                      , Data.Text
   build-depends:       base >= 4.7 && < 5
                       -- servant

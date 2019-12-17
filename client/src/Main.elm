@@ -7,7 +7,7 @@ import Html exposing (..)
 import Html.Attributes exposing (href, style)
 import Html.Events exposing (onClick)
 import Http
-import Json.Decode as Decode exposing (Decoder, bool, int, list, string)
+import Json.Decode as Decode exposing (Decoder, bool, float, int, list, string)
 import Json.Decode.Pipeline exposing (optional, required)
 
 
@@ -26,9 +26,10 @@ main =
 
 
 type alias Model =
-    { scale : Int
+    { dpy : Int
     , tasks : List Task
     , indicator : Int
+    , errorMessage : Maybe String
     }
 
 
@@ -36,24 +37,19 @@ type alias Task =
     { isDone : Bool
     , isStarred : Bool
     , title : String
-    , start : DateTime
-    , deadline : DateTime
-    , weight : Int
+    , link : String
+    , start : String -- "YYYY/MM/DD HH:MM'SS"
+    , deadline : String
+    , weight : Float
     , bar : Bar
     , isSelected : Bool
     }
 
 
-type alias DateTime =
-    { date : String -- "YYYY/MM/DD"
-    , time : String -- "HH:MM:SS"
-    }
-
-
 type alias Bar =
     { dot : Int
-    , sharp : Int
-    , exclamation : Int
+    , sha : Int
+    , exc : Int
     }
 
 
@@ -104,9 +100,10 @@ type Direction
 
 init : () -> ( Model, Cmd Msg )
 init _ =
-    ( { scale = day
+    ( { dpy = day
       , tasks = []
       , indicator = 0
+      , errorMessage = Nothing
       }
     , Cmd.none
     )
@@ -117,8 +114,8 @@ init _ =
 
 
 type Msg
-    = SendHttpRequest
-    | DataReceived (Result Http.Error Model)
+    = DataReceived (Result Http.Error Model)
+    | TasksReceived (Result Http.Error (List Task))
     | CharacterKey Char
     | ControlKey String
     | Register String
@@ -180,15 +177,48 @@ focus model i =
     ( model, Cmd.none )
 
 
+buildErrorMessage : Http.Error -> String
+buildErrorMessage httpError =
+    case httpError of
+        Http.BadUrl message ->
+            message
+
+        Http.Timeout ->
+            "Server is taking too long to respond. Please try again later."
+
+        Http.NetworkError ->
+            "Unable to reach server."
+
+        Http.BadStatus statusCode ->
+            "Request failed with status code: " ++ String.fromInt statusCode
+
+        Http.BadBody message ->
+            message
+
+
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        SendHttpRequest ->
-            ( model, httpCommand )
+        -- SendHttpRequest ->
+        --     ( model, httpCommand )
+        TasksReceived (Ok newTasks) ->
+            ( { model
+                | tasks = newTasks
+              }
+            , Cmd.none
+            )
+
+        TasksReceived (Err httpError) ->
+            ( { model
+                | dpy = 404
+                , errorMessage = Just (buildErrorMessage httpError)
+              }
+            , Cmd.none
+            )
 
         DataReceived (Ok newModel) ->
             ( { model
-                | scale = newModel.scale
+                | dpy = newModel.dpy
                 , tasks = newModel.tasks
               }
             , Cmd.none
@@ -254,7 +284,7 @@ update msg model =
             select model model.indicator
 
         CharacterKey _ ->
-            ( model, httpCommand )
+            ( model, getTasksAll )
 
         ControlKey _ ->
             ( model, Cmd.none )
@@ -278,47 +308,51 @@ update msg model =
             select model index
 
 
-modelDecoder : Decoder Model
-modelDecoder =
-    Decode.succeed Model
-        |> required "scale" int
-        |> required "tasks" (list taskDecoder)
-        |> optional "indicator" int 0
+
+-- modelDecoder : Decoder Model
+-- modelDecoder =
+--     Decode.succeed Model
+--         |> required "dpy" int
+--         |> required "tasks" (list taskDecoder)
+--         |> optional "indicator" int 0
 
 
 taskDecoder : Decoder Task
 taskDecoder =
     Decode.succeed Task
-        |> required "isDone" bool
-        |> required "isStarred" bool
-        |> required "title" string
-        |> required "start" dateTimeDecoder
-        |> required "deadline" dateTimeDecoder
-        |> required "weight" int
-        |> required "bar" barDecoder
-        |> optional "isSelected" bool False
-
-
-dateTimeDecoder : Decoder DateTime
-dateTimeDecoder =
-    Decode.succeed DateTime
-        |> required "date" string
-        |> required "time" string
+        |> required "elmTaskIsDone" bool
+        |> required "elmTaskIsStarred" bool
+        |> required "elmTaskTitle" string
+        |> required "elmTaskLink" string
+        |> required "elmTaskStart" string
+        |> required "elmTaskDeadline" string
+        |> required "elmTaskWeight" float
+        |> required "elmTaskBar" barDecoder
+        |> optional "elmTaskIsSelected" bool False
 
 
 barDecoder : Decoder Bar
 barDecoder =
     Decode.succeed Bar
-        |> required "dot" int
-        |> required "sharp" int
-        |> required "exclamation" int
+        |> required "elmBarDot" int
+        |> required "elmBarSha" int
+        |> required "elmBarExc" int
 
 
-httpCommand : Cmd Msg
-httpCommand =
+
+-- httpCommand : Cmd Msg
+-- httpCommand =
+--     Http.get
+--         { url = "http://localhost:8080/model"
+--         , expect = Http.expectJson DataReceived modelDecoder
+--         }
+
+
+getTasksAll : Cmd Msg
+getTasksAll =
     Http.get
-        { url = "http://localhost:8080/model"
-        , expect = Http.expectJson DataReceived modelDecoder
+        { url = "http://localhost:8080/tasks/all"
+        , expect = Http.expectJson TasksReceived (list taskDecoder)
         }
 
 
@@ -330,11 +364,21 @@ view : Model -> Html Msg
 view model =
     div []
         [ div [ style "height" "60px", style "background-color" "gray" ]
-            [ span [] [ text ("scale: " ++ String.fromInt model.scale) ] ]
+            [ span [] [ text ("dpy: " ++ String.fromInt model.dpy ++ em model) ] ]
         , div [ style "height" "30px", style "background-color" "aqua" ] []
         , table [ style "font-size" "12px", style "font-family" "Courier" ]
             ([ viewTableHeader ] ++ List.map (viewTask model) (List.indexedMap Tuple.pair model.tasks))
         ]
+
+
+em : Model -> String
+em model =
+    case model.errorMessage of
+        Just e ->
+            e
+
+        Nothing ->
+            ""
 
 
 viewTableHeader : Html Msg
@@ -383,15 +427,15 @@ viewTask model ( idx, task ) =
                 text "☆"
             ]
         , td []
-            [ text task.title ]
+            [ a [ href task.link ] [ text task.title ] ]
         , td []
-            [ text (viewDateTimeByScale task.start model.scale) ]
+            [ text (viewTimeByDpy task.start model.dpy) ]
         , td []
             [ text (barStr task.bar) ]
         , td []
-            [ text (viewDateTimeByScale task.deadline model.scale) ]
+            [ text (viewTimeByDpy task.deadline model.dpy) ]
         , td []
-            [ text (String.fromInt task.weight) ]
+            [ text (String.fromFloat task.weight) ]
         , td []
             [ if task.isDone then
                 text "DONE"
@@ -402,39 +446,43 @@ viewTask model ( idx, task ) =
         ]
 
 
-viewDateTimeByScale : DateTime -> Int -> String
-viewDateTimeByScale datetime scale =
-    if scale <= yea then
-        fill 7 <| String.left 4 datetime.date
+viewTimeByDpy : String -> Int -> String
+viewTimeByDpy time dpy =
+    -- "YYYY/MM/DD HH:MM'SS"
+    if dpy <= yea then
+        fill 7 <| String.left 4 time
 
-    else if scale <= mon then
-        fill 7 <| String.slice 2 7 datetime.date
+    else if dpy <= mon then
+        fill 7 <| String.slice 2 7 time
 
-    else if scale <= day then
-        fill 7 <| String.right 5 datetime.date
+    else if dpy <= day then
+        fill 7 <| String.slice 5 10 time
 
-    else if scale <= hou then
-        String.right 3 datetime.date ++ " " ++ String.right 3 datetime.time
+    else if dpy <= hou then
+        fill 7 <| String.slice 7 14 time
 
-    else if scale <= min then
-        fill 7 <| String.left 5 datetime.time
+    else if dpy <= min then
+        fill 7 <| String.slice 11 16 time
 
     else
-        fill 7 <| String.right 5 datetime.time
+        fill 7 <| String.right 5 time
 
 
 fill : Int -> String -> String
 fill n str =
-    String.right n <| String.repeat n "." ++ str
+    String.left n <| str ++ String.repeat n "."
 
 
 barStr : Bar -> String
 barStr bar =
     String.repeat bar.dot "."
-        ++ String.repeat (bar.sharp - bar.dot) "#"
-        ++ String.repeat (bar.exclamation - bar.sharp) "."
-        ++ "!"
-        ++ String.repeat (50 - bar.exclamation) "."
+        ++ String.repeat bar.sha "#"
+        |> fill 50
+        |> String.toList
+        |> Array.fromList
+        |> Array.set bar.exc '!'
+        |> Array.toList
+        |> String.fromList
 
 
 

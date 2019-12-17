@@ -46,6 +46,7 @@ import Database.Persist.Sql
 import Network.Wai.Handler.Warp (run, Port)
 import Servant
 
+
 pgPool :: IO ConnectionPool
 pgPool = do
     -- conf <- pgConf
@@ -69,13 +70,11 @@ Task json
     isDone          Bool
     isStarred       Bool
     link            String Maybe
-    startDate       Day Maybe
-    startTime       UTCTime Maybe
-    deadlineDate    Day Maybe
-    deadlineTime    UTCTime Maybe
-    weight          Int Maybe
+    start           UTCTime Maybe
+    deadline        UTCTime Maybe
+    weight          Double Maybe
     title           String
-    client          Int
+    user            Int
     deriving Show
 |]
 
@@ -127,8 +126,7 @@ insUser user = do
 ins = do
     pool <- pgPool
     flip runSqlPool pool $ do
-        satId <- insert $ User "sat"
-        insert $ Task 7 8 False True (Just "link") Nothing Nothing Nothing Nothing (Just 30) "title" 1
+        insert $ Task 7 8 False True (Just "https://") Nothing Nothing (Just 30) "title" 1
 
 getUndoneTasksByUser :: ConnectionPool -> Int -> IO [Entity Task]
 getUndoneTasksByUser pool id = flip runSqlPool pool $ do
@@ -143,28 +141,34 @@ get = do
     getUndoneTasksByUser pool 1
 
 
-type ApiDef  = Get '[JSON] [Entity Task]
-        :<|> "tasks" :> Get '[JSON] [Entity Task]
+-- type ApiDef  = Get '[JSON] [Entity Task]
+--         :<|> "tasks" :> Get '[JSON] [Entity Task]
 
-server :: ConnectionPool -> Server ApiDef
-server pool = (liftIO $ getTasks pool)
-        :<|> (liftIO $ getTasks pool)
+-- server :: ConnectionPool -> Server ApiDef
+-- server pool = (liftIO $ getTasks pool)
+--         :<|> (liftIO $ getTasks pool)
 
-api :: Proxy ApiDef
-api = Proxy
+-- api :: Proxy ApiDef
+-- api = Proxy
 
-app :: ConnectionPool -> Application
-app pool = serve api $ server pool
+-- app :: ConnectionPool -> Application
+-- app pool = serve api $ server pool
 
-mkApp :: IO Application
-mkApp = do
-    migrateDb
+-- mkApp :: IO Application
+-- mkApp = do
+--     migrateDb
+--     pool <- pgPool
+--     return $ app pool
+
+-- startServer :: Port -> IO ()
+-- startServer port = do
+--     putStrLn "{- ----------------------------"
+--     putStrLn " - start server!"
+--     putStrLn " ----------------------------- -}"
+--     run port =<< mkApp
+
+rawTask :: IO [Task]
+rawTask = do
     pool <- pgPool
-    return $ app pool
-
-startServer :: Port -> IO ()
-startServer port = do
-    putStrLn "{- ----------------------------"
-    putStrLn " - start server!"
-    putStrLn " ----------------------------- -}"
-    run port =<< mkApp
+    tasks <- getTasks pool
+    return (map (\(Entity k v) -> v) tasks)

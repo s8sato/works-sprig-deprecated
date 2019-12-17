@@ -47,58 +47,51 @@ import qualified Data.Conduit.List as L
 import Data.Time
 import System.IO
 
-yea :: Int
-yea = 1
-qua :: Int
-qua = 4
-mon :: Int
-mon = 12
-wee :: Int
-wee = 52
-day :: Int
-day = 365
-hou :: Int
-hou = 8760
-min :: Int
-min = 525600
-sec :: Int
-sec = 31536000
+import Db
+import Database.Persist (Entity(..))
+import Control.Monad.IO.Class   (liftIO)
 
-data DateTime = DateTime
-    { date :: String -- "YYYY/MM/DD"
-    , time :: String -- "HH:MM'SS"
+yeaPerY = 1
+quaPerY = 4
+monPerY = 12
+weePerY = 52
+dayPerY = 365
+houPerY = 8760
+minPerY = 525600
+secPerY = 31536000
+
+defaultTaskLink = ""
+defaultTaskWeight = 0.0
+
+data ElmBar = ElmBar
+    { elmBarDot :: Int
+    , elmBarSha :: Int
+    , elmBarExc :: Int
     } deriving (Eq, Show)
 
-$(deriveJSON defaultOptions ''DateTime)
+$(deriveJSON defaultOptions ''ElmBar)
 
-data Bar = Bar
-    { dot :: Int
-    , sharp :: Int
-    , exclamation :: Int
+data ElmTask = ElmTask
+    { elmTaskIsDone :: Bool
+    , elmTaskIsStarred :: Bool
+    , elmTaskTitle :: String
+    , elmTaskLink :: String
+    , elmTaskStart :: String
+    , elmTaskDeadline :: String
+    , elmTaskWeight :: Double
+    , elmTaskBar :: ElmBar
     } deriving (Eq, Show)
 
-$(deriveJSON defaultOptions ''Bar)
+$(deriveJSON defaultOptions ''ElmTask)
 
-data Task = Task
-    { isDone' :: Bool
-    , isStarred' :: Bool
-    , title' :: String
-    , start' :: DateTime
-    , deadline' :: DateTime
-    , weight' :: Int
-    , bar' :: Bar
-    } deriving (Eq, Show)
+-- data ElmModel = Model
+--     { elmModelDpy :: Int
+--     , elmModelTasks :: [Task]
+--     } deriving (Eq, Show)
 
-$(deriveJSON defaultOptions ''Task)
+-- $(deriveJSON defaultOptions ''ElmModel)
 
-data Model = Model
-    { scale :: Int
-    , tasks :: [Task]
-    } deriving (Eq, Show)
-
-$(deriveJSON defaultOptions ''Model)
-
-type API = "model" :> Get '[JSON] Model
+type API = "tasks" :> "all" :> Get '[JSON] [ElmTask]
 
 startApp :: IO ()
 startApp = run 8080 app
@@ -111,35 +104,40 @@ api :: Proxy API
 api = Proxy
 
 server :: Server API
-server = return model
+server = liftIO ggeett
 
-model :: Model
-model = Model day
-        [ Task False True "curry" (DateTime "2019/12/15" "06:35'00") (DateTime "2019/12/16" "06:36:00") 30 (Bar 12 15 16)
-        , Task True False "hayasi" (DateTime "2019/12/17" "06:37'00") (DateTime "2019/12/18" "06:38:00") 60 (Bar 9 15 16)
-        ]
+ggeett = do
+    pool <- pgPool
+    entities <- getUndoneTasksByUser pool 1
+    now <- zonedTimeToUTC <$> getZonedTime
+    let elmTasks = map (toElmTask dayPerY now) (map entity2a entities)
+    return elmTasks
+
+
+entity2a :: Entity a -> a
+entity2a (Entity k v) = v
 
 -- 
 
+type Node  = Int
+data Attr  =  AttrTaskId       { attrTaskId       :: Int    }
+    | IsDone       { isDone       :: Text }
+    | IsStarred    { isStarred    :: Text }
+    | Link         { link         :: String }
+    | StartDate    { startYear    :: Int, startMonth     :: Int,  startDay       :: Int    }
+    | StartTime    { startHour    :: Int, startMinute    :: Int,  startSecond    :: Int    }
+    | DeadlineDate { deadlineYear :: Int, deadlineMonth  :: Int,  deadlineDay    :: Int    }
+    | DeadlineTime { deadlineHour :: Int, deadlineMinute :: Int,  deadlineSecond :: Int    }
+    | Weight       { weight       :: Int    }
+    | Title        { title        :: String }
+    deriving (Eq, Show)
+-- derivePersistField "Attr"
+data Edge  = Edge          { terminal     :: Node, initial       :: Node, attrs          :: [Attr] }
+    deriving (Eq, Show)
+-- derivePersistField "Edge"
 data Graph = Graph         { edges        :: [Edge] }
             deriving (Eq, Show)
-derivePersistField "Graph"
-data Edge  = Edge          { terminal     :: Node, initial       :: Node, attrs          :: [Attr] }
-            deriving (Eq, Show)
-derivePersistField "Edge"
-type Node  = Int
-data Attr  =  TaskId       { taskId       :: Int    }
-            | IsDone       { isDone       :: Text }
-            | IsStarred    { isStarred    :: Text }
-            | Link         { link         :: String }
-            | StartDate    { startYear    :: Int, startMonth     :: Int,  startDay       :: Int    }
-            | StartTime    { startHour    :: Int, startMinute    :: Int,  startSecond    :: Int    }
-            | DeadlineDate { deadlineYear :: Int, deadlineMonth  :: Int,  deadlineDay    :: Int    }
-            | DeadlineTime { deadlineHour :: Int, deadlineMinute :: Int,  deadlineSecond :: Int    }
-            | Weight       { weight       :: Int    }
-            | Title        { title        :: String }
-            deriving (Eq, Show)
-derivePersistField "Attr"
+-- derivePersistField "Graph"
 
 text2graph :: Text -> Graph
 text2graph = spanLink . assemble . markUp . chopLines
@@ -185,7 +183,7 @@ aString :: Parser String
 aString = many aChar
 
 aAttr :: Parser Attr
-aAttr =       TaskId        <$  string "@"    <*> decimal
+aAttr =       AttrTaskId        <$  string "@"    <*> decimal
           <|> IsDone        <$> string "</>"
           <|> IsStarred     <$> string "<*>"
           <|> Link          <$  string "&"    <*> aString
@@ -242,7 +240,7 @@ fileTest inFile = do
 --             ]
 
 -- attr2json :: Attr -> Value
--- attr2json (TaskId i) =
+-- attr2json (AttrTaskId i) =
 --     object  [ "taskId"      .= Number (fromInteger i)
 --             ]
 
@@ -271,4 +269,70 @@ fileTest inFile = do
 
 
 --
+
+toElmTask :: Int -> UTCTime -> Task -> ElmTask
+-- dots per year
+toElmTask dpy now (Task _ _ d s ml ms md mw tt _) =
+    let
+        ed  = d
+        es  = s
+        ett = tt
+        el  = case ml of
+                Just link ->
+                    link
+                Nothing ->
+                    defaultTaskLink
+        ess = toElmTime ms
+        edd = toElmTime md
+        ew  = case mw of
+                Just weight ->
+                    weight
+                Nothing ->
+                    defaultTaskWeight
+        eb  = toElmBar dpy now ms mw md
+    in
+        ElmTask ed es ett el ess edd ew eb 
+
+toElmTime :: Maybe UTCTime -> String
+toElmTime mt =
+    case mt of
+        Just t ->
+            formatTime defaultTimeLocale "%Y/%m/%d %H:%M'%S" t
+        Nothing ->
+            "0000/00/00 00:00'00"
+
+toElmBar :: Int -> UTCTime -> Maybe UTCTime -> Maybe Double -> Maybe UTCTime -> ElmBar
+toElmBar dpy now ms mw md =
+    let
+        dot = case ms of
+            Just s ->
+                sec2dot dpy $ diffSeconds s now
+            Nothing ->
+                0
+        sha = case mw of
+            Just w ->
+                sec2dot dpy $ weight2sec w 
+            Nothing ->
+                0
+        exc = case md of
+            Just d ->
+                sec2dot dpy $ diffSeconds d now 
+            Nothing ->
+                0
+    in
+        ElmBar dot sha exc
+
+diffSeconds :: UTCTime -> UTCTime -> Integer
+diffSeconds t1 t2 = floor $ diffUTCTime t1 t2
+
+sec2dot :: Int -> Integer -> Int
+sec2dot dpy sec =
+    (dpy * fromIntegral(sec)) `div` (60 * 60 * 24 * 365)
+
+weight2sec :: Double -> Integer
+weight2sec w = floor (60 * 60 * w)
+
+
+--
+
 
