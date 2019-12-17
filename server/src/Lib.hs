@@ -61,7 +61,6 @@ minPerY = 525600
 secPerY = 31536000
 
 defaultTaskLink = ""
-defaultTaskWeight = 0.0
 
 data ElmBar = ElmBar
     { elmBarDot :: Int
@@ -288,7 +287,7 @@ toElmTask dpy now (Task _ _ d s ml ms md mw tt _) =
                 Just weight ->
                     weight
                 Nothing ->
-                    defaultTaskWeight
+                    0
         eb  = toElmBar dpy now ms mw md
     in
         ElmTask ed es ett el ess edd ew eb 
@@ -299,7 +298,7 @@ toElmTime mt =
         Just t ->
             formatTime defaultTimeLocale "%Y/%m/%d %H:%M'%S" t
         Nothing ->
-            "0000/00/00 00:00'00"
+            "----/--/-- --:--'--"
 
 toElmBar :: Int -> UTCTime -> Maybe UTCTime -> Maybe Double -> Maybe UTCTime -> ElmBar
 toElmBar dpy now ms mw md =
@@ -311,14 +310,14 @@ toElmBar dpy now ms mw md =
                 0
         sha = case mw of
             Just w ->
-                sec2dot dpy $ weight2sec w 
+                (+) 1 $ sec2dot dpy $ weight2sec w 
             Nothing ->
                 0
         exc = case md of
             Just d ->
                 sec2dot dpy $ diffSeconds d now 
             Nothing ->
-                0
+                -1
     in
         ElmBar dot sha exc
 

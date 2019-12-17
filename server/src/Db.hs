@@ -127,6 +127,30 @@ ins = do
     pool <- pgPool
     flip runSqlPool pool $ do
         insert $ Task 7 8 False True (Just "https://") Nothing Nothing (Just 30) "title" 1
+ins2 = do
+    pool <- pgPool
+    s <- zonedTimeToUTC <$> getZonedTime
+    d <- addUTCTime (3 * nominalDay) . zonedTimeToUTC <$> getZonedTime
+    flip runSqlPool pool $ do
+        insert $ Task 8 9 True False (Just "https://eigens-pace.slack.com/archives/DJA4ZE9FH/p1576614942000200") (Just s) (Just d) (Just 120.14159) "click here" 1
+ins3 = do
+    pool <- pgPool
+    s <- addUTCTime (3 * nominalDay) . zonedTimeToUTC <$> getZonedTime
+    d <- addUTCTime (7 * nominalDay) . zonedTimeToUTC <$> getZonedTime
+    flip runSqlPool pool $ do
+        insert $ Task 8 9 True True (Just "https://eigens-pace.slack.com/archives/DJA4ZE9FH/p1576614942000200") (Just s) (Just d) (Just 240.14159) "あ" 1
+ins4 = do
+    pool <- pgPool
+    s <- addUTCTime (3 * nominalDay) . zonedTimeToUTC <$> getZonedTime
+    d <- addUTCTime (7 * nominalDay) . zonedTimeToUTC <$> getZonedTime
+    flip runSqlPool pool $ do
+        insert $ Task 9 10 True True (Just "https://eigens-pace.slack.com/archives/DJA4ZE9FH/p1576614942000200") Nothing (Just d) (Just 119.1415914159) "色" 1
+ins5 = do
+    pool <- pgPool
+    s <- addUTCTime (3 * nominalDay) . zonedTimeToUTC <$> getZonedTime
+    d <- addUTCTime (7 * nominalDay) . zonedTimeToUTC <$> getZonedTime
+    flip runSqlPool pool $ do
+        insert $ Task 9 11 True True (Just "https://eigens-pace.slack.com/archives/DJA4ZE9FH/p1576614942000200") (Just s) Nothing (Just 239.0001) "空" 1
 
 getUndoneTasksByUser :: ConnectionPool -> Int -> IO [Entity Task]
 getUndoneTasksByUser pool id = flip runSqlPool pool $ do

@@ -283,6 +283,9 @@ update msg model =
         CharacterKey 'x' ->
             select model model.indicator
 
+        CharacterKey 'y' ->
+            ( { model | dpy = hou }, getTasksAll )
+
         CharacterKey _ ->
             ( model, getTasksAll )
 
@@ -407,10 +410,10 @@ viewTask : Model -> ( Int, Task ) -> Html Msg
 viewTask model ( idx, task ) =
     tr
         [ if idx == model.indicator then
-            style "color" "blue"
+            style "background-color" "paleturquoise"
 
           else
-            style "color" "black"
+            style "background-color" "mintcream"
         ]
         [ td [ onClick (Select idx) ]
             [ if task.isSelected then
@@ -450,34 +453,34 @@ viewTimeByDpy : String -> Int -> String
 viewTimeByDpy time dpy =
     -- "YYYY/MM/DD HH:MM'SS"
     if dpy <= yea then
-        fill 7 <| String.left 4 time
+        fill 7 " " <| String.left 4 time
 
     else if dpy <= mon then
-        fill 7 <| String.slice 2 7 time
+        fill 7 " " <| String.slice 2 7 time
 
     else if dpy <= day then
-        fill 7 <| String.slice 5 10 time
+        fill 7 " " <| String.slice 5 10 time
 
     else if dpy <= hou then
-        fill 7 <| String.slice 7 14 time
+        fill 7 " " <| String.slice 7 14 time
 
     else if dpy <= min then
-        fill 7 <| String.slice 11 16 time
+        fill 7 " " <| String.slice 11 16 time
 
     else
-        fill 7 <| String.right 5 time
+        fill 7 " " <| String.right 5 time
 
 
-fill : Int -> String -> String
-fill n str =
-    String.left n <| str ++ String.repeat n "."
+fill : Int -> String -> String -> String
+fill n putty target =
+    String.left n <| target ++ String.repeat n putty
 
 
 barStr : Bar -> String
 barStr bar =
     String.repeat bar.dot "."
         ++ String.repeat bar.sha "#"
-        |> fill 50
+        |> fill 50 "."
         |> String.toList
         |> Array.fromList
         |> Array.set bar.exc '!'
