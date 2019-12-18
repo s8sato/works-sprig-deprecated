@@ -4,11 +4,12 @@ import Array exposing (Array)
 import Browser
 import Browser.Events exposing (onKeyPress)
 import Html exposing (..)
-import Html.Attributes exposing (href, style)
+import Html.Attributes exposing (href, placeholder, style, type_, value)
 import Html.Events exposing (onClick)
 import Http
 import Json.Decode as Decode exposing (Decoder, bool, float, int, list, string)
 import Json.Decode.Pipeline exposing (optional, required)
+import Json.Encode as Encode
 
 
 main : Program () Model Msg
@@ -30,6 +31,8 @@ type alias Model =
     , tasks : List Task
     , indicator : Int
     , errorMessage : Maybe String
+    , inputText : String
+    , user : Int
     }
 
 
@@ -53,60 +56,62 @@ type alias Bar =
     }
 
 
-yea : Int
-yea =
+init : () -> ( Model, Cmd Msg )
+init _ =
+    ( { dpy = dayPerY
+      , tasks = []
+      , indicator = 0
+      , errorMessage = Nothing
+      , inputText = ""
+      , user = 1
+      }
+    , Cmd.none
+    )
+
+
+yeaPerY : Int
+yeaPerY =
     1
 
 
-qua : Int
-qua =
+quaPerY : Int
+quaPerY =
     4
 
 
-mon : Int
-mon =
+monPerY : Int
+monPerY =
     12
 
 
-wee : Int
-wee =
+weePerY : Int
+weePerY =
     52
 
 
-day : Int
-day =
+dayPerY : Int
+dayPerY =
     365
 
 
-hou : Int
-hou =
+houPerY : Int
+houPerY =
     8760
 
 
-min : Int
-min =
+minPerY : Int
+minPerY =
     525600
 
 
-sec : Int
-sec =
+secPerY : Int
+secPerY =
     31536000
 
 
 type Direction
     = Asc
     | Dsc
-
-
-init : () -> ( Model, Cmd Msg )
-init _ =
-    ( { dpy = day
-      , tasks = []
-      , indicator = 0
-      , errorMessage = Nothing
-      }
-    , Cmd.none
-    )
 
 
 
@@ -118,7 +123,7 @@ type Msg
     | TasksReceived (Result Http.Error (List Task))
     | CharacterKey Char
     | ControlKey String
-    | Register String
+    | SaveTextPost
     | Done (List Task)
     | Focus Int
     | Edit (List Task)
@@ -284,7 +289,7 @@ update msg model =
             select model model.indicator
 
         CharacterKey 'y' ->
-            ( { model | dpy = hou }, getTasksAll )
+            ( { model | dpy = houPerY }, getTasksAll )
 
         CharacterKey _ ->
             ( model, getTasksAll )
@@ -292,8 +297,8 @@ update msg model =
         ControlKey _ ->
             ( model, Cmd.none )
 
-        Register text ->
-            ( model, Cmd.none )
+        SaveTextPost ->
+            ( model, saveTextPost model.user model.inputText model.dpy )
 
         Done tasks ->
             ( model, Cmd.none )
@@ -309,6 +314,28 @@ update msg model =
 
         Select index ->
             select model index
+
+
+saveTextPost : Int -> String -> Int -> Cmd Msg
+saveTextPost user content dpy =
+    Http.request
+        { method = "POST"
+        , headers = []
+        , url = "http://localhost:8080/tasks"
+        , body = Http.jsonBody (textPostEncoder user content dpy)
+        , expect = Http.expectJson TasksReceived (list taskDecoder)
+        , timeout = Nothing
+        , tracker = Nothing
+        }
+
+
+textPostEncoder : Int -> String -> Int -> Encode.Value
+textPostEncoder user content dpy =
+    Encode.object
+        [ ( "user", Encode.int user )
+        , ( "content", Encode.string content )
+        , ( "dpy", Encode.int dpy )
+        ]
 
 
 
@@ -367,7 +394,10 @@ view : Model -> Html Msg
 view model =
     div []
         [ div [ style "height" "60px", style "background-color" "gainsboro" ]
-            [ span [] [ text ("dpy: " ++ String.fromInt model.dpy ++ em model) ] ]
+            [ input [ placeholder "Sprig", value model.inputText ] []
+            , button [ type_ "button", onClick SaveTextPost ] [ text "Submit" ]
+            , span [] [ text ("dpy: " ++ String.fromInt model.dpy ++ em model) ]
+            ]
         , div [ style "height" "30px", style "background-color" "lavender" ] []
         , table [ style "font-size" "12px", style "font-family" "Courier" ]
             ([ viewTableHeader ] ++ List.map (viewTask model) (List.indexedMap Tuple.pair model.tasks))
@@ -452,19 +482,19 @@ viewTask model ( idx, task ) =
 viewTimeByDpy : String -> Int -> String
 viewTimeByDpy time dpy =
     -- "YYYY/MM/DD HH:MM'SS"
-    if dpy <= yea then
+    if dpy <= yeaPerY then
         fill 7 " " <| String.left 4 time
 
-    else if dpy <= mon then
+    else if dpy <= monPerY then
         fill 7 " " <| String.slice 2 7 time
 
-    else if dpy <= day then
+    else if dpy <= dayPerY then
         fill 7 " " <| String.slice 5 10 time
 
-    else if dpy <= hou then
+    else if dpy <= houPerY then
         fill 7 " " <| String.slice 7 14 time
 
-    else if dpy <= min then
+    else if dpy <= minPerY then
         fill 7 " " <| String.slice 11 16 time
 
     else

@@ -94,7 +94,23 @@ $(deriveJSON defaultOptions ''ElmTask)
 
 -- $(deriveJSON defaultOptions ''ElmModel)
 
-type API = "tasks" :> "all" :> Get '[JSON] [ElmTask]
+type API =  "tasks" :> "all" :> Get '[JSON] [ElmTask]
+    :<|>    "tasks" :> ReqBody '[JSON] TextPost :> Post '[JSON] [ElmTask]
+
+data TextPost = TextPost
+    { textPostUser :: Int
+    , textPostContent :: Text
+    , textPostDpy :: Int
+    } deriving (Eq, Show)
+
+$(deriveJSON defaultOptions ''TextPost)
+-- instance FromJSON TextPost
+-- instance ToJSON TextPost
+
+textPostReload' :: TextPost -> IO [ElmTask]
+textPostReload' (TextPost u c d) = do
+    insTasks $ text2tasks c
+    getUndoneElmTasks u d
 
 startApp :: IO ()
 startApp = run 8080 app
@@ -107,18 +123,22 @@ api :: Proxy API
 api = Proxy
 
 server :: Server API
-server = liftIO ggeett
+server = (liftIO $ getUndoneElmTasks 1 dayPerY) 
+    :<|> textPostReload
+    where
+        textPostReload :: TextPost -> Handler [ElmTask]
+        textPostReload tp = liftIO $ textPostReload' tp
 
-ggeett = do
+getUndoneElmTasks :: Int -> Int -> IO [ElmTask]
+getUndoneElmTasks user dpy = do
     pool <- pgPool
-    entities <- getUndoneTasksByUser pool 1
+    entities <- getUndoneTasks pool user
     now <- zonedTimeToUTC <$> getZonedTime
-    let elmTasks = map (toElmTask dayPerY now) (map entity2a entities)
-    return elmTasks
+    return $ map (toElmTask dpy now) (map entity2v entities)
 
 
-entity2a :: Entity a -> a
-entity2a (Entity k v) = v
+entity2v :: Entity a -> a
+entity2v (Entity _ v) = v
 
 -- 
 
@@ -242,27 +262,18 @@ markUp'' sbj obj is mem
     | is !! sbj > is !! obj = markUp'' (sbj - 1) (sbj - 1) is ((obj,sbj):mem)
     | otherwise             = markUp'' sbj (obj - 1) is mem
 
-aChar :: Parser Char
-aChar =     (const ',') <$> (string "\\,")
-        <|> (const '\n') <$> (string "\\n")
-        <|> (const '(') <$> (string "\\(")
-        <|> (const ')') <$> (string "\\)")
-        <|> satisfy (notInClass ",\n()")
-
-aString :: Parser String
-aString = many aChar
-
 aAttr :: Parser Attr
-aAttr =       AttrTaskId        <$  string "@"    <*> decimal
-          <|> IsDone        <$  string "</"    <*> anyChar
-          <|> IsStarred     <$  string "<*"    <*> anyChar
-          <|> Link          <$  string "&"    <*> takeText
-          <|> StartDate     <$  string ""     <*> decimal <* char '/' <*> decimal <* char '/' <*> decimal <* char '-'
-          <|> StartTime     <$  string ""     <*> decimal <* char ':' <*> decimal <* char ':' <*> decimal <* char '-'
-          <|> DeadlineDate  <$  string "-"    <*> decimal <* char '/' <*> decimal <* char '/' <*> decimal
-          <|> DeadlineTime  <$  string "-"    <*> decimal <* char ':' <*> decimal <* char ':' <*> decimal
-          <|> Weight        <$  string "$"    <*> double
-          <|> Title         <$> takeText
+aAttr = AttrTaskId        <$  string "@"    <*> decimal
+        -- TODO if anyChar machies empty
+    <|> IsDone        <$  string "</"    <*> anyChar
+    <|> IsStarred     <$  string "<*"    <*> anyChar
+    <|> Link          <$  string "&"    <*> takeText
+    <|> StartDate     <$  string ""     <*> decimal <* char '/' <*> decimal <* char '/' <*> decimal <* char '-'
+    <|> StartTime     <$  string ""     <*> decimal <* char ':' <*> decimal <* char ':' <*> decimal <* char '-'
+    <|> DeadlineDate  <$  string "-"    <*> decimal <* char '/' <*> decimal <* char '/' <*> decimal
+    <|> DeadlineTime  <$  string "-"    <*> decimal <* char ':' <*> decimal <* char ':' <*> decimal
+    <|> Weight        <$  string "$"    <*> double
+    <|> Title         <$> takeText
 
 assemble  :: [((Node, Node), [Text])] -> Graph
 assemble xs = map (assemble' []) xs

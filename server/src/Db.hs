@@ -159,8 +159,8 @@ insTasks ts = do
         sequence_ . map insert $ ts
 
 
-getUndoneTasksByUser :: ConnectionPool -> Int -> IO [Entity Task]
-getUndoneTasksByUser pool id = flip runSqlPool pool $ do
+getUndoneTasks :: ConnectionPool -> Int -> IO [Entity Task]
+getUndoneTasks pool id = flip runSqlPool pool $ do
     E.select $ E.from $ \ (task) -> do
         -- E.where_ (E.not_ task E.^. IsDone)
         -- E.where_ (task E.^. weight E.==. E.val id)
@@ -169,7 +169,7 @@ getUndoneTasksByUser pool id = flip runSqlPool pool $ do
 
 get = do
     pool <- pgPool
-    getUndoneTasksByUser pool 1
+    getUndoneTasks pool 1
 
 
 -- type ApiDef  = Get '[JSON] [Entity Task]
