@@ -27,7 +27,6 @@ import Control.Applicative
 import qualified Data.HashMap.Strict as M
 
 -- parse
-import Control.Applicative
 import Data.Attoparsec.Text hiding (take)
 import Ch10.Builder (Person(..), Client(..), clientToText)
 -- for parseClients
@@ -45,11 +44,15 @@ import qualified Data.Text.Lazy.Builder.Int as B
 import qualified Data.Conduit.List as L
 
 import Data.Time
+
+-- for fileTest
 import System.IO
 
 import Db
 import Database.Persist (Entity(..))
 import Control.Monad.IO.Class   (liftIO)
+
+import Data.Double.Conversion.Text (toFixed)
 
 yeaPerY = 1
 quaPerY = 4
@@ -60,7 +63,8 @@ houPerY = 8760
 minPerY = 525600
 secPerY = 31536000
 
-defaultTaskLink = ""
+defaultTaskLink = pack ""
+defaultUser = 1
 
 data ElmBar = ElmBar
     { elmBarDot :: Int
@@ -73,10 +77,10 @@ $(deriveJSON defaultOptions ''ElmBar)
 data ElmTask = ElmTask
     { elmTaskIsDone :: Bool
     , elmTaskIsStarred :: Bool
-    , elmTaskTitle :: String
-    , elmTaskLink :: String
-    , elmTaskStart :: String
-    , elmTaskDeadline :: String
+    , elmTaskTitle :: Text
+    , elmTaskLink :: Text
+    , elmTaskStart :: Text
+    , elmTaskDeadline :: Text
     , elmTaskWeight :: Double
     , elmTaskBar :: ElmBar
     } deriving (Eq, Show)
@@ -118,25 +122,92 @@ entity2a (Entity k v) = v
 
 -- 
 
+type Graph = [Edge]
+type Edge = ((Node, Node), [Attr])
 type Node  = Int
 data Attr  =  AttrTaskId       { attrTaskId       :: Int    }
-    | IsDone       { isDone       :: Text }
-    | IsStarred    { isStarred    :: Text }
-    | Link         { link         :: String }
+    | IsDone       { isDone       :: Char }
+    | IsStarred    { isStarred    :: Char }
+    | Link         { link         :: Text }
     | StartDate    { startYear    :: Int, startMonth     :: Int,  startDay       :: Int    }
     | StartTime    { startHour    :: Int, startMinute    :: Int,  startSecond    :: Int    }
     | DeadlineDate { deadlineYear :: Int, deadlineMonth  :: Int,  deadlineDay    :: Int    }
     | DeadlineTime { deadlineHour :: Int, deadlineMinute :: Int,  deadlineSecond :: Int    }
-    | Weight       { weight       :: Int    }
-    | Title        { title        :: String }
+    | Weight       { weight       :: Double }
+    | Title        { title        :: Text }
     deriving (Eq, Show)
--- derivePersistField "Attr"
-data Edge  = Edge          { terminal     :: Node, initial       :: Node, attrs          :: [Attr] }
-    deriving (Eq, Show)
--- derivePersistField "Edge"
-data Graph = Graph         { edges        :: [Edge] }
-            deriving (Eq, Show)
--- derivePersistField "Graph"
+
+text2tasks :: Text -> [Task]
+text2tasks = graph2tasks . text2graph
+
+graph2tasks :: Graph -> [Task]
+graph2tasks = map edge2task
+
+edge2task :: Edge -> Task
+edge2task ((t,i),as) =
+    edge2task' as (Task t i False False Nothing Nothing Nothing Nothing "" defaultUser)
+
+edge2task' :: [Attr] -> Task -> Task
+edge2task' [] task = 
+    task
+edge2task' (a:as) (Task t i d s ml ms md mw tt u) =
+    case a of
+        IsDone '>' ->
+            edge2task' as (Task t i True s ml ms md mw tt u)
+        IsDone _ ->
+            edge2task' as (Task t i False s ml ms md mw tt u)
+        IsStarred '>' ->
+            edge2task' as (Task t i d True ml ms md mw tt u)
+        IsStarred _ ->
+            edge2task' as (Task t i d False ml ms md mw tt u)
+        Link l ->
+            edge2task' as (Task t i d s (Just l) ms md mw tt u)
+        StartDate yyyy mm dd ->
+            let
+                nd = fromGregorian (fromIntegral yyyy) mm dd
+            in
+                case ms of
+                    Just (UTCTime od ot) ->
+                        edge2task' as (Task t i d s ml (Just (UTCTime nd ot)) md mw tt u)
+                    Nothing ->
+                        edge2task' as (Task t i d s ml (Just (UTCTime nd 0)) md mw tt u)
+        StartTime hh mm ss ->
+            let
+                nt = secondsToDiffTime $ fromIntegral $ ss + 60 * (mm + 60 * hh)
+            in
+                case ms of
+                    Just (UTCTime od ot) ->
+                        edge2task' as (Task t i d s ml (Just (UTCTime od nt)) md mw tt u)
+                    Nothing ->
+                        let
+                            nd = fromGregorian 0 0 0
+                        in
+                            edge2task' as (Task t i d s ml (Just (UTCTime nd nt)) md mw tt u)
+        DeadlineDate yyyy mm dd ->
+            let
+                nd = fromGregorian (fromIntegral yyyy) mm dd
+            in
+                case ms of
+                    Just (UTCTime od ot) ->
+                        edge2task' as (Task t i d s ml ms (Just (UTCTime nd ot)) mw tt u)
+                    Nothing ->
+                        edge2task' as (Task t i d s ml ms (Just (UTCTime nd 0)) mw tt u)
+        DeadlineTime hh mm ss ->
+            let
+                nt = secondsToDiffTime $ fromIntegral $ ss + 60 * (mm + 60 * hh)
+            in
+                case ms of
+                    Just (UTCTime od ot) ->
+                        edge2task' as (Task t i d s ml ms (Just (UTCTime od nt)) mw tt u)
+                    Nothing ->
+                        let
+                            nd = fromGregorian 0 0 0
+                        in
+                            edge2task' as (Task t i d s ml ms (Just (UTCTime nd nt)) mw tt u)
+        Weight w ->
+            edge2task' as (Task t i d s ml ms md (Just w) tt u)
+        Title tt' ->
+            edge2task' as (Task t i d s ml ms md mw (Data.Text.concat[tt', tt]) u)
 
 text2graph :: Text -> Graph
 text2graph = spanLink . assemble . markUp . chopLines
@@ -146,14 +217,14 @@ indent :: Text
 indent = "    "
 
 chopLines :: Text -> [(Indent, [Text])]
-chopLines t =  map takeIndent $ filter (/= "") $ splitOn "\n" t
+chopLines t =  map indentAndWords $ filter (/= "") $ splitOn "\n" t
 
-takeIndent :: Text -> (Indent, [Text])
-takeIndent = takeIndent' 0
+indentAndWords :: Text -> (Indent, [Text])
+indentAndWords = indentAndWords' 0
 
-takeIndent' :: Int -> Text -> (Indent, [Text])
-takeIndent' c t
-    | take l t == indent    = takeIndent' (c + 1) (drop l t)
+indentAndWords' :: Int -> Text -> (Indent, [Text])
+indentAndWords' c t
+    | take l t == indent    = indentAndWords' (c + 1) (drop l t)
     | otherwise             = (c, filter (/= "") $ splitOn " " t)
     where l = Data.Text.length indent
 
@@ -183,24 +254,24 @@ aString = many aChar
 
 aAttr :: Parser Attr
 aAttr =       AttrTaskId        <$  string "@"    <*> decimal
-          <|> IsDone        <$> string "</>"
-          <|> IsStarred     <$> string "<*>"
-          <|> Link          <$  string "&"    <*> aString
+          <|> IsDone        <$  string "</"    <*> anyChar
+          <|> IsStarred     <$  string "<*"    <*> anyChar
+          <|> Link          <$  string "&"    <*> takeText
           <|> StartDate     <$  string ""     <*> decimal <* char '/' <*> decimal <* char '/' <*> decimal <* char '-'
           <|> StartTime     <$  string ""     <*> decimal <* char ':' <*> decimal <* char ':' <*> decimal <* char '-'
           <|> DeadlineDate  <$  string "-"    <*> decimal <* char '/' <*> decimal <* char '/' <*> decimal
           <|> DeadlineTime  <$  string "-"    <*> decimal <* char ':' <*> decimal <* char ':' <*> decimal
-          <|> Weight        <$  string "$"    <*> decimal
-          <|> Title         <$> aString
+          <|> Weight        <$  string "$"    <*> double
+          <|> Title         <$> takeText
 
 assemble  :: [((Node, Node), [Text])] -> Graph
-assemble xs = Graph (map (assemble' []) xs)
+assemble xs = map (assemble' []) xs
 
 assemble' :: [Attr] -> ((Node, Node), [Text]) -> Edge
-assemble' mem ((t,i), []) = Edge t i mem
+assemble' mem ((t,i), []) = ((t,i), mem)
 assemble' mem ((t,i), a:as)  = 
     case parseOnly aAttr a of
-        Left _ -> Edge t i mem
+        Left _ -> ((t,i), mem)
         Right r -> assemble' (r:mem) ((t,i), as)
 
 spanLink :: Graph -> Graph
@@ -212,6 +283,20 @@ fileTest inFile = do
     withFile inFile ReadMode $ \inHandle ->
         do  text <- hGetContents inHandle
             print (text2graph $ pack text)
+
+fileTest2 :: FilePath -> IO ()
+fileTest2 inFile = do
+    withFile inFile ReadMode $ \inHandle ->
+        do  text <- hGetContents inHandle
+            print (text2tasks $ pack text)
+
+fileTest3 :: FilePath -> IO ()
+fileTest3 inFile = do
+    withFile inFile ReadMode $ \inHandle ->
+        do  text <- hGetContents inHandle
+            insTasks $ text2tasks $ pack text
+
+
 
 -- graph2text :: Graph [Attr] -> B.Builder
 -- graph2text = setText . setIndent . sortEdge
@@ -292,11 +377,11 @@ toElmTask dpy now (Task _ _ d s ml ms md mw tt _) =
     in
         ElmTask ed es ett el ess edd ew eb 
 
-toElmTime :: Maybe UTCTime -> String
+toElmTime :: Maybe UTCTime -> Text
 toElmTime mt =
     case mt of
         Just t ->
-            formatTime defaultTimeLocale "%Y/%m/%d %H:%M'%S" t
+            pack $ formatTime defaultTimeLocale "%Y/%m/%d %H:%M'%S" t
         Nothing ->
             "----/--/-- --:--'--"
 

@@ -366,9 +366,9 @@ getTasksAll =
 view : Model -> Html Msg
 view model =
     div []
-        [ div [ style "height" "60px", style "background-color" "gray" ]
+        [ div [ style "height" "60px", style "background-color" "gainsboro" ]
             [ span [] [ text ("dpy: " ++ String.fromInt model.dpy ++ em model) ] ]
-        , div [ style "height" "30px", style "background-color" "aqua" ] []
+        , div [ style "height" "30px", style "background-color" "lavender" ] []
         , table [ style "font-size" "12px", style "font-family" "Courier" ]
             ([ viewTableHeader ] ++ List.map (viewTask model) (List.indexedMap Tuple.pair model.tasks))
         ]
@@ -410,10 +410,10 @@ viewTask : Model -> ( Int, Task ) -> Html Msg
 viewTask model ( idx, task ) =
     tr
         [ if idx == model.indicator then
-            style "background-color" "paleturquoise"
+            style "background-color" "bisque"
 
           else
-            style "background-color" "mintcream"
+            style "background-color" "oldlace"
         ]
         [ td [ onClick (Select idx) ]
             [ if task.isSelected then

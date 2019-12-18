@@ -69,11 +69,11 @@ Task json
     initial         Int
     isDone          Bool
     isStarred       Bool
-    link            String Maybe
+    link            Text Maybe
     start           UTCTime Maybe
     deadline        UTCTime Maybe
     weight          Double Maybe
-    title           String
+    title           Text
     user            Int
     deriving Show
 |]
@@ -151,6 +151,13 @@ ins5 = do
     d <- addUTCTime (7 * nominalDay) . zonedTimeToUTC <$> getZonedTime
     flip runSqlPool pool $ do
         insert $ Task 9 11 True True (Just "https://eigens-pace.slack.com/archives/DJA4ZE9FH/p1576614942000200") (Just s) Nothing (Just 239.0001) "空" 1
+
+insTasks :: [Task] -> IO ()
+insTasks ts = do
+    pool <- pgPool
+    flip runSqlPool pool $ do
+        sequence_ . map insert $ ts
+
 
 getUndoneTasksByUser :: ConnectionPool -> Int -> IO [Entity Task]
 getUndoneTasksByUser pool id = flip runSqlPool pool $ do
