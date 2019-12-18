@@ -15,6 +15,7 @@ import Network.Wai.Handler.Warp
 import Servant
 -- CORS
 import Network.Wai.Middleware.Cors 
+import Network.Wai.Middleware.Servant.Options
 
 -- json
 import Data.Aeson
@@ -110,14 +111,23 @@ $(deriveJSON defaultOptions ''TextPost)
 textPostReload' :: TextPost -> IO [ElmTask]
 textPostReload' (TextPost u c d) = do
     insTasks $ text2tasks c
+    -- getUndoneElmTasks u (Data.Text.length c)
     getUndoneElmTasks u d
 
 startApp :: IO ()
 startApp = run 8080 app
 
-app :: Application
+-- app :: Application
 -- app = serve api server
-app = simpleCors $ serve api server
+-- app = simpleCors $ serve api server
+
+app :: Application
+app = cors (const $ Just policy)
+    $ provideOptions api
+    $ serve api server
+  where
+  policy = simpleCorsResourcePolicy
+           { corsRequestHeaders = [ "content-type" ] }
 
 api :: Proxy API
 api = Proxy

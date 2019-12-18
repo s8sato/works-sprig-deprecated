@@ -45,7 +45,7 @@ library
                      -- https://qiita.com/jabaraster/items/e8ebbe6d25b535947aba
                      , transformers
                      , resourcet
-                     , yaml-config
+                    --  , yaml-config
                      , persistent-postgresql
                      , lens
                      -- Cook
@@ -62,8 +62,8 @@ library
                      , time
                      , double-conversion
                      -- CORS
+                     , servant-options
                      , wai-cors
-                    --  , servant-options
   default-language:    Haskell2010
 
 executable server-exe

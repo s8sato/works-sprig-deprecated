@@ -5,7 +5,7 @@ import Browser
 import Browser.Events exposing (onKeyPress)
 import Html exposing (..)
 import Html.Attributes exposing (href, placeholder, style, type_, value)
-import Html.Events exposing (onClick)
+import Html.Events exposing (onClick, onInput)
 import Http
 import Json.Decode as Decode exposing (Decoder, bool, float, int, list, string)
 import Json.Decode.Pipeline exposing (optional, required)
@@ -135,6 +135,7 @@ type Msg
       -- | Prev
       -- | Search (List Condition)
     | Select Int
+    | Input String
 
 
 select : Model -> Int -> ( Model, Cmd Msg )
@@ -315,26 +316,37 @@ update msg model =
         Select index ->
             select model index
 
+        Input newInput ->
+            ( { model | inputText = newInput }, Cmd.none )
+
 
 saveTextPost : Int -> String -> Int -> Cmd Msg
 saveTextPost user content dpy =
-    Http.request
-        { method = "POST"
-        , headers = []
-        , url = "http://localhost:8080/tasks"
+    Http.post
+        { url = "http://localhost:8080/tasks"
         , body = Http.jsonBody (textPostEncoder user content dpy)
         , expect = Http.expectJson TasksReceived (list taskDecoder)
-        , timeout = Nothing
-        , tracker = Nothing
         }
+
+
+
+-- Http.request
+--     { method = "POST"
+--     , headers = []
+--     , url = "http://localhost:8080/tasks"
+--     , body = Http.jsonBody (textPostEncoder user content dpy)
+--     , expect = Http.expectJson TasksReceived (list taskDecoder)
+--     , timeout = Nothing
+--     , tracker = Nothing
+--     }
 
 
 textPostEncoder : Int -> String -> Int -> Encode.Value
 textPostEncoder user content dpy =
     Encode.object
-        [ ( "user", Encode.int user )
-        , ( "content", Encode.string content )
-        , ( "dpy", Encode.int dpy )
+        [ ( "textPostUser", Encode.int user )
+        , ( "textPostContent", Encode.string content )
+        , ( "textPostDpy", Encode.int dpy )
         ]
 
 
@@ -394,7 +406,7 @@ view : Model -> Html Msg
 view model =
     div []
         [ div [ style "height" "60px", style "background-color" "gainsboro" ]
-            [ input [ placeholder "Sprig", value model.inputText ] []
+            [ input [ placeholder "Sprig", value model.inputText, onInput Input ] []
             , button [ type_ "button", onClick SaveTextPost ] [ text "Submit" ]
             , span [] [ text ("dpy: " ++ String.fromInt model.dpy ++ em model) ]
             ]

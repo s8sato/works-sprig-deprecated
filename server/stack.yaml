@@ -38,7 +38,7 @@ packages:
 # using the same syntax as the packages field.
 # (e.g., acme-missiles-0.3)
 extra-deps:
-- yaml-config-0.4.0@sha256:575103d9fa1ef074a2b419256babaae7be5f5257f37adf3ed2601052415b2d83
+- servant-options-0.1.0.0@sha256:39f50166a68006250e79370372f553ca476f14d06d93fa0c401050253aeba803
 
 # Override default flag values for local packages and extra-deps
 # flags: {}
