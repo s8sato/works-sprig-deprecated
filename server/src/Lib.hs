@@ -2,17 +2,19 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeOperators   #-}
 
--- {-# LANGUAGE UnicodeSyntax #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module Lib where
 
 import Prelude hiding (take, drop)
+
+-- Basic for Servant
 import Data.Aeson
 import Data.Aeson.TH
 import Network.Wai
 import Network.Wai.Handler.Warp
 import Servant
+
 -- CORS
 import Network.Wai.Middleware.Cors 
 import Network.Wai.Middleware.Servant.Options
@@ -55,6 +57,10 @@ import Control.Monad.IO.Class   (liftIO)
 
 import Data.Double.Conversion.Text (toFixed)
 
+import Database.Persist.Sql (fromSqlKey)
+
+import Query
+
 yeaPerY = 1
 quaPerY = 4
 monPerY = 12
@@ -76,7 +82,8 @@ data ElmBar = ElmBar
 $(deriveJSON defaultOptions ''ElmBar)
 
 data ElmTask = ElmTask
-    { elmTaskIsDone :: Bool
+    { elmTaskId :: Int
+    , elmTaskIsDone :: Bool
     , elmTaskIsStarred :: Bool
     , elmTaskTitle :: Text
     , elmTaskLink :: Text
@@ -144,7 +151,7 @@ getUndoneElmTasks user dpy = do
     pool <- pgPool
     entities <- getUndoneTasks pool user
     now <- zonedTimeToUTC <$> getZonedTime
-    return $ map (toElmTask dpy now) (map entity2v entities)
+    return $ map (toElmTask dpy now) entities
 
 
 entity2v :: Entity a -> a
@@ -375,10 +382,12 @@ fileTest3 inFile = do
 
 --
 
-toElmTask :: Int -> UTCTime -> Task -> ElmTask
+toElmTask :: Int -> UTCTime -> Entity Task -> ElmTask
 -- dots per year
-toElmTask dpy now (Task _ _ d s ml ms md mw tt _) =
+toElmTask dpy now e =
     let
+        ei  = fromIntegral . fromSqlKey . entityKey $ e
+        Task _ _ d s ml ms md mw tt _ = entityVal e
         ed  = d
         es  = s
         ett = tt
@@ -396,7 +405,7 @@ toElmTask dpy now (Task _ _ d s ml ms md mw tt _) =
                     0
         eb  = toElmBar dpy now ms mw md
     in
-        ElmTask ed es ett el ess edd ew eb 
+        ElmTask ei ed es ett el ess edd ew eb 
 
 toElmTime :: Maybe UTCTime -> Text
 toElmTime mt =

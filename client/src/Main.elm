@@ -4,12 +4,13 @@ import Array exposing (Array)
 import Browser
 import Browser.Events exposing (onKeyPress)
 import Html exposing (..)
-import Html.Attributes exposing (href, placeholder, style, type_, value)
+import Html.Attributes exposing (class, cols, href, id, placeholder, rows, style, type_, value)
 import Html.Events exposing (onClick, onInput)
 import Http
 import Json.Decode as Decode exposing (Decoder, bool, float, int, list, string)
 import Json.Decode.Pipeline exposing (optional, required)
 import Json.Encode as Encode
+import Styles as S
 
 
 main : Program () Model Msg
@@ -37,7 +38,8 @@ type alias Model =
 
 
 type alias Task =
-    { isDone : Bool
+    { id : Int
+    , isDone : Bool
     , isStarred : Bool
     , title : String
     , link : String
@@ -362,6 +364,7 @@ textPostEncoder user content dpy =
 taskDecoder : Decoder Task
 taskDecoder =
     Decode.succeed Task
+        |> required "elmTaskId" int
         |> required "elmTaskIsDone" bool
         |> required "elmTaskIsStarred" bool
         |> required "elmTaskTitle" string
@@ -404,9 +407,13 @@ getTasksAll =
 
 view : Model -> Html Msg
 view model =
-    div []
-        [ div [ style "height" "60px", style "background-color" "gainsboro" ]
-            [ input [ placeholder "Sprig", value model.inputText, onInput Input ] []
+    div [ class "container" ]
+        [ div
+            []
+            [ div [] []
+            , textarea [ cols 40, rows 10, placeholder "...", onInput Input ] []
+
+            -- , input [ placeholder "Sprig", value model.inputText, onInput Input ] []
             , button [ type_ "button", onClick SaveTextPost ] [ text "Submit" ]
             , span [] [ text ("dpy: " ++ String.fromInt model.dpy ++ em model) ]
             ]
