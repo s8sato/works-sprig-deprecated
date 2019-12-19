@@ -125,8 +125,8 @@ type Msg
     | TasksReceived (Result Http.Error (List Task))
     | CharacterKey Char
     | ControlKey String
-    | SaveTextPost
-    | Done (List Task)
+    | TextPost
+    | DoneTasks
     | Focus Int
     | Edit (List Task)
     | Star Int
@@ -260,21 +260,21 @@ update msg model =
             )
 
         CharacterKey 'e' ->
-            ( { model
-                | tasks =
-                    List.map
-                        (\task ->
-                            if task.isSelected then
-                                { task | isDone = not task.isDone }
+            ( model, doneTasks model.user model.dpy model.tasks )
 
-                            else
-                                task
-                        )
-                        model.tasks
-              }
-            , Cmd.none
-            )
-
+        -- ( { model
+        --     | tasks =
+        --         List.map
+        --             (\task ->
+        --                 if task.isSelected then
+        --                     { task | isDone = not task.isDone }
+        --                 else
+        --                     task
+        --             )
+        --             model.tasks
+        --   }
+        -- , Cmd.none
+        -- )
         -- APIに送る：taskId
         -- APIからもらう：Model
         CharacterKey 'f' ->
@@ -300,11 +300,11 @@ update msg model =
         ControlKey _ ->
             ( model, Cmd.none )
 
-        SaveTextPost ->
-            ( model, saveTextPost model.user model.inputText model.dpy )
+        TextPost ->
+            ( model, textPost model.user model.dpy model.inputText )
 
-        Done tasks ->
-            ( model, Cmd.none )
+        DoneTasks ->
+            ( model, doneTasks model.user model.dpy model.tasks )
 
         Focus index ->
             focus model index
@@ -322,11 +322,11 @@ update msg model =
             ( { model | inputText = newInput }, Cmd.none )
 
 
-saveTextPost : Int -> String -> Int -> Cmd Msg
-saveTextPost user content dpy =
+textPost : Int -> Int -> String -> Cmd Msg
+textPost user dpy content =
     Http.post
         { url = "http://localhost:8080/tasks"
-        , body = Http.jsonBody (textPostEncoder user content dpy)
+        , body = Http.jsonBody (textPostEncoder user dpy content)
         , expect = Http.expectJson TasksReceived (list taskDecoder)
         }
 
@@ -343,12 +343,34 @@ saveTextPost user content dpy =
 --     }
 
 
-textPostEncoder : Int -> String -> Int -> Encode.Value
-textPostEncoder user content dpy =
+doneTasks : Int -> Int -> List Task -> Cmd Msg
+doneTasks user dpy tasks =
+    Http.post
+        { url = "http://localhost:8080/tasks/done"
+        , body = Http.jsonBody (doneTasksEncoder user dpy tasks)
+        , expect = Http.expectJson TasksReceived (list taskDecoder)
+        }
+
+
+textPostEncoder : Int -> Int -> String -> Encode.Value
+textPostEncoder user dpy content =
     Encode.object
         [ ( "textPostUser", Encode.int user )
-        , ( "textPostContent", Encode.string content )
         , ( "textPostDpy", Encode.int dpy )
+        , ( "textPostContent", Encode.string content )
+        ]
+
+
+doneTasksEncoder : Int -> Int -> List Task -> Encode.Value
+doneTasksEncoder user dpy tasks =
+    let
+        ids =
+            List.map .id <| List.filter .isSelected <| tasks
+    in
+    Encode.object
+        [ ( "doneTasksUser", Encode.int user )
+        , ( "doneTasksDpy", Encode.int dpy )
+        , ( "doneTasksIds", Encode.list Encode.int ids )
         ]
 
 
@@ -414,7 +436,7 @@ view model =
             , textarea [ cols 40, rows 10, placeholder "...", onInput Input ] []
 
             -- , input [ placeholder "Sprig", value model.inputText, onInput Input ] []
-            , button [ type_ "button", onClick SaveTextPost ] [ text "Submit" ]
+            , button [ type_ "button", onClick TextPost ] [ text "Submit" ]
             , span [] [ text ("dpy: " ++ String.fromInt model.dpy ++ em model) ]
             ]
         , div [ style "height" "30px", style "background-color" "lavender" ] []

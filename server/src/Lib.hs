@@ -3,6 +3,9 @@
 {-# LANGUAGE TypeOperators   #-}
 
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE FlexibleContexts #-}
+
+
 
 module Lib where
 
@@ -57,7 +60,7 @@ import Control.Monad.IO.Class   (liftIO)
 
 import Data.Double.Conversion.Text (toFixed)
 
-import Database.Persist.Sql (fromSqlKey)
+import Database.Persist.Sql (fromSqlKey ,SqlBackend (..), ToBackendKey)
 
 import Query
 
@@ -102,24 +105,25 @@ $(deriveJSON defaultOptions ''ElmTask)
 
 -- $(deriveJSON defaultOptions ''ElmModel)
 
-type API =  "tasks" :> "all" :> Get '[JSON] [ElmTask]
-    :<|>    "tasks" :> ReqBody '[JSON] TextPost :> Post '[JSON] [ElmTask]
-
 data TextPost = TextPost
     { textPostUser :: Int
-    , textPostContent :: Text
     , textPostDpy :: Int
+    , textPostContent :: Text
     } deriving (Eq, Show)
 
 $(deriveJSON defaultOptions ''TextPost)
--- instance FromJSON TextPost
--- instance ToJSON TextPost
 
-textPostReload' :: TextPost -> IO [ElmTask]
-textPostReload' (TextPost u c d) = do
-    insTasks $ text2tasks c
-    -- getUndoneElmTasks u (Data.Text.length c)
-    getUndoneElmTasks u d
+data DoneTasks = DoneTasks
+    { doneTasksUser :: Int
+    , doneTasksDpy :: Int
+    , doneTasksIds :: [Int]
+    } deriving (Eq, Show)
+
+$(deriveJSON defaultOptions ''DoneTasks)
+
+type API =  "tasks" :> "all" :> Get '[JSON] [ElmTask]
+    :<|>    "tasks" :> ReqBody '[JSON] TextPost :> Post '[JSON] [ElmTask]
+    :<|>    "tasks" :> "done" :> ReqBody '[JSON] DoneTasks :> Post '[JSON] [ElmTask]
 
 startApp :: IO ()
 startApp = run 8080 app
@@ -142,9 +146,24 @@ api = Proxy
 server :: Server API
 server = (liftIO $ getUndoneElmTasks 1 dayPerY) 
     :<|> textPostReload
+    :<|> doneTasksReload
     where
         textPostReload :: TextPost -> Handler [ElmTask]
         textPostReload tp = liftIO $ textPostReload' tp
+        doneTasksReload :: DoneTasks -> Handler [ElmTask]
+        doneTasksReload dt = liftIO $ doneTasksReload' dt
+
+textPostReload' :: TextPost -> IO [ElmTask]
+textPostReload' (TextPost u d content) = do
+    insTasks $ text2tasks content
+    getUndoneElmTasks u d
+
+doneTasksReload' :: DoneTasks -> IO [ElmTask]
+doneTasksReload' (DoneTasks u d ids) = do
+    pool <- pgPool
+    makeTasksDone pool ids
+    getUndoneElmTasks u d
+
 
 getUndoneElmTasks :: Int -> Int -> IO [ElmTask]
 getUndoneElmTasks user dpy = do
@@ -154,8 +173,8 @@ getUndoneElmTasks user dpy = do
     return $ map (toElmTask dpy now) entities
 
 
-entity2v :: Entity a -> a
-entity2v (Entity _ v) = v
+-- entity2v :: Entity a -> a
+-- entity2v (Entity _ v) = v
 
 -- 
 
@@ -382,11 +401,14 @@ fileTest3 inFile = do
 
 --
 
+idFromEntity :: ToBackendKey SqlBackend record => Entity record -> Int
+idFromEntity = fromIntegral . fromSqlKey . entityKey
+
 toElmTask :: Int -> UTCTime -> Entity Task -> ElmTask
 -- dots per year
 toElmTask dpy now e =
     let
-        ei  = fromIntegral . fromSqlKey . entityKey $ e
+        ei  = idFromEntity e
         Task _ _ d s ml ms md mw tt _ = entityVal e
         ed  = d
         es  = s
