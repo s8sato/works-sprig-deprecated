@@ -110,8 +110,8 @@ get = do
 
 
 
-makeTasksDone :: ConnectionPool -> [Int] -> IO ()
-makeTasksDone pool ids = flip runSqlPool pool $ do
+setTasksDone :: ConnectionPool -> [Int] -> IO ()
+setTasksDone pool ids = flip runSqlPool pool $ do
     update $ \task -> do
         set
             task [TaskIsDone =. val True]
@@ -122,4 +122,19 @@ makeTasksDone pool ids = flip runSqlPool pool $ do
 
 done = do
     pool <- pgPool
-    makeTasksDone pool [6]
+    setTasksDone pool [6]
+
+
+setStarSwitched :: ConnectionPool -> Int -> IO ()
+setStarSwitched pool id = flip runSqlPool pool $ do
+    update $ \task -> do
+        let isStarred = sub_select $ from $ \task -> do
+                where_ 
+                    (   task ^. TaskId ==. val (TaskKey . keyFromInt $ id)
+                    )
+                return $ task ^. TaskIsStarred
+        set
+            task [TaskIsStarred =. not_ isStarred]
+        where_ 
+            (   task ^. TaskId ==. val (TaskKey . keyFromInt $ id)
+            )

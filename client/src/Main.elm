@@ -4,7 +4,7 @@ import Array exposing (Array)
 import Browser
 import Browser.Events exposing (onKeyPress)
 import Html exposing (..)
-import Html.Attributes exposing (class, cols, href, id, placeholder, rows, style, type_, value)
+import Html.Attributes exposing (class, cols, href, placeholder, rows, style, type_, value)
 import Html.Events exposing (onClick, onInput)
 import Http
 import Json.Decode as Decode exposing (Decoder, bool, float, int, list, string)
@@ -46,15 +46,9 @@ type alias Task =
     , start : String -- "YYYY/MM/DD HH:MM'SS"
     , deadline : String
     , weight : Float
-    , bar : Bar
+    , secUntilStart : Int
+    , secUntilDeadline : Int
     , isSelected : Bool
-    }
-
-
-type alias Bar =
-    { dot : Int
-    , sha : Int
-    , exc : Int
     }
 
 
@@ -125,23 +119,27 @@ type Msg
     | TasksReceived (Result Http.Error (List Task))
     | CharacterKey Char
     | ControlKey String
+    | SwitchSelect Int
+    | Input String
     | TextPost
     | DoneTasks
+    | StarSwitched Int (Result Http.Error ())
     | Focus Int
     | Edit (List Task)
-    | Star Int
-      -- | Sort Param Direction
-      -- | Reschedule
-      -- | Configure
-      -- | Next
-      -- | Prev
-      -- | Search (List Condition)
-    | Select Int
-    | Input String
+    | SwitchStar Int
 
 
-select : Model -> Int -> ( Model, Cmd Msg )
-select model i =
+
+-- | Sort Param Direction
+-- | Reschedule
+-- | Configure
+-- | Next
+-- | Prev
+-- | Search (List Condition)
+
+
+switchSelect : Model -> Int -> ( Model, Cmd Msg )
+switchSelect model i =
     ( case Array.get i (Array.fromList model.tasks) of
         Nothing ->
             model
@@ -150,26 +148,6 @@ select model i =
             let
                 newTask =
                     { task | isSelected = not task.isSelected }
-            in
-            { model
-                | tasks =
-                    Array.toList <|
-                        Array.set i newTask (Array.fromList model.tasks)
-            }
-    , Cmd.none
-    )
-
-
-star : Model -> Int -> ( Model, Cmd Msg )
-star model i =
-    ( case Array.get i (Array.fromList model.tasks) of
-        Nothing ->
-            model
-
-        Just task ->
-            let
-                newTask =
-                    { task | isStarred = not task.isStarred }
             in
             { model
                 | tasks =
@@ -260,7 +238,7 @@ update msg model =
             )
 
         CharacterKey 'e' ->
-            ( model, doneTasks model.user model.dpy model.tasks )
+            ( model, doneTasks model )
 
         -- ( { model
         --     | tasks =
@@ -276,7 +254,7 @@ update msg model =
         -- , Cmd.none
         -- )
         -- APIに送る：taskId
-        -- APIからもらう：Model
+        -- APIからもらう：[Task]
         CharacterKey 'f' ->
             focus model model.indicator
 
@@ -286,10 +264,10 @@ update msg model =
             ( model, Cmd.none )
 
         CharacterKey 's' ->
-            star model model.indicator
+            ( model, switchStar model model.indicator )
 
         CharacterKey 'x' ->
-            select model model.indicator
+            switchSelect model model.indicator
 
         CharacterKey 'y' ->
             ( { model | dpy = houPerY }, getTasksAll )
@@ -301,10 +279,36 @@ update msg model =
             ( model, Cmd.none )
 
         TextPost ->
-            ( model, textPost model.user model.dpy model.inputText )
+            ( model, textPost model )
 
         DoneTasks ->
-            ( model, doneTasks model.user model.dpy model.tasks )
+            ( model, doneTasks model )
+
+        StarSwitched i (Ok _) ->
+            ( case Array.get i (Array.fromList model.tasks) of
+                Nothing ->
+                    model
+
+                Just task ->
+                    let
+                        newTask =
+                            { task | isStarred = not task.isStarred }
+                    in
+                    { model
+                        | tasks =
+                            Array.toList <|
+                                Array.set i newTask (Array.fromList model.tasks)
+                    }
+            , Cmd.none
+            )
+
+        StarSwitched _ (Err httpError) ->
+            ( { model
+                | dpy = 404
+                , errorMessage = Just (buildErrorMessage httpError)
+              }
+            , Cmd.none
+            )
 
         Focus index ->
             focus model index
@@ -312,65 +316,77 @@ update msg model =
         Edit tasks ->
             ( model, Cmd.none )
 
-        Star index ->
-            star model index
+        SwitchStar index ->
+            ( model, switchStar model index )
 
-        Select index ->
-            select model index
+        SwitchSelect index ->
+            switchSelect model index
 
         Input newInput ->
             ( { model | inputText = newInput }, Cmd.none )
 
 
-textPost : Int -> Int -> String -> Cmd Msg
-textPost user dpy content =
+textPost : Model -> Cmd Msg
+textPost m =
     Http.post
         { url = "http://localhost:8080/tasks"
-        , body = Http.jsonBody (textPostEncoder user dpy content)
+        , body = Http.jsonBody (textPostEncoder m)
         , expect = Http.expectJson TasksReceived (list taskDecoder)
         }
 
 
-
--- Http.request
---     { method = "POST"
---     , headers = []
---     , url = "http://localhost:8080/tasks"
---     , body = Http.jsonBody (textPostEncoder user content dpy)
---     , expect = Http.expectJson TasksReceived (list taskDecoder)
---     , timeout = Nothing
---     , tracker = Nothing
---     }
-
-
-doneTasks : Int -> Int -> List Task -> Cmd Msg
-doneTasks user dpy tasks =
+doneTasks : Model -> Cmd Msg
+doneTasks m =
     Http.post
         { url = "http://localhost:8080/tasks/done"
-        , body = Http.jsonBody (doneTasksEncoder user dpy tasks)
+        , body = Http.jsonBody (doneTasksEncoder m)
         , expect = Http.expectJson TasksReceived (list taskDecoder)
         }
 
 
-textPostEncoder : Int -> Int -> String -> Encode.Value
-textPostEncoder user dpy content =
+switchStar : Model -> Int -> Cmd Msg
+switchStar m i =
+    Http.post
+        { url = "http://localhost:8080/tasks/star"
+        , body = Http.jsonBody (switchStarEncoder m i)
+        , expect = Http.expectWhatever (StarSwitched i)
+        }
+
+
+textPostEncoder : Model -> Encode.Value
+textPostEncoder m =
     Encode.object
-        [ ( "textPostUser", Encode.int user )
-        , ( "textPostDpy", Encode.int dpy )
-        , ( "textPostContent", Encode.string content )
+        [ ( "textPostUser", Encode.int m.user )
+        , ( "textPostContent", Encode.string m.inputText )
         ]
 
 
-doneTasksEncoder : Int -> Int -> List Task -> Encode.Value
-doneTasksEncoder user dpy tasks =
+doneTasksEncoder : Model -> Encode.Value
+doneTasksEncoder m =
     let
         ids =
-            List.map .id <| List.filter .isSelected <| tasks
+            List.map .id <| List.filter .isSelected <| m.tasks
     in
     Encode.object
-        [ ( "doneTasksUser", Encode.int user )
-        , ( "doneTasksDpy", Encode.int dpy )
+        [ ( "doneTasksUser", Encode.int m.user )
         , ( "doneTasksIds", Encode.list Encode.int ids )
+        ]
+
+
+switchStarEncoder : Model -> Int -> Encode.Value
+switchStarEncoder m i =
+    let
+        taskId =
+            case Array.get i (Array.fromList m.tasks) of
+                Nothing ->
+                    0
+
+                Just task ->
+                    .id task
+    in
+    Encode.object
+        [ ( "switchStarUser", Encode.int m.user )
+        , ( "switchStarId", Encode.int taskId )
         ]
 
 
@@ -394,16 +410,9 @@ taskDecoder =
         |> required "elmTaskStart" string
         |> required "elmTaskDeadline" string
         |> required "elmTaskWeight" float
-        |> required "elmTaskBar" barDecoder
+        |> required "elmTaskSecUntilStart" int
+        |> required "elmTaskSecUntilDeadline" int
         |> optional "elmTaskIsSelected" bool False
-
-
-barDecoder : Decoder Bar
-barDecoder =
-    Decode.succeed Bar
-        |> required "elmBarDot" int
-        |> required "elmBarSha" int
-        |> required "elmBarExc" int
 
 
 
@@ -467,7 +476,7 @@ viewTableHeader =
         , th []
             [ text "start" ]
         , th []
-            [ text "bar" ]
+            [ text "As of 2019/12/20 04:17:00 UTC" ]
         , th []
             [ text "dead" ]
         , th []
@@ -486,14 +495,14 @@ viewTask model ( idx, task ) =
           else
             style "background-color" "oldlace"
         ]
-        [ td [ onClick (Select idx) ]
+        [ td [ onClick (SwitchSelect idx) ]
             [ if task.isSelected then
                 text "SEL"
 
               else
                 text "---"
             ]
-        , td [ onClick (Star idx) ]
+        , td [ onClick (SwitchStar idx) ]
             [ if task.isStarred then
                 text "★"
 
@@ -505,7 +514,7 @@ viewTask model ( idx, task ) =
         , td []
             [ text (viewTimeByDpy task.start model.dpy) ]
         , td []
-            [ text (barStr task.bar) ]
+            [ text (barString model.dpy task.weight task.secUntilStart task.secUntilDeadline) ]
         , td []
             [ text (viewTimeByDpy task.deadline model.dpy) ]
         , td []
@@ -547,16 +556,46 @@ fill n putty target =
     String.left n <| target ++ String.repeat n putty
 
 
-barStr : Bar -> String
-barStr bar =
-    String.repeat bar.dot "."
-        ++ String.repeat bar.sha "#"
+barString : Int -> Float -> Int -> Int -> String
+barString dpy weight secUS secUD =
+    let
+        dot =
+            sec2dot dpy secUS
+
+        sha =
+            case weight2sec weight of
+                0 ->
+                    0
+
+                s ->
+                    sec2dot dpy s + 1
+
+        exc =
+            case secUD of
+                0 ->
+                    -1
+
+                _ ->
+                    sec2dot dpy secUD
+    in
+    String.repeat dot "."
+        ++ String.repeat sha "#"
         |> fill 50 "."
         |> String.toList
         |> Array.fromList
-        |> Array.set bar.exc '!'
+        |> Array.set exc '!'
         |> Array.toList
         |> String.fromList
+
+
+sec2dot : Int -> Int -> Int
+sec2dot dpy sec =
+    floor <| toFloat (dpy * sec) / toFloat (60 * 60 * 24 * 365)
+
+
+weight2sec : Float -> Int
+weight2sec w =
+    floor (60 * 60 * w)
 
 
 

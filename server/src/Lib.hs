@@ -52,7 +52,7 @@ import qualified Data.Conduit.List as L
 import Data.Time
 
 -- for fileTest
-import System.IO
+-- import System.IO
 
 import Db
 import Database.Persist (Entity(..))
@@ -76,16 +76,8 @@ secPerY = 31536000
 defaultTaskLink = pack ""
 defaultUser = 1
 
-data ElmBar = ElmBar
-    { elmBarDot :: Int
-    , elmBarSha :: Int
-    , elmBarExc :: Int
-    } deriving (Eq, Show)
-
-$(deriveJSON defaultOptions ''ElmBar)
-
 data ElmTask = ElmTask
-    { elmTaskId :: Int
+    { elmTaskId :: Integer
     , elmTaskIsDone :: Bool
     , elmTaskIsStarred :: Bool
     , elmTaskTitle :: Text
@@ -93,21 +85,14 @@ data ElmTask = ElmTask
     , elmTaskStart :: Text
     , elmTaskDeadline :: Text
     , elmTaskWeight :: Double
-    , elmTaskBar :: ElmBar
+    , elmTaskSecUntilStart :: Integer
+    , elmTaskSecUntilDeadline :: Integer
     } deriving (Eq, Show)
 
 $(deriveJSON defaultOptions ''ElmTask)
 
--- data ElmModel = Model
---     { elmModelDpy :: Int
---     , elmModelTasks :: [Task]
---     } deriving (Eq, Show)
-
--- $(deriveJSON defaultOptions ''ElmModel)
-
 data TextPost = TextPost
     { textPostUser :: Int
-    , textPostDpy :: Int
     , textPostContent :: Text
     } deriving (Eq, Show)
 
@@ -115,15 +100,22 @@ $(deriveJSON defaultOptions ''TextPost)
 
 data DoneTasks = DoneTasks
     { doneTasksUser :: Int
-    , doneTasksDpy :: Int
     , doneTasksIds :: [Int]
     } deriving (Eq, Show)
 
 $(deriveJSON defaultOptions ''DoneTasks)
 
+data SwitchStar = SwitchStar
+    { switchStarUser :: Int
+    , switchStarId :: Int
+    } deriving (Eq, Show)
+
+$(deriveJSON defaultOptions ''SwitchStar)
+
 type API =  "tasks" :> "all" :> Get '[JSON] [ElmTask]
     :<|>    "tasks" :> ReqBody '[JSON] TextPost :> Post '[JSON] [ElmTask]
     :<|>    "tasks" :> "done" :> ReqBody '[JSON] DoneTasks :> Post '[JSON] [ElmTask]
+    :<|>    "tasks" :> "star" :> ReqBody '[JSON] SwitchStar :> Post '[JSON] ()
 
 startApp :: IO ()
 startApp = run 8080 app
@@ -144,37 +136,44 @@ api :: Proxy API
 api = Proxy
 
 server :: Server API
-server = (liftIO $ getUndoneElmTasks 1 dayPerY) 
+server = (liftIO $ getUndoneElmTasks 1) 
     :<|> textPostReload
     :<|> doneTasksReload
+    :<|> switchStar
+
     where
         textPostReload :: TextPost -> Handler [ElmTask]
         textPostReload tp = liftIO $ textPostReload' tp
         doneTasksReload :: DoneTasks -> Handler [ElmTask]
         doneTasksReload dt = liftIO $ doneTasksReload' dt
+        switchStar :: SwitchStar -> Handler ()
+        switchStar = liftIO . switchStar'
 
-textPostReload' :: TextPost -> IO [ElmTask]
-textPostReload' (TextPost u d content) = do
-    insTasks $ text2tasks content
-    getUndoneElmTasks u d
-
-doneTasksReload' :: DoneTasks -> IO [ElmTask]
-doneTasksReload' (DoneTasks u d ids) = do
-    pool <- pgPool
-    makeTasksDone pool ids
-    getUndoneElmTasks u d
-
-
-getUndoneElmTasks :: Int -> Int -> IO [ElmTask]
-getUndoneElmTasks user dpy = do
+getUndoneElmTasks :: Int -> IO [ElmTask]
+getUndoneElmTasks user = do
     pool <- pgPool
     entities <- getUndoneTasks pool user
     now <- zonedTimeToUTC <$> getZonedTime
-    return $ map (toElmTask dpy now) entities
+    return $ map (toElmTask now) entities
+
+textPostReload' :: TextPost -> IO [ElmTask]
+textPostReload' (TextPost u content) = do
+    insTasks $ text2tasks content
+    getUndoneElmTasks u
+
+doneTasksReload' :: DoneTasks -> IO [ElmTask]
+doneTasksReload' (DoneTasks u ids) = do
+    pool <- pgPool
+    setTasksDone pool ids
+    getUndoneElmTasks u
+
+switchStar' :: SwitchStar -> IO ()
+switchStar' (SwitchStar u id) = do
+    pool <- pgPool
+    setStarSwitched pool id
 
 
--- entity2v :: Entity a -> a
--- entity2v (Entity _ v) = v
+
 
 -- 
 
@@ -236,7 +235,7 @@ edge2task' (a:as) (Task t i d s ml ms md mw tt u) =
                         edge2task' as (Task t i d s ml (Just (UTCTime od nt)) md mw tt u)
                     Nothing ->
                         let
-                            nd = fromGregorian 0 0 0
+                            nd = fromGregorian 3000 0 0
                         in
                             edge2task' as (Task t i d s ml (Just (UTCTime nd nt)) md mw tt u)
         DeadlineDate yyyy mm dd ->
@@ -257,7 +256,7 @@ edge2task' (a:as) (Task t i d s ml ms md mw tt u) =
                         edge2task' as (Task t i d s ml ms (Just (UTCTime od nt)) mw tt u)
                     Nothing ->
                         let
-                            nd = fromGregorian 0 0 0
+                            nd = fromGregorian 3000 0 0
                         in
                             edge2task' as (Task t i d s ml ms (Just (UTCTime nd nt)) mw tt u)
         Weight w ->
@@ -325,23 +324,23 @@ spanLink :: Graph -> Graph
 spanLink g = g
 
 
-fileTest :: FilePath -> IO ()
-fileTest inFile = do
-    withFile inFile ReadMode $ \inHandle ->
-        do  text <- hGetContents inHandle
-            print (text2graph $ pack text)
+-- fileTest :: FilePath -> IO ()
+-- fileTest inFile = do
+--     withFile inFile ReadMode $ \inHandle ->
+--         do  text <- hGetContents inHandle
+--             print (text2graph $ pack text)
 
-fileTest2 :: FilePath -> IO ()
-fileTest2 inFile = do
-    withFile inFile ReadMode $ \inHandle ->
-        do  text <- hGetContents inHandle
-            print (text2tasks $ pack text)
+-- fileTest2 :: FilePath -> IO ()
+-- fileTest2 inFile = do
+--     withFile inFile ReadMode $ \inHandle ->
+--         do  text <- hGetContents inHandle
+--             print (text2tasks $ pack text)
 
-fileTest3 :: FilePath -> IO ()
-fileTest3 inFile = do
-    withFile inFile ReadMode $ \inHandle ->
-        do  text <- hGetContents inHandle
-            insTasks $ text2tasks $ pack text
+-- fileTest3 :: FilePath -> IO ()
+-- fileTest3 inFile = do
+--     withFile inFile ReadMode $ \inHandle ->
+--         do  text <- hGetContents inHandle
+--             insTasks $ text2tasks $ pack text
 
 
 
@@ -401,12 +400,12 @@ fileTest3 inFile = do
 
 --
 
-idFromEntity :: ToBackendKey SqlBackend record => Entity record -> Int
+idFromEntity :: ToBackendKey SqlBackend record => Entity record -> Integer
 idFromEntity = fromIntegral . fromSqlKey . entityKey
 
-toElmTask :: Int -> UTCTime -> Entity Task -> ElmTask
+toElmTask :: UTCTime -> Entity Task -> ElmTask
 -- dots per year
-toElmTask dpy now e =
+toElmTask now e =
     let
         ei  = idFromEntity e
         Task _ _ d s ml ms md mw tt _ = entityVal e
@@ -425,9 +424,10 @@ toElmTask dpy now e =
                     weight
                 Nothing ->
                     0
-        eb  = toElmBar dpy now ms mw md
+        eus = secUntil now ms
+        eud = secUntil now md
     in
-        ElmTask ei ed es ett el ess edd ew eb 
+        ElmTask ei ed es ett el ess edd ew eus eud
 
 toElmTime :: Maybe UTCTime -> Text
 toElmTime mt =
@@ -437,36 +437,39 @@ toElmTime mt =
         Nothing ->
             "----/--/-- --:--'--"
 
-toElmBar :: Int -> UTCTime -> Maybe UTCTime -> Maybe Double -> Maybe UTCTime -> ElmBar
-toElmBar dpy now ms mw md =
-    let
-        dot = case ms of
-            Just s ->
-                sec2dot dpy $ diffSeconds s now
-            Nothing ->
-                0
-        sha = case mw of
-            Just w ->
-                (+) 1 $ sec2dot dpy $ weight2sec w 
-            Nothing ->
-                0
-        exc = case md of
-            Just d ->
-                sec2dot dpy $ diffSeconds d now 
-            Nothing ->
-                -1
-    in
-        ElmBar dot sha exc
+secUntil :: UTCTime -> Maybe UTCTime -> Integer
+secUntil now mt =
+    case mt of
+        Nothing ->
+            0
+        Just t ->
+            floor $ diffUTCTime t now
 
-diffSeconds :: UTCTime -> UTCTime -> Integer
-diffSeconds t1 t2 = floor $ diffUTCTime t1 t2
+-- dot = case ms of
+--     Just s ->
+--         sec2dot dpy $ diffSeconds s now
+--     Nothing ->
+--         0
+-- sha = case mw of
+--     Just w ->
+--         (+) 1 $ sec2dot dpy $ weight2sec w 
+--     Nothing ->
+--         0
+-- exc = case md of
+--     Just d ->
+--         sec2dot dpy $ diffSeconds d now 
+--     Nothing ->
+--         -1
 
-sec2dot :: Int -> Integer -> Int
-sec2dot dpy sec =
-    (dpy * fromIntegral(sec)) `div` (60 * 60 * 24 * 365)
+-- diffSeconds :: UTCTime -> UTCTime -> Integer
+-- diffSeconds t1 t2 = floor $ diffUTCTime t1 t2
 
-weight2sec :: Double -> Integer
-weight2sec w = floor (60 * 60 * w)
+-- sec2dot :: Int -> Integer -> Int
+-- sec2dot dpy sec =
+--     (dpy * fromIntegral(sec)) `div` (60 * 60 * 24 * 365)
+
+-- weight2sec :: Double -> Integer
+-- weight2sec w = floor (60 * 60 * w)
 
 
 --
