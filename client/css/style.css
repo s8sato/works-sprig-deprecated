@@ -1,0 +1,301 @@
+/* div {
+    border: solid thin;
+    box-sizing:border-box;
+} */
+
+html, body {
+    margin: 0;
+    height: 100%;
+}
+
+div {
+    font-family: Courier New,Courier,Lucida Sans Typewriter,Lucida Typewriter,monospace; 
+    font-size: 20px;
+
+}
+
+.container {
+    width : 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.header {
+    width : inherit;
+    height: 64px;
+    display: flex;
+    background-color: #DDF0E4;
+    border-bottom: #CEE2D9 thin;
+}
+
+.logo {
+    width : 64px;
+    height: inherit;
+    background-size: contain;
+}
+
+.inputField {
+    flex-grow: 1;
+    height: inherit;
+}
+
+.submission {
+    width : 136px;
+    height: inherit;
+}
+.account {
+    width : 200px;
+    height: inherit;
+}
+
+.body {
+    width : inherit;
+    flex-grow: 1;
+    display: flex;
+}
+
+.lSideBar {
+    width : 72px;
+    height: inherit;
+    background-color: #DDF0E4;
+}
+.mainContainer {
+    flex-grow: 1;
+    height: inherit;
+    display: flex;
+    flex-direction: column;
+}
+
+.rSideBar {
+    width : 72px;
+    height: inherit;
+}
+
+.cmdBar {
+    width : inherit;
+    height: 48px;
+    display: flex;
+    background-color: #DDF0E4;
+}
+.selectionCmd {
+    width : 240px;
+    height: inherit;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.selectionCmd div {
+    width : 40px;
+    height: 40px;
+}
+
+.middleCmd {
+    flex-grow: 1;
+    height: inherit;
+}
+.viewCmd {
+    width : 288px;
+    height: inherit;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.viewCmd div {
+    width : 40px;
+    height: 40px;
+}
+
+.rSideBar {
+    width : 72px;
+    height: inherit;
+    background-color: #DDF0E4;
+}
+
+.mainBody {
+    width : inherit;
+    background-color: #DDF0E4;
+    background-image: url("../images/shisocho.png");
+    flex-grow: 1;
+}
+
+/* .mainBody div {
+    align-items: center;
+    justify-content: center;
+} */
+
+.tasks {
+    width : inherit;
+}
+
+.taskHeader {
+    width : inherit;
+    height: 56px;
+    background-color: #FCFEFC;
+    display :flex;
+}
+
+.taskHeader div {
+    display :flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.task {
+    width : inherit;
+    height: 40px;
+    background-color: #EEF4F2;
+    display :flex;
+    border-bottom: lightseagreen thick;
+}
+
+.task div {
+    display :flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.task .title {
+    justify-content: left;
+}
+
+.task .title a {
+    text-decoration: none;
+}
+
+.mainBody .selection {
+    width : 30px;
+    height: inherit;
+}
+
+.mainBody .star {
+    width : 30px;
+    height: inherit;
+}
+
+.mainBody .title {
+    width : 240px;
+    height: inherit;
+}
+
+.mainBody .start {
+    width : 72px;
+    height: inherit;
+}
+
+.mainBody .bar {
+    flex-grow: 1;
+    height: inherit;
+}
+
+.mainBody .deadline {
+    width : 72px;
+    height: inherit;
+}
+
+.mainBody .weight {
+    width : 72px;
+    height: inherit;
+}
+
+.mainBody .done {
+    width : 30px;
+    height: inherit;
+}
+
+
+.footer {
+    width : inherit;
+    height: 86px;
+    background-color: #DDF0E4;
+}
+
+#inverseSelect {
+    background-image: url("../images/sprig_icons_i.png");
+    background-size: contain;
+}
+
+#eliminate {
+    background-image: url("../images/sprig_icons_e.png");
+    background-size: contain;
+}
+
+#create {
+    background-image: url("../images/sprig_icons_c.png");
+    background-size: contain;
+}
+
+#reschedule {
+    background-image: url("../images/sprig_icons_r.png");
+    background-size: contain;
+}
+
+#linksOpen {
+    background-image: url("../images/sprig_icons_l.png");
+    background-size: contain;
+}
+
+#focus {
+    background-image: url("../images/sprig_icons_f.png");
+    background-size: contain;
+}
+
+#archives {
+    background-image: url("../images/sprig_icons_a.png");
+    background-size: contain;
+}
+
+#trunk {
+    background-image: url("../images/sprig_icons_t.png");
+    background-size: contain;
+}
+
+#buds {
+    background-image: url("../images/sprig_icons_b.png");
+    background-size: contain;
+}
+
+#home {
+    background-image: url("../images/sprig_icons_h.png");
+    background-size: contain;
+}
+
+#criticalPath {
+    background-image: url("../images/sprig_icons_p.png");
+    background-size: contain;
+}
+
+# {
+    background-image: url("../images/sprig_icons_.png");
+    background-size: contain;
+}
+
+# {
+    background-image: url("../images/sprig_icons_.png");
+    background-size: contain;
+}
+
+# {
+    background-image: url("../images/sprig_icons_.png");
+    background-size: contain;
+}
+
+# {
+    background-image: url("../images/sprig_icons_.png");
+    background-size: contain;
+}
+
+# {
+    background-image: url("../images/sprig_icons_.png");
+    background-size: contain;
+}
+
+# {
+    background-image: url("../images/sprig_icons_.png");
+    background-size: contain;
+}

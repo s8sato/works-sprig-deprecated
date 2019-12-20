@@ -96,6 +96,7 @@ data ElmModel = ElmModel
     , elmModelTasks :: [ElmTask]
     , elmModelInputText :: Text
     , elmModelBarLeftEdgeTime :: Text
+    , elmModelIndicator :: Int
     }
 
 $(deriveJSON defaultOptions ''ElmModel)
@@ -109,22 +110,30 @@ $(deriveJSON defaultOptions ''TextPost)
 
 data DoneTasks = DoneTasks
     { doneTasksUser :: Int
-    , doneTasksIds :: [Int]
+    , doneTasksIds :: [Integer]
     } deriving (Eq, Show)
 
 $(deriveJSON defaultOptions ''DoneTasks)
 
 data SwitchStar = SwitchStar
     { switchStarUser :: Int
-    , switchStarId :: Int
+    , switchStarId :: Integer
     } deriving (Eq, Show)
 
 $(deriveJSON defaultOptions ''SwitchStar)
+
+data FocusTask = FocusTask
+    { focusTaskUser :: Int
+    , focusTaskId :: Integer
+    } deriving (Eq, Show)
+
+$(deriveJSON defaultOptions ''FocusTask)
 
 type API =  "tasks" :> "all" :> Get '[JSON] ElmModel
     :<|>    "tasks" :> ReqBody '[JSON] TextPost :> Post '[JSON] ElmModel
     :<|>    "tasks" :> "done" :> ReqBody '[JSON] DoneTasks :> Post '[JSON] ElmModel
     :<|>    "tasks" :> "star" :> ReqBody '[JSON] SwitchStar :> Post '[JSON] ()
+    :<|>    "tasks" :> "focus" :> ReqBody '[JSON] FocusTask :> Post '[JSON] ElmModel
 
 startApp :: IO ()
 startApp = run 8080 app
@@ -145,48 +154,69 @@ api :: Proxy API
 api = Proxy
 
 server :: Server API
-server = (liftIO $ getUndoneElmTasks 1) 
+server = undoneElmModel
     :<|> textPostReload
     :<|> doneTasksReload
     :<|> switchStar
+    :<|> focusTask
 
     where
+        undoneElmModel :: Handler ElmModel
+        undoneElmModel = liftIO $ undoneElmModel' 1
         textPostReload :: TextPost -> Handler ElmModel
         textPostReload = liftIO . textPostReload'
         doneTasksReload :: DoneTasks -> Handler ElmModel
         doneTasksReload = liftIO . doneTasksReload'
         switchStar :: SwitchStar -> Handler ()
         switchStar = liftIO . switchStar'
+        focusTask :: FocusTask -> Handler ElmModel
+        focusTask = liftIO . focusTask'
 
-getUndoneElmTasks :: Int -> IO ElmModel
-getUndoneElmTasks user = do
+
+stdElmModel :: Int -> [Entity Task] -> Int -> IO ElmModel
+stdElmModel user tasks indicator = do
     pool <- pgPool
-    entities <- getUndoneTasks pool user
     now <- zonedTimeToUTC <$> getZonedTime
-    let tasks = map (toElmTask now) entities
+    let elmTasks = map (toElmTask now) tasks
     zNowStr <- formatTime defaultTimeLocale "%Y/%m/%d %T %a" <$> getZonedTime
-    return $ ElmModel user tasks "" (pack zNowStr)
+    return $ ElmModel user elmTasks "" (pack zNowStr) indicator
+
+undoneElmModel' :: Int -> IO ElmModel
+undoneElmModel' user = do
+    pool <- pgPool
+    tasks <- getUndoneTasks pool user
+    stdElmModel user tasks 0
 
 textPostReload' :: TextPost -> IO ElmModel
 textPostReload' (TextPost u content) = do
     insTasks $ text2tasks content
-    getUndoneElmTasks u
+    undoneElmModel' u
 
 doneTasksReload' :: DoneTasks -> IO ElmModel
 doneTasksReload' (DoneTasks u ids) = do
     pool <- pgPool
     setTasksDone pool ids
-    getUndoneElmTasks u
+    undoneElmModel' u
 
 switchStar' :: SwitchStar -> IO ()
 switchStar' (SwitchStar u id) = do
     pool <- pgPool
     setStarSwitched pool id
 
+focusTask' :: FocusTask -> IO ElmModel
+focusTask' (FocusTask user task) = do
+    pool        <- pgPool
+    beforeMe    <- getBeforeMe  pool task
+    me          <- getMe        pool task
+    afterMe     <- getAfterMe   pool task
+    let aroundMe = beforeMe ++ me ++ afterMe
+    stdElmModel user aroundMe (Prelude.length beforeMe)
 
 
 
 -- 
+
+
 
 type Graph = [Edge]
 type Edge = ((Node, Node), [Attr])

@@ -57,6 +57,7 @@ User json
 Task json
     terminal        Int
     initial         Int
+    -- isDummy         Bool
     isDone          Bool
     isStarred       Bool
     link            Text Maybe

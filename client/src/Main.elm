@@ -4,7 +4,7 @@ import Array exposing (Array)
 import Browser
 import Browser.Events exposing (onKeyPress)
 import Html exposing (..)
-import Html.Attributes exposing (class, cols, href, placeholder, rows, style, type_, value)
+import Html.Attributes exposing (class, cols, href, id, placeholder, rows, style, type_, value)
 import Html.Events exposing (onClick, onInput)
 import Http
 import Json.Decode as Decode exposing (Decoder, bool, float, int, list, nullable, string)
@@ -126,7 +126,7 @@ type Msg
     | TextPost
     | DoneTasks
     | StarSwitched Int (Result Http.Error ())
-    | Focus Int
+    | FocusTask Int
     | Edit (List Task)
     | SwitchStar Int
 
@@ -140,50 +140,6 @@ type Msg
 -- | Search (List Condition)
 
 
-switchSelect : Model -> Int -> ( Model, Cmd Msg )
-switchSelect model i =
-    ( case Array.get i (Array.fromList model.tasks) of
-        Nothing ->
-            model
-
-        Just task ->
-            let
-                newTask =
-                    { task | isSelected = not task.isSelected }
-            in
-            { model
-                | tasks =
-                    Array.toList <|
-                        Array.set i newTask (Array.fromList model.tasks)
-            }
-    , Cmd.none
-    )
-
-
-focus : Model -> Int -> ( Model, Cmd Msg )
-focus model i =
-    ( model, Cmd.none )
-
-
-buildErrorMessage : Http.Error -> String
-buildErrorMessage httpError =
-    case httpError of
-        Http.BadUrl message ->
-            message
-
-        Http.Timeout ->
-            "Server is taking too long to respond. Please try again later."
-
-        Http.NetworkError ->
-            "Unable to reach server."
-
-        Http.BadStatus statusCode ->
-            "Request failed with status code: " ++ String.fromInt statusCode
-
-        Http.BadBody message ->
-            message
-
-
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
@@ -192,7 +148,7 @@ update msg model =
         TasksReceived (Ok newModel) ->
             ( { model
                 | tasks = newModel.tasks
-                , indicator = 0
+                , indicator = newModel.indicator
                 , barLeftEdgeTime = newModel.barLeftEdgeTime
               }
             , Cmd.none
@@ -260,7 +216,7 @@ update msg model =
         -- APIに送る：taskId
         -- APIからもらう：[Task]
         CharacterKey 'f' ->
-            focus model model.indicator
+            ( model, focusTask model model.indicator )
 
         -- APIに送る：[taskId]
         -- APIからもらう：String
@@ -318,8 +274,8 @@ update msg model =
             , Cmd.none
             )
 
-        Focus index ->
-            focus model index
+        FocusTask index ->
+            ( model, focusTask model index )
 
         Edit tasks ->
             ( model, Cmd.none )
@@ -359,6 +315,54 @@ switchStar m i =
         , body = Http.jsonBody (switchStarEncoder m i)
         , expect = Http.expectWhatever (StarSwitched i)
         }
+
+
+switchSelect : Model -> Int -> ( Model, Cmd Msg )
+switchSelect model i =
+    ( case Array.get i (Array.fromList model.tasks) of
+        Nothing ->
+            model
+
+        Just task ->
+            let
+                newTask =
+                    { task | isSelected = not task.isSelected }
+            in
+            { model
+                | tasks =
+                    Array.toList <|
+                        Array.set i newTask (Array.fromList model.tasks)
+            }
+    , Cmd.none
+    )
+
+
+focusTask : Model -> Int -> Cmd Msg
+focusTask m i =
+    Http.post
+        { url = "http://localhost:8080/tasks/focus"
+        , body = Http.jsonBody (focusTaskEncoder m i)
+        , expect = Http.expectJson TasksReceived modelDecoder
+        }
+
+
+buildErrorMessage : Http.Error -> String
+buildErrorMessage httpError =
+    case httpError of
+        Http.BadUrl message ->
+            message
+
+        Http.Timeout ->
+            "Server is taking too long to respond. Please try again later."
+
+        Http.NetworkError ->
+            "Unable to reach server."
+
+        Http.BadStatus statusCode ->
+            "Request failed with status code: " ++ String.fromInt statusCode
+
+        Http.BadBody message ->
+            message
 
 
 textPostEncoder : Model -> Encode.Value
@@ -407,6 +411,23 @@ switchStarEncoder m i =
         ]
 
 
+focusTaskEncoder : Model -> Int -> Encode.Value
+focusTaskEncoder m i =
+    let
+        taskId =
+            case Array.get i (Array.fromList m.tasks) of
+                Nothing ->
+                    0
+
+                Just task ->
+                    .id task
+    in
+    Encode.object
+        [ ( "focusTaskUser", Encode.int m.user )
+        , ( "focusTaskId", Encode.int taskId )
+        ]
+
+
 modelDecoder : Decoder Model
 modelDecoder =
     Decode.succeed Model
@@ -443,25 +464,51 @@ getTasksAll =
         }
 
 
-
--- VIEW
-
-
 view : Model -> Html Msg
 view model =
     div [ class "container" ]
-        [ div
-            []
-            [ div [] []
-            , textarea [ cols 40, rows 10, placeholder "...", onInput Input ] []
-
-            -- , input [ placeholder "Sprig", value model.inputText, onInput Input ] []
-            , button [ type_ "button", onClick TextPost ] [ text "Submit" ]
-            , span [] [ text ("dpy: " ++ String.fromInt model.dpy ++ em model) ]
+        [ div [ class "header" ]
+            [ div [ class "logo" ] []
+            , div [ class "inputField" ]
+                [ textarea [ cols 80, rows 2, placeholder "...", onInput Input ] [] ]
+            , div [ class "submission" ]
+                [ button [ type_ "button", onClick TextPost ] [ text "Submit" ] ]
+            , div [ class "account" ] []
             ]
-        , div [ style "height" "30px", style "background-color" "lavender" ] []
-        , table [ style "font-size" "12px", style "font-family" "Courier" ]
-            ([ viewTableHeader model ] ++ List.map (viewTask model) (List.indexedMap Tuple.pair model.tasks))
+        , div [ class "body" ]
+            [ div [ class "lSideBar" ] []
+            , div [ class "mainContainer" ]
+                [ div [ class "cmdBar" ]
+                    [ div [ class "selectionCmd" ]
+                        [ div [ id "inverseSelect" ] []
+                        , div [ id "eliminate" ] []
+                        , div [ id "create" ] []
+                        , div [ id "reschedule" ] []
+                        , div [ id "linksOpen" ] []
+                        ]
+                    , div [ class "middleCmd" ]
+                        [ text (em model) ]
+                    , div [ class "viewCmd" ]
+                        [ div [ id "focus" ] []
+                        , div [ id "archives" ] []
+                        , div [ id "trunk" ] []
+                        , div [ id "buds" ] []
+                        , div [ id "home" ] []
+                        , div [ id "criticalPath" ] []
+                        ]
+                    ]
+                , div [ class "mainBody" ]
+                    [ viewTaskHeader model
+                    , div [ class "tasks" ]
+                        (List.map
+                            (viewTask model)
+                            (List.indexedMap Tuple.pair model.tasks)
+                        )
+                    ]
+                ]
+            , div [ class "rSideBar" ] []
+            ]
+        , div [ class "fotter" ] []
         ]
 
 
@@ -475,18 +522,18 @@ em model =
             ""
 
 
-viewTableHeader : Model -> Html Msg
-viewTableHeader m =
-    tr []
-        [ th []
+viewTaskHeader : Model -> Html Msg
+viewTaskHeader m =
+    div [ class "taskHeader" ]
+        [ div [ class "selection" ]
             [ text "Sel" ]
-        , th []
+        , div [ class "star" ]
             [ text "Sta" ]
-        , th []
+        , div [ class "title" ]
             [ text "title" ]
-        , th []
+        , div [ class "start" ]
             [ text "start" ]
-        , th []
+        , div [ class "bar" ]
             [ text
                 (case m.barLeftEdgeTime of
                     Nothing ->
@@ -495,50 +542,58 @@ viewTableHeader m =
                     Just t ->
                         "As of " ++ t
                 )
+            , text (", " ++ String.fromInt m.dpy ++ " dpy")
             ]
-        , th []
+        , div [ class "deadline" ]
             [ text "dead" ]
-        , th []
+        , div [ class "weight" ]
             [ text "wei" ]
-        , th []
+        , div [ class "done" ]
             [ text "Done" ]
         ]
 
 
 viewTask : Model -> ( Int, Task ) -> Html Msg
 viewTask model ( idx, task ) =
-    tr
-        [ if idx == model.indicator then
-            style "background-color" "bisque"
+    div
+        [ class "task"
+        , if idx == model.indicator then
+            style "background-color" "#C2DBFF"
 
           else
-            style "background-color" "oldlace"
+            style "background-color" "#EEF4F2"
         ]
-        [ td [ onClick (SwitchSelect idx) ]
+        [ div
+            [ class "selection"
+            , onClick (SwitchSelect idx)
+            ]
             [ if task.isSelected then
                 text "SEL"
 
               else
                 text "---"
             ]
-        , td [ onClick (SwitchStar idx) ]
+        , div
+            [ class "star"
+            , onClick (SwitchStar idx)
+            ]
             [ if task.isStarred then
                 text "★"
 
               else
                 text "☆"
             ]
-        , td []
+        , div [ class "title" ]
             [ a [ href task.link ] [ text task.title ] ]
-        , td []
+        , div [ class "start" ]
             [ text (viewTimeByDpy task.start model.dpy) ]
-        , td []
+        , div [ class "bar" ]
             [ text (barString model.dpy task.weight task.secUntilStart task.secUntilDeadline) ]
-        , td []
+        , div [ class "deadline" ]
             [ text (viewTimeByDpy task.deadline model.dpy) ]
-        , td []
+        , div [ class "weight" ]
             [ text (String.fromFloat task.weight) ]
-        , td []
+        , div [ class "done" ]
             [ if task.isDone then
                 text "DONE"
 

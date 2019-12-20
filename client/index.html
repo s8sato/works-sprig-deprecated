@@ -3,8 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <title>Main</title>
-  <style>body { padding: 0; margin: 0; }</style>
-  <link rel="stylesheet" type="text/css" href="src/style.css">
+  <link rel="stylesheet" type="text/css" href="css/style.css">
 </head>
 
 <body>
@@ -5376,7 +5375,7 @@ var $elm$core$Platform$Cmd$batch = _Platform_batch;
 var $elm$core$Platform$Cmd$none = $elm$core$Platform$Cmd$batch(_List_Nil);
 var $author$project$Main$init = function (_v0) {
 	return _Utils_Tuple2(
-		{dpy: $author$project$Main$dayPerY, errorMessage: $elm$core$Maybe$Nothing, indicator: 0, inputText: '', tasks: _List_Nil, user: 1},
+		{barLeftEdgeTime: $elm$core$Maybe$Nothing, dpy: $author$project$Main$dayPerY, errorMessage: $elm$core$Maybe$Nothing, indicator: 0, inputText: $elm$core$Maybe$Nothing, tasks: _List_Nil, user: 1},
 		$elm$core$Platform$Cmd$none);
 };
 var $elm$core$Platform$Sub$batch = _Platform_batch;
@@ -5827,12 +5826,65 @@ var $author$project$Main$buildErrorMessage = function (httpError) {
 			return message;
 	}
 };
-var $author$project$Main$focus = F2(
-	function (model, i) {
-		return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
-	});
 var $author$project$Main$TasksReceived = function (a) {
 	return {$: 'TasksReceived', a: a};
+};
+var $elm$core$List$filter = F2(
+	function (isGood, list) {
+		return A3(
+			$elm$core$List$foldr,
+			F2(
+				function (x, xs) {
+					return isGood(x) ? A2($elm$core$List$cons, x, xs) : xs;
+				}),
+			_List_Nil,
+			list);
+	});
+var $elm$json$Json$Encode$int = _Json_wrap;
+var $elm$json$Json$Encode$list = F2(
+	function (func, entries) {
+		return _Json_wrap(
+			A3(
+				$elm$core$List$foldl,
+				_Json_addEntry(func),
+				_Json_emptyArray(_Utils_Tuple0),
+				entries));
+	});
+var $elm$json$Json$Encode$object = function (pairs) {
+	return _Json_wrap(
+		A3(
+			$elm$core$List$foldl,
+			F2(
+				function (_v0, obj) {
+					var k = _v0.a;
+					var v = _v0.b;
+					return A3(_Json_addField, k, v, obj);
+				}),
+			_Json_emptyObject(_Utils_Tuple0),
+			pairs));
+};
+var $author$project$Main$doneTasksEncoder = function (m) {
+	var ids = A2(
+		$elm$core$List$map,
+		function ($) {
+			return $.id;
+		},
+		A2(
+			$elm$core$List$filter,
+			function ($) {
+				return $.isSelected;
+			},
+			m.tasks));
+	return $elm$json$Json$Encode$object(
+		_List_fromArray(
+			[
+				_Utils_Tuple2(
+				'doneTasksUser',
+				$elm$json$Json$Encode$int(m.user)),
+				_Utils_Tuple2(
+				'doneTasksIds',
+				A2($elm$json$Json$Encode$list, $elm$json$Json$Encode$int, ids))
+			]));
 };
 var $elm$json$Json$Decode$decodeString = _Json_runOnString;
 var $elm$http$Http$BadStatus_ = F2(
@@ -6336,7 +6388,186 @@ var $elm$http$Http$expectJson = F2(
 						A2($elm$json$Json$Decode$decodeString, decoder, string));
 				}));
 	});
-var $elm$http$Http$emptyBody = _Http_emptyBody;
+var $elm$http$Http$jsonBody = function (value) {
+	return A2(
+		_Http_pair,
+		'application/json',
+		A2($elm$json$Json$Encode$encode, 0, value));
+};
+var $author$project$Main$Model = F7(
+	function (user, tasks, inputText, barLeftEdgeTime, dpy, indicator, errorMessage) {
+		return {barLeftEdgeTime: barLeftEdgeTime, dpy: dpy, errorMessage: errorMessage, indicator: indicator, inputText: inputText, tasks: tasks, user: user};
+	});
+var $elm$json$Json$Decode$int = _Json_decodeInt;
+var $elm$json$Json$Decode$list = _Json_decodeList;
+var $elm$json$Json$Decode$null = _Json_decodeNull;
+var $elm$json$Json$Decode$oneOf = _Json_oneOf;
+var $elm$json$Json$Decode$nullable = function (decoder) {
+	return $elm$json$Json$Decode$oneOf(
+		_List_fromArray(
+			[
+				$elm$json$Json$Decode$null($elm$core$Maybe$Nothing),
+				A2($elm$json$Json$Decode$map, $elm$core$Maybe$Just, decoder)
+			]));
+};
+var $NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$custom = $elm$json$Json$Decode$map2($elm$core$Basics$apR);
+var $elm$json$Json$Decode$andThen = _Json_andThen;
+var $elm$json$Json$Decode$decodeValue = _Json_run;
+var $elm$json$Json$Decode$fail = _Json_fail;
+var $elm$json$Json$Decode$value = _Json_decodeValue;
+var $NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$optionalDecoder = F3(
+	function (pathDecoder, valDecoder, fallback) {
+		var nullOr = function (decoder) {
+			return $elm$json$Json$Decode$oneOf(
+				_List_fromArray(
+					[
+						decoder,
+						$elm$json$Json$Decode$null(fallback)
+					]));
+		};
+		var handleResult = function (input) {
+			var _v0 = A2($elm$json$Json$Decode$decodeValue, pathDecoder, input);
+			if (_v0.$ === 'Ok') {
+				var rawValue = _v0.a;
+				var _v1 = A2(
+					$elm$json$Json$Decode$decodeValue,
+					nullOr(valDecoder),
+					rawValue);
+				if (_v1.$ === 'Ok') {
+					var finalResult = _v1.a;
+					return $elm$json$Json$Decode$succeed(finalResult);
+				} else {
+					var finalErr = _v1.a;
+					return $elm$json$Json$Decode$fail(
+						$elm$json$Json$Decode$errorToString(finalErr));
+				}
+			} else {
+				return $elm$json$Json$Decode$succeed(fallback);
+			}
+		};
+		return A2($elm$json$Json$Decode$andThen, handleResult, $elm$json$Json$Decode$value);
+	});
+var $NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$optional = F4(
+	function (key, valDecoder, fallback, decoder) {
+		return A2(
+			$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$custom,
+			A3(
+				$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$optionalDecoder,
+				A2($elm$json$Json$Decode$field, key, $elm$json$Json$Decode$value),
+				valDecoder,
+				fallback),
+			decoder);
+	});
+var $NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required = F3(
+	function (key, valDecoder, decoder) {
+		return A2(
+			$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$custom,
+			A2($elm$json$Json$Decode$field, key, valDecoder),
+			decoder);
+	});
+var $author$project$Main$Task = function (id) {
+	return function (isDone) {
+		return function (isStarred) {
+			return function (title) {
+				return function (link) {
+					return function (start) {
+						return function (deadline) {
+							return function (weight) {
+								return function (secUntilStart) {
+									return function (secUntilDeadline) {
+										return function (isSelected) {
+											return {deadline: deadline, id: id, isDone: isDone, isSelected: isSelected, isStarred: isStarred, link: link, secUntilDeadline: secUntilDeadline, secUntilStart: secUntilStart, start: start, title: title, weight: weight};
+										};
+									};
+								};
+							};
+						};
+					};
+				};
+			};
+		};
+	};
+};
+var $elm$json$Json$Decode$bool = _Json_decodeBool;
+var $elm$json$Json$Decode$float = _Json_decodeFloat;
+var $author$project$Main$taskDecoder = A4(
+	$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$optional,
+	'elmTaskIsSelected',
+	$elm$json$Json$Decode$bool,
+	false,
+	A3(
+		$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
+		'elmTaskSecUntilDeadline',
+		$elm$json$Json$Decode$int,
+		A3(
+			$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
+			'elmTaskSecUntilStart',
+			$elm$json$Json$Decode$int,
+			A3(
+				$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
+				'elmTaskWeight',
+				$elm$json$Json$Decode$float,
+				A3(
+					$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
+					'elmTaskDeadline',
+					$elm$json$Json$Decode$string,
+					A3(
+						$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
+						'elmTaskStart',
+						$elm$json$Json$Decode$string,
+						A3(
+							$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
+							'elmTaskLink',
+							$elm$json$Json$Decode$string,
+							A3(
+								$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
+								'elmTaskTitle',
+								$elm$json$Json$Decode$string,
+								A3(
+									$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
+									'elmTaskIsStarred',
+									$elm$json$Json$Decode$bool,
+									A3(
+										$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
+										'elmTaskIsDone',
+										$elm$json$Json$Decode$bool,
+										A3(
+											$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
+											'elmTaskId',
+											$elm$json$Json$Decode$int,
+											$elm$json$Json$Decode$succeed($author$project$Main$Task))))))))))));
+var $author$project$Main$modelDecoder = A4(
+	$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$optional,
+	'elmModelErrorMessage',
+	$elm$json$Json$Decode$nullable($elm$json$Json$Decode$string),
+	$elm$core$Maybe$Nothing,
+	A4(
+		$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$optional,
+		'elmModelIndicator',
+		$elm$json$Json$Decode$int,
+		0,
+		A4(
+			$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$optional,
+			'elmModelDpy',
+			$elm$json$Json$Decode$int,
+			$author$project$Main$dayPerY,
+			A3(
+				$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
+				'elmModelBarLeftEdgeTime',
+				$elm$json$Json$Decode$nullable($elm$json$Json$Decode$string),
+				A3(
+					$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
+					'elmModelInputText',
+					$elm$json$Json$Decode$nullable($elm$json$Json$Decode$string),
+					A3(
+						$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
+						'elmModelTasks',
+						$elm$json$Json$Decode$list($author$project$Main$taskDecoder),
+						A3(
+							$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
+							'elmModelUser',
+							$elm$json$Json$Decode$int,
+							$elm$json$Json$Decode$succeed($author$project$Main$Model))))))));
 var $elm$http$Http$Request = function (a) {
 	return {$: 'Request', a: a};
 };
@@ -6486,194 +6717,19 @@ var $elm$http$Http$request = function (r) {
 		$elm$http$Http$Request(
 			{allowCookiesFromOtherDomains: false, body: r.body, expect: r.expect, headers: r.headers, method: r.method, timeout: r.timeout, tracker: r.tracker, url: r.url}));
 };
-var $elm$http$Http$get = function (r) {
-	return $elm$http$Http$request(
-		{body: $elm$http$Http$emptyBody, expect: r.expect, headers: _List_Nil, method: 'GET', timeout: $elm$core$Maybe$Nothing, tracker: $elm$core$Maybe$Nothing, url: r.url});
-};
-var $elm$json$Json$Decode$list = _Json_decodeList;
-var $author$project$Main$Task = F9(
-	function (isDone, isStarred, title, link, start, deadline, weight, bar, isSelected) {
-		return {bar: bar, deadline: deadline, isDone: isDone, isSelected: isSelected, isStarred: isStarred, link: link, start: start, title: title, weight: weight};
-	});
-var $author$project$Main$Bar = F3(
-	function (dot, sha, exc) {
-		return {dot: dot, exc: exc, sha: sha};
-	});
-var $elm$json$Json$Decode$int = _Json_decodeInt;
-var $NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$custom = $elm$json$Json$Decode$map2($elm$core$Basics$apR);
-var $NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required = F3(
-	function (key, valDecoder, decoder) {
-		return A2(
-			$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$custom,
-			A2($elm$json$Json$Decode$field, key, valDecoder),
-			decoder);
-	});
-var $author$project$Main$barDecoder = A3(
-	$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
-	'elmBarExc',
-	$elm$json$Json$Decode$int,
-	A3(
-		$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
-		'elmBarSha',
-		$elm$json$Json$Decode$int,
-		A3(
-			$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
-			'elmBarDot',
-			$elm$json$Json$Decode$int,
-			$elm$json$Json$Decode$succeed($author$project$Main$Bar))));
-var $elm$json$Json$Decode$bool = _Json_decodeBool;
-var $elm$json$Json$Decode$float = _Json_decodeFloat;
-var $elm$json$Json$Decode$andThen = _Json_andThen;
-var $elm$json$Json$Decode$decodeValue = _Json_run;
-var $elm$json$Json$Decode$fail = _Json_fail;
-var $elm$json$Json$Decode$null = _Json_decodeNull;
-var $elm$json$Json$Decode$oneOf = _Json_oneOf;
-var $elm$json$Json$Decode$value = _Json_decodeValue;
-var $NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$optionalDecoder = F3(
-	function (pathDecoder, valDecoder, fallback) {
-		var nullOr = function (decoder) {
-			return $elm$json$Json$Decode$oneOf(
-				_List_fromArray(
-					[
-						decoder,
-						$elm$json$Json$Decode$null(fallback)
-					]));
-		};
-		var handleResult = function (input) {
-			var _v0 = A2($elm$json$Json$Decode$decodeValue, pathDecoder, input);
-			if (_v0.$ === 'Ok') {
-				var rawValue = _v0.a;
-				var _v1 = A2(
-					$elm$json$Json$Decode$decodeValue,
-					nullOr(valDecoder),
-					rawValue);
-				if (_v1.$ === 'Ok') {
-					var finalResult = _v1.a;
-					return $elm$json$Json$Decode$succeed(finalResult);
-				} else {
-					var finalErr = _v1.a;
-					return $elm$json$Json$Decode$fail(
-						$elm$json$Json$Decode$errorToString(finalErr));
-				}
-			} else {
-				return $elm$json$Json$Decode$succeed(fallback);
-			}
-		};
-		return A2($elm$json$Json$Decode$andThen, handleResult, $elm$json$Json$Decode$value);
-	});
-var $NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$optional = F4(
-	function (key, valDecoder, fallback, decoder) {
-		return A2(
-			$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$custom,
-			A3(
-				$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$optionalDecoder,
-				A2($elm$json$Json$Decode$field, key, $elm$json$Json$Decode$value),
-				valDecoder,
-				fallback),
-			decoder);
-	});
-var $author$project$Main$taskDecoder = A4(
-	$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$optional,
-	'elmTaskIsSelected',
-	$elm$json$Json$Decode$bool,
-	false,
-	A3(
-		$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
-		'elmTaskBar',
-		$author$project$Main$barDecoder,
-		A3(
-			$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
-			'elmTaskWeight',
-			$elm$json$Json$Decode$float,
-			A3(
-				$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
-				'elmTaskDeadline',
-				$elm$json$Json$Decode$string,
-				A3(
-					$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
-					'elmTaskStart',
-					$elm$json$Json$Decode$string,
-					A3(
-						$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
-						'elmTaskLink',
-						$elm$json$Json$Decode$string,
-						A3(
-							$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
-							'elmTaskTitle',
-							$elm$json$Json$Decode$string,
-							A3(
-								$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
-								'elmTaskIsStarred',
-								$elm$json$Json$Decode$bool,
-								A3(
-									$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
-									'elmTaskIsDone',
-									$elm$json$Json$Decode$bool,
-									$elm$json$Json$Decode$succeed($author$project$Main$Task))))))))));
-var $author$project$Main$getTasksAll = $elm$http$Http$get(
-	{
-		expect: A2(
-			$elm$http$Http$expectJson,
-			$author$project$Main$TasksReceived,
-			$elm$json$Json$Decode$list($author$project$Main$taskDecoder)),
-		url: 'http://localhost:8080/tasks/all'
-	});
-var $author$project$Main$houPerY = 8760;
-var $elm$core$Basics$not = _Basics_not;
-var $elm$http$Http$jsonBody = function (value) {
-	return A2(
-		_Http_pair,
-		'application/json',
-		A2($elm$json$Json$Encode$encode, 0, value));
-};
 var $elm$http$Http$post = function (r) {
 	return $elm$http$Http$request(
 		{body: r.body, expect: r.expect, headers: _List_Nil, method: 'POST', timeout: $elm$core$Maybe$Nothing, tracker: $elm$core$Maybe$Nothing, url: r.url});
 };
-var $elm$json$Json$Encode$int = _Json_wrap;
-var $elm$json$Json$Encode$object = function (pairs) {
-	return _Json_wrap(
-		A3(
-			$elm$core$List$foldl,
-			F2(
-				function (_v0, obj) {
-					var k = _v0.a;
-					var v = _v0.b;
-					return A3(_Json_addField, k, v, obj);
-				}),
-			_Json_emptyObject(_Utils_Tuple0),
-			pairs));
+var $author$project$Main$doneTasks = function (m) {
+	return $elm$http$Http$post(
+		{
+			body: $elm$http$Http$jsonBody(
+				$author$project$Main$doneTasksEncoder(m)),
+			expect: A2($elm$http$Http$expectJson, $author$project$Main$TasksReceived, $author$project$Main$modelDecoder),
+			url: 'http://localhost:8080/tasks/done'
+		});
 };
-var $elm$json$Json$Encode$string = _Json_wrap;
-var $author$project$Main$textPostEncoder = F3(
-	function (user, content, dpy) {
-		return $elm$json$Json$Encode$object(
-			_List_fromArray(
-				[
-					_Utils_Tuple2(
-					'textPostUser',
-					$elm$json$Json$Encode$int(user)),
-					_Utils_Tuple2(
-					'textPostContent',
-					$elm$json$Json$Encode$string(content)),
-					_Utils_Tuple2(
-					'textPostDpy',
-					$elm$json$Json$Encode$int(dpy))
-				]));
-	});
-var $author$project$Main$saveTextPost = F3(
-	function (user, content, dpy) {
-		return $elm$http$Http$post(
-			{
-				body: $elm$http$Http$jsonBody(
-					A3($author$project$Main$textPostEncoder, user, content, dpy)),
-				expect: A2(
-					$elm$http$Http$expectJson,
-					$author$project$Main$TasksReceived,
-					$elm$json$Json$Decode$list($author$project$Main$taskDecoder)),
-				url: 'http://localhost:8080/tasks'
-			});
-	});
 var $elm$core$Array$fromListHelp = F3(
 	function (list, nodeList, nodeListSize) {
 		fromListHelp:
@@ -6751,6 +6807,55 @@ var $elm$core$Array$get = F2(
 			A2($elm$core$Elm$JsArray$unsafeGet, $elm$core$Array$bitMask & index, tail)) : $elm$core$Maybe$Just(
 			A3($elm$core$Array$getHelp, startShift, index, tree)));
 	});
+var $author$project$Main$focusTaskEncoder = F2(
+	function (m, i) {
+		var taskId = function () {
+			var _v0 = A2(
+				$elm$core$Array$get,
+				i,
+				$elm$core$Array$fromList(m.tasks));
+			if (_v0.$ === 'Nothing') {
+				return 0;
+			} else {
+				var task = _v0.a;
+				return function ($) {
+					return $.id;
+				}(task);
+			}
+		}();
+		return $elm$json$Json$Encode$object(
+			_List_fromArray(
+				[
+					_Utils_Tuple2(
+					'focusTaskUser',
+					$elm$json$Json$Encode$int(m.user)),
+					_Utils_Tuple2(
+					'focusTaskId',
+					$elm$json$Json$Encode$int(taskId))
+				]));
+	});
+var $author$project$Main$focusTask = F2(
+	function (m, i) {
+		return $elm$http$Http$post(
+			{
+				body: $elm$http$Http$jsonBody(
+					A2($author$project$Main$focusTaskEncoder, m, i)),
+				expect: A2($elm$http$Http$expectJson, $author$project$Main$TasksReceived, $author$project$Main$modelDecoder),
+				url: 'http://localhost:8080/tasks/focus'
+			});
+	});
+var $elm$http$Http$emptyBody = _Http_emptyBody;
+var $elm$http$Http$get = function (r) {
+	return $elm$http$Http$request(
+		{body: $elm$http$Http$emptyBody, expect: r.expect, headers: _List_Nil, method: 'GET', timeout: $elm$core$Maybe$Nothing, tracker: $elm$core$Maybe$Nothing, url: r.url});
+};
+var $author$project$Main$getTasksAll = $elm$http$Http$get(
+	{
+		expect: A2($elm$http$Http$expectJson, $author$project$Main$TasksReceived, $author$project$Main$modelDecoder),
+		url: 'http://localhost:8080/tasks/all'
+	});
+var $author$project$Main$houPerY = 8760;
+var $elm$core$Basics$not = _Basics_not;
 var $elm$core$Elm$JsArray$unsafeSet = _JsArray_unsafeSet;
 var $elm$core$Array$setHelp = F4(
 	function (shift, index, value, tree) {
@@ -6794,7 +6899,7 @@ var $elm$core$Array$set = F3(
 			A4($elm$core$Array$setHelp, startShift, index, value, tree),
 			tail));
 	});
-var $author$project$Main$select = F2(
+var $author$project$Main$switchSelect = F2(
 	function (model, i) {
 		return _Utils_Tuple2(
 			function () {
@@ -6823,45 +6928,106 @@ var $author$project$Main$select = F2(
 			}(),
 			$elm$core$Platform$Cmd$none);
 	});
-var $author$project$Main$star = F2(
-	function (model, i) {
-		return _Utils_Tuple2(
-			function () {
-				var _v0 = A2(
-					$elm$core$Array$get,
-					i,
-					$elm$core$Array$fromList(model.tasks));
-				if (_v0.$ === 'Nothing') {
-					return model;
-				} else {
-					var task = _v0.a;
-					var newTask = _Utils_update(
-						task,
-						{isStarred: !task.isStarred});
-					return _Utils_update(
-						model,
-						{
-							tasks: $elm$core$Array$toList(
-								A3(
-									$elm$core$Array$set,
-									i,
-									newTask,
-									$elm$core$Array$fromList(model.tasks)))
-						});
-				}
-			}(),
-			$elm$core$Platform$Cmd$none);
+var $author$project$Main$StarSwitched = F2(
+	function (a, b) {
+		return {$: 'StarSwitched', a: a, b: b};
 	});
+var $elm$http$Http$expectBytesResponse = F2(
+	function (toMsg, toResult) {
+		return A3(
+			_Http_expect,
+			'arraybuffer',
+			_Http_toDataView,
+			A2($elm$core$Basics$composeR, toResult, toMsg));
+	});
+var $elm$http$Http$expectWhatever = function (toMsg) {
+	return A2(
+		$elm$http$Http$expectBytesResponse,
+		toMsg,
+		$elm$http$Http$resolve(
+			function (_v0) {
+				return $elm$core$Result$Ok(_Utils_Tuple0);
+			}));
+};
+var $author$project$Main$switchStarEncoder = F2(
+	function (m, i) {
+		var taskId = function () {
+			var _v0 = A2(
+				$elm$core$Array$get,
+				i,
+				$elm$core$Array$fromList(m.tasks));
+			if (_v0.$ === 'Nothing') {
+				return 0;
+			} else {
+				var task = _v0.a;
+				return function ($) {
+					return $.id;
+				}(task);
+			}
+		}();
+		return $elm$json$Json$Encode$object(
+			_List_fromArray(
+				[
+					_Utils_Tuple2(
+					'switchStarUser',
+					$elm$json$Json$Encode$int(m.user)),
+					_Utils_Tuple2(
+					'switchStarId',
+					$elm$json$Json$Encode$int(taskId))
+				]));
+	});
+var $author$project$Main$switchStar = F2(
+	function (m, i) {
+		return $elm$http$Http$post(
+			{
+				body: $elm$http$Http$jsonBody(
+					A2($author$project$Main$switchStarEncoder, m, i)),
+				expect: $elm$http$Http$expectWhatever(
+					$author$project$Main$StarSwitched(i)),
+				url: 'http://localhost:8080/tasks/star'
+			});
+	});
+var $elm$json$Json$Encode$string = _Json_wrap;
+var $author$project$Main$textPostEncoder = function (m) {
+	var content = function () {
+		var _v0 = m.inputText;
+		if (_v0.$ === 'Nothing') {
+			return '';
+		} else {
+			var c = _v0.a;
+			return c;
+		}
+	}();
+	return $elm$json$Json$Encode$object(
+		_List_fromArray(
+			[
+				_Utils_Tuple2(
+				'textPostUser',
+				$elm$json$Json$Encode$int(m.user)),
+				_Utils_Tuple2(
+				'textPostContent',
+				$elm$json$Json$Encode$string(content))
+			]));
+};
+var $author$project$Main$textPost = function (m) {
+	return $elm$http$Http$post(
+		{
+			body: $elm$http$Http$jsonBody(
+				$author$project$Main$textPostEncoder(m)),
+			expect: A2($elm$http$Http$expectJson, $author$project$Main$TasksReceived, $author$project$Main$modelDecoder),
+			url: 'http://localhost:8080/tasks'
+		});
+};
 var $author$project$Main$update = F2(
 	function (msg, model) {
 		switch (msg.$) {
 			case 'TasksReceived':
 				if (msg.a.$ === 'Ok') {
-					var newTasks = msg.a.a;
+					var newModel = msg.a.a;
 					return _Utils_Tuple2(
 						_Utils_update(
 							model,
-							{tasks: newTasks}),
+							{barLeftEdgeTime: newModel.barLeftEdgeTime, indicator: newModel.indicator, tasks: newModel.tasks}),
 						$elm$core$Platform$Cmd$none);
 				} else {
 					var httpError = msg.a.a;
@@ -6909,70 +7075,113 @@ var $author$project$Main$update = F2(
 							$elm$core$Platform$Cmd$none);
 					case 'e':
 						return _Utils_Tuple2(
-							_Utils_update(
-								model,
-								{
-									tasks: A2(
-										$elm$core$List$map,
-										function (task) {
-											return task.isSelected ? _Utils_update(
-												task,
-												{isDone: !task.isDone}) : task;
-										},
-										model.tasks)
-								}),
-							$elm$core$Platform$Cmd$none);
+							model,
+							$author$project$Main$doneTasks(model));
 					case 'f':
-						return A2($author$project$Main$focus, model, model.indicator);
+						return _Utils_Tuple2(
+							model,
+							A2($author$project$Main$focusTask, model, model.indicator));
 					case 'c':
 						return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
 					case 's':
-						return A2($author$project$Main$star, model, model.indicator);
+						return _Utils_Tuple2(
+							model,
+							A2($author$project$Main$switchStar, model, model.indicator));
 					case 'x':
-						return A2($author$project$Main$select, model, model.indicator);
+						return A2($author$project$Main$switchSelect, model, model.indicator);
 					case 'y':
 						return _Utils_Tuple2(
 							_Utils_update(
 								model,
 								{dpy: $author$project$Main$houPerY}),
 							$author$project$Main$getTasksAll);
+					case '#':
+						return _Utils_Tuple2(model, $author$project$Main$getTasksAll);
 					default:
 						return _Utils_Tuple2(model, $author$project$Main$getTasksAll);
 				}
 			case 'ControlKey':
 				return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
-			case 'SaveTextPost':
+			case 'TextPost':
 				return _Utils_Tuple2(
 					model,
-					A3($author$project$Main$saveTextPost, model.user, model.inputText, model.dpy));
-			case 'Done':
-				var tasks = msg.a;
-				return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
-			case 'Focus':
+					$author$project$Main$textPost(model));
+			case 'DoneTasks':
+				return _Utils_Tuple2(
+					model,
+					$author$project$Main$doneTasks(model));
+			case 'StarSwitched':
+				if (msg.b.$ === 'Ok') {
+					var i = msg.a;
+					return _Utils_Tuple2(
+						function () {
+							var _v1 = A2(
+								$elm$core$Array$get,
+								i,
+								$elm$core$Array$fromList(model.tasks));
+							if (_v1.$ === 'Nothing') {
+								return model;
+							} else {
+								var task = _v1.a;
+								var newTask = _Utils_update(
+									task,
+									{isStarred: !task.isStarred});
+								return _Utils_update(
+									model,
+									{
+										tasks: $elm$core$Array$toList(
+											A3(
+												$elm$core$Array$set,
+												i,
+												newTask,
+												$elm$core$Array$fromList(model.tasks)))
+									});
+							}
+						}(),
+						$elm$core$Platform$Cmd$none);
+				} else {
+					var httpError = msg.b.a;
+					return _Utils_Tuple2(
+						_Utils_update(
+							model,
+							{
+								dpy: 404,
+								errorMessage: $elm$core$Maybe$Just(
+									$author$project$Main$buildErrorMessage(httpError))
+							}),
+						$elm$core$Platform$Cmd$none);
+				}
+			case 'FocusTask':
 				var index = msg.a;
-				return A2($author$project$Main$focus, model, index);
+				return _Utils_Tuple2(
+					model,
+					A2($author$project$Main$focusTask, model, index));
 			case 'Edit':
 				var tasks = msg.a;
 				return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
-			case 'Star':
+			case 'SwitchStar':
 				var index = msg.a;
-				return A2($author$project$Main$star, model, index);
-			case 'Select':
+				return _Utils_Tuple2(
+					model,
+					A2($author$project$Main$switchStar, model, index));
+			case 'SwitchSelect':
 				var index = msg.a;
-				return A2($author$project$Main$select, model, index);
+				return A2($author$project$Main$switchSelect, model, index);
 			default:
 				var newInput = msg.a;
 				return _Utils_Tuple2(
 					_Utils_update(
 						model,
-						{inputText: newInput}),
+						{
+							inputText: $elm$core$Maybe$Just(newInput)
+						}),
 					$elm$core$Platform$Cmd$none);
 		}
 	});
 var $author$project$Main$Input = function (a) {
 	return {$: 'Input', a: a};
 };
-var $author$project$Main$SaveTextPost = {$: 'SaveTextPost'};
+var $author$project$Main$TextPost = {$: 'TextPost'};
 var $elm$html$Html$button = _VirtualDom_node('button');
 var $elm$html$Html$Attributes$stringProperty = F2(
 	function (key, string) {
@@ -6998,6 +7207,7 @@ var $author$project$Main$em = function (model) {
 		return '';
 	}
 };
+var $elm$html$Html$Attributes$id = $elm$html$Html$Attributes$stringProperty('id');
 var $elm$virtual_dom$VirtualDom$Normal = function (a) {
 	return {$: 'Normal', a: a};
 };
@@ -7057,83 +7267,15 @@ var $elm$html$Html$Attributes$rows = function (n) {
 		'rows',
 		$elm$core$String$fromInt(n));
 };
-var $elm$html$Html$span = _VirtualDom_node('span');
-var $elm$virtual_dom$VirtualDom$style = _VirtualDom_style;
-var $elm$html$Html$Attributes$style = $elm$virtual_dom$VirtualDom$style;
-var $elm$html$Html$table = _VirtualDom_node('table');
 var $elm$virtual_dom$VirtualDom$text = _VirtualDom_text;
 var $elm$html$Html$text = $elm$virtual_dom$VirtualDom$text;
 var $elm$html$Html$textarea = _VirtualDom_node('textarea');
 var $elm$html$Html$Attributes$type_ = $elm$html$Html$Attributes$stringProperty('type');
-var $elm$html$Html$th = _VirtualDom_node('th');
-var $elm$html$Html$tr = _VirtualDom_node('tr');
-var $author$project$Main$viewTableHeader = A2(
-	$elm$html$Html$tr,
-	_List_Nil,
-	_List_fromArray(
-		[
-			A2(
-			$elm$html$Html$th,
-			_List_Nil,
-			_List_fromArray(
-				[
-					$elm$html$Html$text('Sel')
-				])),
-			A2(
-			$elm$html$Html$th,
-			_List_Nil,
-			_List_fromArray(
-				[
-					$elm$html$Html$text('Sta')
-				])),
-			A2(
-			$elm$html$Html$th,
-			_List_Nil,
-			_List_fromArray(
-				[
-					$elm$html$Html$text('title')
-				])),
-			A2(
-			$elm$html$Html$th,
-			_List_Nil,
-			_List_fromArray(
-				[
-					$elm$html$Html$text('start')
-				])),
-			A2(
-			$elm$html$Html$th,
-			_List_Nil,
-			_List_fromArray(
-				[
-					$elm$html$Html$text('bar')
-				])),
-			A2(
-			$elm$html$Html$th,
-			_List_Nil,
-			_List_fromArray(
-				[
-					$elm$html$Html$text('dead')
-				])),
-			A2(
-			$elm$html$Html$th,
-			_List_Nil,
-			_List_fromArray(
-				[
-					$elm$html$Html$text('wei')
-				])),
-			A2(
-			$elm$html$Html$th,
-			_List_Nil,
-			_List_fromArray(
-				[
-					$elm$html$Html$text('Done')
-				]))
-		]));
-var $author$project$Main$Select = function (a) {
-	return {$: 'Select', a: a};
+var $author$project$Main$SwitchSelect = function (a) {
+	return {$: 'SwitchSelect', a: a};
 };
-var $author$project$Main$Star = function (a) {
-	return {$: 'Star', a: a};
+var $author$project$Main$SwitchStar = function (a) {
+	return {$: 'SwitchStar', a: a};
 };
 var $elm$html$Html$a = _VirtualDom_node('a');
 var $elm$core$Bitwise$shiftRightBy = _Bitwise_shiftRightBy;
@@ -7159,27 +7301,55 @@ var $author$project$Main$fill = F3(
 				A2($elm$core$String$repeat, n, putty)));
 	});
 var $elm$core$String$fromList = _String_fromList;
+var $elm$core$Basics$negate = function (n) {
+	return -n;
+};
+var $author$project$Main$sec2dot = F2(
+	function (dpy, sec) {
+		return $elm$core$Basics$floor((dpy * sec) / (((60 * 60) * 24) * 365));
+	});
 var $elm$core$String$foldr = _String_foldr;
 var $elm$core$String$toList = function (string) {
 	return A3($elm$core$String$foldr, $elm$core$List$cons, _List_Nil, string);
 };
-var $author$project$Main$barStr = function (bar) {
-	return $elm$core$String$fromList(
-		$elm$core$Array$toList(
-			A3(
-				$elm$core$Array$set,
-				bar.exc,
-				_Utils_chr('!'),
-				$elm$core$Array$fromList(
-					$elm$core$String$toList(
-						A3(
-							$author$project$Main$fill,
-							50,
-							'.',
-							_Utils_ap(
-								A2($elm$core$String$repeat, bar.dot, '.'),
-								A2($elm$core$String$repeat, bar.sha, '#'))))))));
+var $author$project$Main$weight2sec = function (w) {
+	return $elm$core$Basics$floor((60 * 60) * w);
 };
+var $author$project$Main$barString = F4(
+	function (dpy, weight, secUS, secUD) {
+		var sha = function () {
+			var _v1 = $author$project$Main$weight2sec(weight);
+			if (!_v1) {
+				return 0;
+			} else {
+				var s = _v1;
+				return A2($author$project$Main$sec2dot, dpy, s) + 1;
+			}
+		}();
+		var exc = function () {
+			if (!secUD) {
+				return -1;
+			} else {
+				return A2($author$project$Main$sec2dot, dpy, secUD);
+			}
+		}();
+		var dot = A2($author$project$Main$sec2dot, dpy, secUS);
+		return $elm$core$String$fromList(
+			$elm$core$Array$toList(
+				A3(
+					$elm$core$Array$set,
+					exc,
+					_Utils_chr('!'),
+					$elm$core$Array$fromList(
+						$elm$core$String$toList(
+							A3(
+								$author$project$Main$fill,
+								50,
+								'.',
+								_Utils_ap(
+									A2($elm$core$String$repeat, dot, '.'),
+									A2($elm$core$String$repeat, sha, '#'))))))));
+	});
 var $elm$core$String$fromFloat = _String_fromNumber;
 var $elm$html$Html$Attributes$href = function (url) {
 	return A2(
@@ -7187,12 +7357,10 @@ var $elm$html$Html$Attributes$href = function (url) {
 		'href',
 		_VirtualDom_noJavaScriptUri(url));
 };
-var $elm$html$Html$td = _VirtualDom_node('td');
+var $elm$virtual_dom$VirtualDom$style = _VirtualDom_style;
+var $elm$html$Html$Attributes$style = $elm$virtual_dom$VirtualDom$style;
 var $author$project$Main$minPerY = 525600;
 var $author$project$Main$monPerY = 12;
-var $elm$core$Basics$negate = function (n) {
-	return -n;
-};
 var $elm$core$String$right = F2(
 	function (n, string) {
 		return (n < 1) ? '' : A3(
@@ -7235,38 +7403,44 @@ var $author$project$Main$viewTask = F2(
 		var idx = _v0.a;
 		var task = _v0.b;
 		return A2(
-			$elm$html$Html$tr,
+			$elm$html$Html$div,
 			_List_fromArray(
 				[
-					_Utils_eq(idx, model.indicator) ? A2($elm$html$Html$Attributes$style, 'background-color', 'bisque') : A2($elm$html$Html$Attributes$style, 'background-color', 'oldlace')
+					$elm$html$Html$Attributes$class('task'),
+					_Utils_eq(idx, model.indicator) ? A2($elm$html$Html$Attributes$style, 'background-color', '#C2DBFF') : A2($elm$html$Html$Attributes$style, 'background-color', '#EEF4F2')
 				]),
 			_List_fromArray(
 				[
 					A2(
-					$elm$html$Html$td,
+					$elm$html$Html$div,
 					_List_fromArray(
 						[
+							$elm$html$Html$Attributes$class('selection'),
 							$elm$html$Html$Events$onClick(
-							$author$project$Main$Select(idx))
+							$author$project$Main$SwitchSelect(idx))
 						]),
 					_List_fromArray(
 						[
 							task.isSelected ? $elm$html$Html$text('SEL') : $elm$html$Html$text('---')
 						])),
 					A2(
-					$elm$html$Html$td,
+					$elm$html$Html$div,
 					_List_fromArray(
 						[
+							$elm$html$Html$Attributes$class('star'),
 							$elm$html$Html$Events$onClick(
-							$author$project$Main$Star(idx))
+							$author$project$Main$SwitchStar(idx))
 						]),
 					_List_fromArray(
 						[
 							task.isStarred ? $elm$html$Html$text('★') : $elm$html$Html$text('☆')
 						])),
 					A2(
-					$elm$html$Html$td,
-					_List_Nil,
+					$elm$html$Html$div,
+					_List_fromArray(
+						[
+							$elm$html$Html$Attributes$class('title')
+						]),
 					_List_fromArray(
 						[
 							A2(
@@ -7281,46 +7455,163 @@ var $author$project$Main$viewTask = F2(
 								]))
 						])),
 					A2(
-					$elm$html$Html$td,
-					_List_Nil,
+					$elm$html$Html$div,
+					_List_fromArray(
+						[
+							$elm$html$Html$Attributes$class('start')
+						]),
 					_List_fromArray(
 						[
 							$elm$html$Html$text(
 							A2($author$project$Main$viewTimeByDpy, task.start, model.dpy))
 						])),
 					A2(
-					$elm$html$Html$td,
-					_List_Nil,
+					$elm$html$Html$div,
+					_List_fromArray(
+						[
+							$elm$html$Html$Attributes$class('bar')
+						]),
 					_List_fromArray(
 						[
 							$elm$html$Html$text(
-							$author$project$Main$barStr(task.bar))
+							A4($author$project$Main$barString, model.dpy, task.weight, task.secUntilStart, task.secUntilDeadline))
 						])),
 					A2(
-					$elm$html$Html$td,
-					_List_Nil,
+					$elm$html$Html$div,
+					_List_fromArray(
+						[
+							$elm$html$Html$Attributes$class('deadline')
+						]),
 					_List_fromArray(
 						[
 							$elm$html$Html$text(
 							A2($author$project$Main$viewTimeByDpy, task.deadline, model.dpy))
 						])),
 					A2(
-					$elm$html$Html$td,
-					_List_Nil,
+					$elm$html$Html$div,
+					_List_fromArray(
+						[
+							$elm$html$Html$Attributes$class('weight')
+						]),
 					_List_fromArray(
 						[
 							$elm$html$Html$text(
 							$elm$core$String$fromFloat(task.weight))
 						])),
 					A2(
-					$elm$html$Html$td,
-					_List_Nil,
+					$elm$html$Html$div,
+					_List_fromArray(
+						[
+							$elm$html$Html$Attributes$class('done')
+						]),
 					_List_fromArray(
 						[
 							task.isDone ? $elm$html$Html$text('DONE') : $elm$html$Html$text('----')
 						]))
 				]));
 	});
+var $author$project$Main$viewTaskHeader = function (m) {
+	return A2(
+		$elm$html$Html$div,
+		_List_fromArray(
+			[
+				$elm$html$Html$Attributes$class('taskHeader')
+			]),
+		_List_fromArray(
+			[
+				A2(
+				$elm$html$Html$div,
+				_List_fromArray(
+					[
+						$elm$html$Html$Attributes$class('selection')
+					]),
+				_List_fromArray(
+					[
+						$elm$html$Html$text('Sel')
+					])),
+				A2(
+				$elm$html$Html$div,
+				_List_fromArray(
+					[
+						$elm$html$Html$Attributes$class('star')
+					]),
+				_List_fromArray(
+					[
+						$elm$html$Html$text('Sta')
+					])),
+				A2(
+				$elm$html$Html$div,
+				_List_fromArray(
+					[
+						$elm$html$Html$Attributes$class('title')
+					]),
+				_List_fromArray(
+					[
+						$elm$html$Html$text('title')
+					])),
+				A2(
+				$elm$html$Html$div,
+				_List_fromArray(
+					[
+						$elm$html$Html$Attributes$class('start')
+					]),
+				_List_fromArray(
+					[
+						$elm$html$Html$text('start')
+					])),
+				A2(
+				$elm$html$Html$div,
+				_List_fromArray(
+					[
+						$elm$html$Html$Attributes$class('bar')
+					]),
+				_List_fromArray(
+					[
+						$elm$html$Html$text(
+						function () {
+							var _v0 = m.barLeftEdgeTime;
+							if (_v0.$ === 'Nothing') {
+								return 'Unknown left edge time';
+							} else {
+								var t = _v0.a;
+								return 'As of ' + t;
+							}
+						}()),
+						$elm$html$Html$text(
+						', ' + ($elm$core$String$fromInt(m.dpy) + ' dpy'))
+					])),
+				A2(
+				$elm$html$Html$div,
+				_List_fromArray(
+					[
+						$elm$html$Html$Attributes$class('deadline')
+					]),
+				_List_fromArray(
+					[
+						$elm$html$Html$text('dead')
+					])),
+				A2(
+				$elm$html$Html$div,
+				_List_fromArray(
+					[
+						$elm$html$Html$Attributes$class('weight')
+					]),
+				_List_fromArray(
+					[
+						$elm$html$Html$text('wei')
+					])),
+				A2(
+				$elm$html$Html$div,
+				_List_fromArray(
+					[
+						$elm$html$Html$Attributes$class('done')
+					]),
+				_List_fromArray(
+					[
+						$elm$html$Html$text('Done')
+					]))
+			]));
+};
 var $author$project$Main$view = function (model) {
 	return A2(
 		$elm$html$Html$div,
@@ -7332,62 +7623,240 @@ var $author$project$Main$view = function (model) {
 			[
 				A2(
 				$elm$html$Html$div,
-				_List_Nil,
 				_List_fromArray(
 					[
-						A2($elm$html$Html$div, _List_Nil, _List_Nil),
+						$elm$html$Html$Attributes$class('header')
+					]),
+				_List_fromArray(
+					[
 						A2(
-						$elm$html$Html$textarea,
+						$elm$html$Html$div,
 						_List_fromArray(
 							[
-								$elm$html$Html$Attributes$cols(40),
-								$elm$html$Html$Attributes$rows(10),
-								$elm$html$Html$Attributes$placeholder('...'),
-								$elm$html$Html$Events$onInput($author$project$Main$Input)
+								$elm$html$Html$Attributes$class('logo')
 							]),
 						_List_Nil),
 						A2(
-						$elm$html$Html$button,
+						$elm$html$Html$div,
 						_List_fromArray(
 							[
-								$elm$html$Html$Attributes$type_('button'),
-								$elm$html$Html$Events$onClick($author$project$Main$SaveTextPost)
+								$elm$html$Html$Attributes$class('inputField')
 							]),
 						_List_fromArray(
 							[
-								$elm$html$Html$text('Submit')
+								A2(
+								$elm$html$Html$textarea,
+								_List_fromArray(
+									[
+										$elm$html$Html$Attributes$cols(80),
+										$elm$html$Html$Attributes$rows(2),
+										$elm$html$Html$Attributes$placeholder('...'),
+										$elm$html$Html$Events$onInput($author$project$Main$Input)
+									]),
+								_List_Nil)
 							])),
 						A2(
-						$elm$html$Html$span,
-						_List_Nil,
+						$elm$html$Html$div,
 						_List_fromArray(
 							[
-								$elm$html$Html$text(
-								'dpy: ' + ($elm$core$String$fromInt(model.dpy) + $author$project$Main$em(model)))
-							]))
+								$elm$html$Html$Attributes$class('submission')
+							]),
+						_List_fromArray(
+							[
+								A2(
+								$elm$html$Html$button,
+								_List_fromArray(
+									[
+										$elm$html$Html$Attributes$type_('button'),
+										$elm$html$Html$Events$onClick($author$project$Main$TextPost)
+									]),
+								_List_fromArray(
+									[
+										$elm$html$Html$text('Submit')
+									]))
+							])),
+						A2(
+						$elm$html$Html$div,
+						_List_fromArray(
+							[
+								$elm$html$Html$Attributes$class('account')
+							]),
+						_List_Nil)
 					])),
 				A2(
 				$elm$html$Html$div,
 				_List_fromArray(
 					[
-						A2($elm$html$Html$Attributes$style, 'height', '30px'),
-						A2($elm$html$Html$Attributes$style, 'background-color', 'lavender')
+						$elm$html$Html$Attributes$class('body')
 					]),
-				_List_Nil),
-				A2(
-				$elm$html$Html$table,
 				_List_fromArray(
 					[
-						A2($elm$html$Html$Attributes$style, 'font-size', '12px'),
-						A2($elm$html$Html$Attributes$style, 'font-family', 'Courier')
+						A2(
+						$elm$html$Html$div,
+						_List_fromArray(
+							[
+								$elm$html$Html$Attributes$class('lSideBar')
+							]),
+						_List_Nil),
+						A2(
+						$elm$html$Html$div,
+						_List_fromArray(
+							[
+								$elm$html$Html$Attributes$class('mainContainer')
+							]),
+						_List_fromArray(
+							[
+								A2(
+								$elm$html$Html$div,
+								_List_fromArray(
+									[
+										$elm$html$Html$Attributes$class('cmdBar')
+									]),
+								_List_fromArray(
+									[
+										A2(
+										$elm$html$Html$div,
+										_List_fromArray(
+											[
+												$elm$html$Html$Attributes$class('selectionCmd')
+											]),
+										_List_fromArray(
+											[
+												A2(
+												$elm$html$Html$div,
+												_List_fromArray(
+													[
+														$elm$html$Html$Attributes$id('inverseSelect')
+													]),
+												_List_Nil),
+												A2(
+												$elm$html$Html$div,
+												_List_fromArray(
+													[
+														$elm$html$Html$Attributes$id('eliminate')
+													]),
+												_List_Nil),
+												A2(
+												$elm$html$Html$div,
+												_List_fromArray(
+													[
+														$elm$html$Html$Attributes$id('create')
+													]),
+												_List_Nil),
+												A2(
+												$elm$html$Html$div,
+												_List_fromArray(
+													[
+														$elm$html$Html$Attributes$id('reschedule')
+													]),
+												_List_Nil),
+												A2(
+												$elm$html$Html$div,
+												_List_fromArray(
+													[
+														$elm$html$Html$Attributes$id('linksOpen')
+													]),
+												_List_Nil)
+											])),
+										A2(
+										$elm$html$Html$div,
+										_List_fromArray(
+											[
+												$elm$html$Html$Attributes$class('middleCmd')
+											]),
+										_List_fromArray(
+											[
+												$elm$html$Html$text(
+												$author$project$Main$em(model))
+											])),
+										A2(
+										$elm$html$Html$div,
+										_List_fromArray(
+											[
+												$elm$html$Html$Attributes$class('viewCmd')
+											]),
+										_List_fromArray(
+											[
+												A2(
+												$elm$html$Html$div,
+												_List_fromArray(
+													[
+														$elm$html$Html$Attributes$id('focus')
+													]),
+												_List_Nil),
+												A2(
+												$elm$html$Html$div,
+												_List_fromArray(
+													[
+														$elm$html$Html$Attributes$id('archives')
+													]),
+												_List_Nil),
+												A2(
+												$elm$html$Html$div,
+												_List_fromArray(
+													[
+														$elm$html$Html$Attributes$id('trunk')
+													]),
+												_List_Nil),
+												A2(
+												$elm$html$Html$div,
+												_List_fromArray(
+													[
+														$elm$html$Html$Attributes$id('buds')
+													]),
+												_List_Nil),
+												A2(
+												$elm$html$Html$div,
+												_List_fromArray(
+													[
+														$elm$html$Html$Attributes$id('home')
+													]),
+												_List_Nil),
+												A2(
+												$elm$html$Html$div,
+												_List_fromArray(
+													[
+														$elm$html$Html$Attributes$id('criticalPath')
+													]),
+												_List_Nil)
+											]))
+									])),
+								A2(
+								$elm$html$Html$div,
+								_List_fromArray(
+									[
+										$elm$html$Html$Attributes$class('mainBody')
+									]),
+								_List_fromArray(
+									[
+										$author$project$Main$viewTaskHeader(model),
+										A2(
+										$elm$html$Html$div,
+										_List_fromArray(
+											[
+												$elm$html$Html$Attributes$class('tasks')
+											]),
+										A2(
+											$elm$core$List$map,
+											$author$project$Main$viewTask(model),
+											A2($elm$core$List$indexedMap, $elm$core$Tuple$pair, model.tasks)))
+									]))
+							])),
+						A2(
+						$elm$html$Html$div,
+						_List_fromArray(
+							[
+								$elm$html$Html$Attributes$class('rSideBar')
+							]),
+						_List_Nil)
+					])),
+				A2(
+				$elm$html$Html$div,
+				_List_fromArray(
+					[
+						$elm$html$Html$Attributes$class('fotter')
 					]),
-				_Utils_ap(
-					_List_fromArray(
-						[$author$project$Main$viewTableHeader]),
-					A2(
-						$elm$core$List$map,
-						$author$project$Main$viewTask(model),
-						A2($elm$core$List$indexedMap, $elm$core$Tuple$pair, model.tasks))))
+				_List_Nil)
 			]));
 };
 var $author$project$Main$main = $elm$browser$Browser$element(

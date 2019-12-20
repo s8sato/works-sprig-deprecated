@@ -95,7 +95,7 @@ getUndoneTasks pool user = flip runSqlPool pool $ do
         return (task)
 
 
-keyFromInt :: Int -> BackendKey SqlBackend
+keyFromInt :: Integral a => a -> BackendKey SqlBackend
 keyFromInt = SqlBackendKey . fromIntegral
 
 
@@ -116,7 +116,7 @@ get = do
 
 
 
-setTasksDone :: ConnectionPool -> [Int] -> IO ()
+setTasksDone :: ConnectionPool -> [Integer] -> IO ()
 setTasksDone pool ids = flip runSqlPool pool $ do
     update $ \task -> do
         set
@@ -131,7 +131,7 @@ done = do
     setTasksDone pool [6]
 
 
-setStarSwitched :: ConnectionPool -> Int -> IO ()
+setStarSwitched :: ConnectionPool -> Integer -> IO ()
 setStarSwitched pool id = flip runSqlPool pool $ do
     update $ \task -> do
         let isStarred = sub_select $ from $ \task -> do
@@ -144,3 +144,64 @@ setStarSwitched pool id = flip runSqlPool pool $ do
         where_ 
             (   task ^. TaskId ==. val (TaskKey . keyFromInt $ id)
             )
+
+-- getAroundTasks :: ConnectionPool -> Int -> Integer -> IO [Entity Task]
+-- getAroundTasks pool user focus = flip runSqlPool pool $ do
+--     select $ from $ \task -> do
+--         where_
+--             (   task ^. TaskUser ==. val user
+--             &&. not_ ( task ^. TaskIsDone )
+--             )
+--         orderBy
+--             [ asc (task ^. TaskDeadline)
+--             , asc (task ^. TaskStart)
+--             , desc (task ^. TaskIsStarred)
+--             , asc (task ^. TaskTitle)
+--             ]
+--         return (task)
+
+getMe :: ConnectionPool -> Integer -> IO [Entity Task]
+getMe pool me = flip runSqlPool pool $ do
+    select $ from $ \task -> do
+        where_
+            (   task ^. TaskId ==. val (TaskKey . keyFromInt $ me)
+            )
+        return (task)
+
+getBeforeMe :: ConnectionPool -> Integer -> IO [Entity Task]
+getBeforeMe pool me = flip runSqlPool pool $ do
+    select $ from $ \task -> do
+        let myInitial = sub_select $ from $ \task -> do
+            where_ 
+                (   task ^. TaskId ==. val (TaskKey . keyFromInt $ me)
+                )
+            return $ task ^. TaskInitial
+        where_
+            (   task ^. TaskTerminal ==. myInitial
+            )
+        orderBy
+            [ asc (task ^. TaskDeadline)
+            , asc (task ^. TaskStart)
+            , desc (task ^. TaskIsStarred)
+            , asc (task ^. TaskTitle)
+            ]
+        return (task)
+
+getAfterMe :: ConnectionPool -> Integer -> IO [Entity Task]
+getAfterMe pool me = flip runSqlPool pool $ do
+    select $ from $ \task -> do
+        let myTerminal = sub_select $ from $ \task -> do
+            where_ 
+                (   task ^. TaskId ==. val (TaskKey . keyFromInt $ me)
+                )
+            return $ task ^. TaskTerminal
+        where_
+            (   task ^. TaskInitial ==. myTerminal
+            )
+        orderBy
+            [ asc (task ^. TaskDeadline)
+            , asc (task ^. TaskStart)
+            , desc (task ^. TaskIsStarred)
+            , asc (task ^. TaskTitle)
+            ]
+        return (task)
