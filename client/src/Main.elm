@@ -7,7 +7,7 @@ import Html exposing (..)
 import Html.Attributes exposing (class, cols, href, placeholder, rows, style, type_, value)
 import Html.Events exposing (onClick, onInput)
 import Http
-import Json.Decode as Decode exposing (Decoder, bool, float, int, list, string)
+import Json.Decode as Decode exposing (Decoder, bool, float, int, list, nullable, string)
 import Json.Decode.Pipeline exposing (optional, required)
 import Json.Encode as Encode
 import Styles as S
@@ -28,12 +28,13 @@ main =
 
 
 type alias Model =
-    { dpy : Int
+    { user : Int
     , tasks : List Task
+    , inputText : Maybe String
+    , barLeftEdgeTime : Maybe String
+    , dpy : Int
     , indicator : Int
     , errorMessage : Maybe String
-    , inputText : String
-    , user : Int
     }
 
 
@@ -58,8 +59,9 @@ init _ =
       , tasks = []
       , indicator = 0
       , errorMessage = Nothing
-      , inputText = ""
+      , inputText = Nothing
       , user = 1
+      , barLeftEdgeTime = Nothing
       }
     , Cmd.none
     )
@@ -116,7 +118,7 @@ type Direction
 
 type Msg
     = DataReceived (Result Http.Error Model)
-    | TasksReceived (Result Http.Error (List Task))
+    | TasksReceived (Result Http.Error Model)
     | CharacterKey Char
     | ControlKey String
     | SwitchSelect Int
@@ -187,9 +189,11 @@ update msg model =
     case msg of
         -- SendHttpRequest ->
         --     ( model, httpCommand )
-        TasksReceived (Ok newTasks) ->
+        TasksReceived (Ok newModel) ->
             ( { model
-                | tasks = newTasks
+                | tasks = newModel.tasks
+                , indicator = 0
+                , barLeftEdgeTime = newModel.barLeftEdgeTime
               }
             , Cmd.none
             )
@@ -272,6 +276,10 @@ update msg model =
         CharacterKey 'y' ->
             ( { model | dpy = houPerY }, getTasksAll )
 
+        CharacterKey '#' ->
+            -- Delete selected tasks
+            ( model, getTasksAll )
+
         CharacterKey _ ->
             ( model, getTasksAll )
 
@@ -323,7 +331,7 @@ update msg model =
             switchSelect model index
 
         Input newInput ->
-            ( { model | inputText = newInput }, Cmd.none )
+            ( { model | inputText = Just newInput }, Cmd.none )
 
 
 textPost : Model -> Cmd Msg
@@ -331,7 +339,7 @@ textPost m =
     Http.post
         { url = "http://localhost:8080/tasks"
         , body = Http.jsonBody (textPostEncoder m)
-        , expect = Http.expectJson TasksReceived (list taskDecoder)
+        , expect = Http.expectJson TasksReceived modelDecoder
         }
 
 
@@ -340,7 +348,7 @@ doneTasks m =
     Http.post
         { url = "http://localhost:8080/tasks/done"
         , body = Http.jsonBody (doneTasksEncoder m)
-        , expect = Http.expectJson TasksReceived (list taskDecoder)
+        , expect = Http.expectJson TasksReceived modelDecoder
         }
 
 
@@ -355,9 +363,18 @@ switchStar m i =
 
 textPostEncoder : Model -> Encode.Value
 textPostEncoder m =
+    let
+        content =
+            case m.inputText of
+                Nothing ->
+                    ""
+
+                Just c ->
+                    c
+    in
     Encode.object
         [ ( "textPostUser", Encode.int m.user )
-        , ( "textPostContent", Encode.string m.inputText )
+        , ( "textPostContent", Encode.string content )
         ]
 
 
@@ -390,13 +407,16 @@ switchStarEncoder m i =
         ]
 
 
-
--- modelDecoder : Decoder Model
--- modelDecoder =
---     Decode.succeed Model
---         |> required "dpy" int
---         |> required "tasks" (list taskDecoder)
---         |> optional "indicator" int 0
+modelDecoder : Decoder Model
+modelDecoder =
+    Decode.succeed Model
+        |> required "elmModelUser" int
+        |> required "elmModelTasks" (list taskDecoder)
+        |> required "elmModelInputText" (nullable string)
+        |> required "elmModelBarLeftEdgeTime" (nullable string)
+        |> optional "elmModelDpy" int dayPerY
+        |> optional "elmModelIndicator" int 0
+        |> optional "elmModelErrorMessage" (nullable string) Nothing
 
 
 taskDecoder : Decoder Task
@@ -415,20 +435,11 @@ taskDecoder =
         |> optional "elmTaskIsSelected" bool False
 
 
-
--- httpCommand : Cmd Msg
--- httpCommand =
---     Http.get
---         { url = "http://localhost:8080/model"
---         , expect = Http.expectJson DataReceived modelDecoder
---         }
-
-
 getTasksAll : Cmd Msg
 getTasksAll =
     Http.get
         { url = "http://localhost:8080/tasks/all"
-        , expect = Http.expectJson TasksReceived (list taskDecoder)
+        , expect = Http.expectJson TasksReceived modelDecoder
         }
 
 
@@ -450,7 +461,7 @@ view model =
             ]
         , div [ style "height" "30px", style "background-color" "lavender" ] []
         , table [ style "font-size" "12px", style "font-family" "Courier" ]
-            ([ viewTableHeader ] ++ List.map (viewTask model) (List.indexedMap Tuple.pair model.tasks))
+            ([ viewTableHeader model ] ++ List.map (viewTask model) (List.indexedMap Tuple.pair model.tasks))
         ]
 
 
@@ -464,8 +475,8 @@ em model =
             ""
 
 
-viewTableHeader : Html Msg
-viewTableHeader =
+viewTableHeader : Model -> Html Msg
+viewTableHeader m =
     tr []
         [ th []
             [ text "Sel" ]
@@ -476,7 +487,15 @@ viewTableHeader =
         , th []
             [ text "start" ]
         , th []
-            [ text "As of 2019/12/20 04:17:00 UTC" ]
+            [ text
+                (case m.barLeftEdgeTime of
+                    Nothing ->
+                        "Unknown left edge time"
+
+                    Just t ->
+                        "As of " ++ t
+                )
+            ]
         , th []
             [ text "dead" ]
         , th []

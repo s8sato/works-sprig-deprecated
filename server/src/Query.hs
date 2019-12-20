@@ -86,6 +86,12 @@ getUndoneTasks pool user = flip runSqlPool pool $ do
             (   task ^. TaskUser ==. val user
             &&. not_ ( task ^. TaskIsDone )
             )
+        orderBy
+            [ asc (task ^. TaskDeadline)
+            , asc (task ^. TaskStart)
+            , desc (task ^. TaskIsStarred)
+            , asc (task ^. TaskTitle)
+            ]
         return (task)
 
 

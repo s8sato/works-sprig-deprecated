@@ -91,6 +91,15 @@ data ElmTask = ElmTask
 
 $(deriveJSON defaultOptions ''ElmTask)
 
+data ElmModel = ElmModel
+    { elmModelUser :: Int
+    , elmModelTasks :: [ElmTask]
+    , elmModelInputText :: Text
+    , elmModelBarLeftEdgeTime :: Text
+    }
+
+$(deriveJSON defaultOptions ''ElmModel)
+
 data TextPost = TextPost
     { textPostUser :: Int
     , textPostContent :: Text
@@ -112,9 +121,9 @@ data SwitchStar = SwitchStar
 
 $(deriveJSON defaultOptions ''SwitchStar)
 
-type API =  "tasks" :> "all" :> Get '[JSON] [ElmTask]
-    :<|>    "tasks" :> ReqBody '[JSON] TextPost :> Post '[JSON] [ElmTask]
-    :<|>    "tasks" :> "done" :> ReqBody '[JSON] DoneTasks :> Post '[JSON] [ElmTask]
+type API =  "tasks" :> "all" :> Get '[JSON] ElmModel
+    :<|>    "tasks" :> ReqBody '[JSON] TextPost :> Post '[JSON] ElmModel
+    :<|>    "tasks" :> "done" :> ReqBody '[JSON] DoneTasks :> Post '[JSON] ElmModel
     :<|>    "tasks" :> "star" :> ReqBody '[JSON] SwitchStar :> Post '[JSON] ()
 
 startApp :: IO ()
@@ -142,26 +151,28 @@ server = (liftIO $ getUndoneElmTasks 1)
     :<|> switchStar
 
     where
-        textPostReload :: TextPost -> Handler [ElmTask]
-        textPostReload tp = liftIO $ textPostReload' tp
-        doneTasksReload :: DoneTasks -> Handler [ElmTask]
-        doneTasksReload dt = liftIO $ doneTasksReload' dt
+        textPostReload :: TextPost -> Handler ElmModel
+        textPostReload = liftIO . textPostReload'
+        doneTasksReload :: DoneTasks -> Handler ElmModel
+        doneTasksReload = liftIO . doneTasksReload'
         switchStar :: SwitchStar -> Handler ()
         switchStar = liftIO . switchStar'
 
-getUndoneElmTasks :: Int -> IO [ElmTask]
+getUndoneElmTasks :: Int -> IO ElmModel
 getUndoneElmTasks user = do
     pool <- pgPool
     entities <- getUndoneTasks pool user
     now <- zonedTimeToUTC <$> getZonedTime
-    return $ map (toElmTask now) entities
+    let tasks = map (toElmTask now) entities
+    zNowStr <- formatTime defaultTimeLocale "%Y/%m/%d %T %a" <$> getZonedTime
+    return $ ElmModel user tasks "" (pack zNowStr)
 
-textPostReload' :: TextPost -> IO [ElmTask]
+textPostReload' :: TextPost -> IO ElmModel
 textPostReload' (TextPost u content) = do
     insTasks $ text2tasks content
     getUndoneElmTasks u
 
-doneTasksReload' :: DoneTasks -> IO [ElmTask]
+doneTasksReload' :: DoneTasks -> IO ElmModel
 doneTasksReload' (DoneTasks u ids) = do
     pool <- pgPool
     setTasksDone pool ids
@@ -433,7 +444,7 @@ toElmTime :: Maybe UTCTime -> Text
 toElmTime mt =
     case mt of
         Just t ->
-            pack $ formatTime defaultTimeLocale "%Y/%m/%d %H:%M'%S" t
+            pack $ formatTime defaultTimeLocale "%0Y/%m/%d %H:%M'%S" t
         Nothing ->
             "----/--/-- --:--'--"
 
