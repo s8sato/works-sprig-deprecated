@@ -14,22 +14,22 @@ div {
 
 }
 
-.container {
+#container {
     width : 100%;
     height: 100%;
     display: flex;
     flex-direction: column;
 }
 
-.header {
+#header {
     width : inherit;
     height: 64px;
     display: flex;
     background-color: #DDF0E4;
-    border-bottom: #CEE2D9 thin;
+    border-bottom: #CEE2D9 solid 1px;
 }
 
-.logo {
+#logo {
     width : 64px;
     height: inherit;
     background-size: contain;
@@ -40,45 +40,45 @@ div {
     height: inherit;
 }
 
-.submission {
+#submission {
     width : 136px;
     height: inherit;
 }
-.account {
+#account {
     width : 200px;
     height: inherit;
 }
 
-.body {
+#body {
     width : inherit;
     flex-grow: 1;
     display: flex;
 }
 
-.lSideBar {
+#lSideBar {
     width : 72px;
     height: inherit;
     background-color: #DDF0E4;
 }
-.mainContainer {
+#mainContainer {
     flex-grow: 1;
     height: inherit;
     display: flex;
     flex-direction: column;
 }
 
-.rSideBar {
+#rSideBar {
     width : 72px;
     height: inherit;
 }
 
-.cmdBar {
+#mainHeader {
     width : inherit;
     height: 48px;
     display: flex;
     background-color: #DDF0E4;
 }
-.selectionCmd {
+#selectionCmd {
     width : 240px;
     height: inherit;
     display: flex;
@@ -86,16 +86,17 @@ div {
     align-items: center;
 }
 
-.selectionCmd div {
+#selectionCmd div {
     width : 40px;
     height: 40px;
+    border-radius: 6px;
 }
 
 .middleCmd {
     flex-grow: 1;
     height: inherit;
 }
-.viewCmd {
+#viewCmd {
     width : 288px;
     height: inherit;
     display: flex;
@@ -103,18 +104,19 @@ div {
     align-items: center;
 }
 
-.viewCmd div {
+#viewCmd div {
     width : 40px;
     height: 40px;
+    border-radius: 6px;
 }
 
-.rSideBar {
+#rSideBar {
     width : 72px;
     height: inherit;
     background-color: #DDF0E4;
 }
 
-.mainBody {
+#mainBody {
     width : inherit;
     background-color: #DDF0E4;
     background-image: url("../images/shisocho.png");
@@ -126,18 +128,18 @@ div {
     justify-content: center;
 } */
 
-.tasks {
+#tasks {
     width : inherit;
 }
 
-.taskHeader {
+#taskHeader {
     width : inherit;
     height: 56px;
     background-color: #FCFEFC;
     display :flex;
 }
 
-.taskHeader div {
+#taskHeader div {
     display :flex;
     align-items: center;
     justify-content: center;
@@ -168,134 +170,189 @@ div {
     text-decoration: none;
 }
 
-.mainBody .selection {
+#mainBody .selection {
     width : 30px;
     height: inherit;
 }
 
-.mainBody .star {
+#mainBody .star {
     width : 30px;
     height: inherit;
 }
 
-.mainBody .title {
+#mainBody .title {
     width : 240px;
     height: inherit;
 }
 
-.mainBody .start {
+#mainBody .start {
     width : 72px;
     height: inherit;
 }
 
-.mainBody .bar {
+#mainBody .bar {
     flex-grow: 1;
     height: inherit;
 }
 
-.mainBody .deadline {
+#mainBody .deadline {
     width : 72px;
     height: inherit;
 }
 
-.mainBody .weight {
+#mainBody .weight {
     width : 72px;
     height: inherit;
 }
 
-.mainBody .done {
+#mainBody .done {
     width : 30px;
     height: inherit;
 }
 
 
-.footer {
+#footer {
     width : inherit;
     height: 86px;
     background-color: #DDF0E4;
 }
 
 #inverseSelect {
-    background-image: url("../images/sprig_icons_i.png");
+    background-image: url("../images/cmd_i_normal.png");
+    background-size: contain;
+}
+
+#inverseSelect:hover {
+    background-image: url("../images/cmd_i_hover.png");
     background-size: contain;
 }
 
 #eliminate {
-    background-image: url("../images/sprig_icons_e.png");
+    background-image: url("../images/cmd_e_normal.png");
+    background-size: contain;
+}
+
+#eliminate:hover {
+    background-image: url("../images/cmd_e_hover.png");
     background-size: contain;
 }
 
 #create {
-    background-image: url("../images/sprig_icons_c.png");
+    background-image: url("../images/cmd_c_normal.png");
+    background-size: contain;
+}
+
+#create:hover {
+    background-image: url("../images/cmd_c_hover.png");
     background-size: contain;
 }
 
 #reschedule {
-    background-image: url("../images/sprig_icons_r.png");
+    background-image: url("../images/cmd_r_normal.png");
+    background-size: contain;
+}
+
+#reschedule:hover {
+    background-image: url("../images/cmd_r_hover.png");
     background-size: contain;
 }
 
 #linksOpen {
-    background-image: url("../images/sprig_icons_l.png");
+    background-image: url("../images/cmd_l_normal.png");
+    background-size: contain;
+}
+
+#linksOpen:hover {
+    background-image: url("../images/cmd_l_hover.png");
     background-size: contain;
 }
 
 #focus {
-    background-image: url("../images/sprig_icons_f.png");
+    background-image: url("../images/cmd_f_normal.png");
+    background-size: contain;
+}
+
+#focus:hover {
+    background-image: url("../images/cmd_f_hover.png");
     background-size: contain;
 }
 
 #archives {
-    background-image: url("../images/sprig_icons_a.png");
+    background-image: url("../images/cmd_a_normal.png");
+    background-size: contain;
+}
+
+#archives:hover {
+    background-image: url("../images/cmd_a_hover.png");
     background-size: contain;
 }
 
 #trunk {
-    background-image: url("../images/sprig_icons_t.png");
+    background-image: url("../images/cmd_t_normal.png");
+    background-size: contain;
+}
+
+#trunk:hover {
+    background-image: url("../images/cmd_t_hover.png");
     background-size: contain;
 }
 
 #buds {
-    background-image: url("../images/sprig_icons_b.png");
+    background-image: url("../images/cmd_b_normal.png");
+    background-size: contain;
+}
+
+#buds:hover {
+    background-image: url("../images/cmd_b_hover.png");
     background-size: contain;
 }
 
 #home {
-    background-image: url("../images/sprig_icons_h.png");
+    background-image: url("../images/cmd_h_normal.png");
+    background-size: contain;
+}
+
+#home:hover {
+    background-image: url("../images/cmd_h_hover.png");
     background-size: contain;
 }
 
 #criticalPath {
-    background-image: url("../images/sprig_icons_p.png");
+    background-image: url("../images/cmd_p_normal.png");
+    background-size: contain;
+}
+
+#criticalPath:hover {
+    background-image: url("../images/cmd_p_hover.png");
     background-size: contain;
 }
 
 # {
-    background-image: url("../images/sprig_icons_.png");
+    background-image: url("../images/cmd__normal.png");
     background-size: contain;
 }
 
 # {
-    background-image: url("../images/sprig_icons_.png");
+    background-image: url("../images/cmd__normal.png");
     background-size: contain;
 }
 
 # {
-    background-image: url("../images/sprig_icons_.png");
+    background-image: url("../images/cmd__normal.png");
     background-size: contain;
 }
 
 # {
-    background-image: url("../images/sprig_icons_.png");
+    background-image: url("../images/cmd__normal.png");
     background-size: contain;
 }
 
 # {
-    background-image: url("../images/sprig_icons_.png");
+    background-image: url("../images/cmd__normal.png");
     background-size: contain;
 }
 
 # {
-    background-image: url("../images/sprig_icons_.png");
+    background-image: url("../images/cmd__normal.png");
     background-size: contain;
 }

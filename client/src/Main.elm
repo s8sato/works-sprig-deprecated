@@ -466,20 +466,20 @@ getTasksAll =
 
 view : Model -> Html Msg
 view model =
-    div [ class "container" ]
-        [ div [ class "header" ]
-            [ div [ class "logo" ] []
+    div [ id "container" ]
+        [ div [ id "header" ]
+            [ div [ id "logo" ] []
             , div [ class "inputField" ]
                 [ textarea [ cols 80, rows 2, placeholder "...", onInput Input ] [] ]
-            , div [ class "submission" ]
+            , div [ id "submission" ]
                 [ button [ type_ "button", onClick TextPost ] [ text "Submit" ] ]
-            , div [ class "account" ] []
+            , div [ id "account" ] []
             ]
-        , div [ class "body" ]
-            [ div [ class "lSideBar" ] []
-            , div [ class "mainContainer" ]
-                [ div [ class "cmdBar" ]
-                    [ div [ class "selectionCmd" ]
+        , div [ id "body" ]
+            [ div [ id "lSideBar" ] []
+            , div [ id "mainContainer" ]
+                [ div [ id "mainHeader" ]
+                    [ div [ id "selectionCmd" ]
                         [ div [ id "inverseSelect" ] []
                         , div [ id "eliminate" ] []
                         , div [ id "create" ] []
@@ -488,7 +488,7 @@ view model =
                         ]
                     , div [ class "middleCmd" ]
                         [ text (em model) ]
-                    , div [ class "viewCmd" ]
+                    , div [ id "viewCmd" ]
                         [ div [ id "focus" ] []
                         , div [ id "archives" ] []
                         , div [ id "trunk" ] []
@@ -497,18 +497,18 @@ view model =
                         , div [ id "criticalPath" ] []
                         ]
                     ]
-                , div [ class "mainBody" ]
+                , div [ id "mainBody" ]
                     [ viewTaskHeader model
-                    , div [ class "tasks" ]
+                    , div [ id "tasks" ]
                         (List.map
                             (viewTask model)
                             (List.indexedMap Tuple.pair model.tasks)
                         )
                     ]
                 ]
-            , div [ class "rSideBar" ] []
+            , div [ id "rSideBar" ] []
             ]
-        , div [ class "fotter" ] []
+        , div [ id "fotter" ] []
         ]
 
 
@@ -524,32 +524,28 @@ em model =
 
 viewTaskHeader : Model -> Html Msg
 viewTaskHeader m =
-    div [ class "taskHeader" ]
-        [ div [ class "selection" ]
-            [ text "Sel" ]
-        , div [ class "star" ]
-            [ text "Sta" ]
-        , div [ class "title" ]
-            [ text "title" ]
-        , div [ class "start" ]
-            [ text "start" ]
+    div [ id "taskHeader" ]
+        [ div [ class "selection" ] []
+        , div [ class "star" ] []
+        , div [ class "title" ] []
+        , div [ class "start" ] []
         , div [ class "bar" ]
             [ text
-                (case m.barLeftEdgeTime of
-                    Nothing ->
-                        "Unknown left edge time"
+                ("As of "
+                    ++ (case m.barLeftEdgeTime of
+                            Nothing ->
+                                "UNKNOWN TIME"
 
-                    Just t ->
-                        "As of " ++ t
+                            Just t ->
+                                t
+                       )
                 )
             , text (", " ++ String.fromInt m.dpy ++ " dpy")
             ]
-        , div [ class "deadline" ]
-            [ text "dead" ]
+        , div [ class "deadline" ] []
         , div [ class "weight" ]
-            [ text "wei" ]
-        , div [ class "done" ]
-            [ text "Done" ]
+            [ text "W" ]
+        , div [ class "done" ] []
         ]
 
 

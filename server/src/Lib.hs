@@ -241,69 +241,74 @@ graph2tasks = map edge2task
 
 edge2task :: Edge -> Task
 edge2task ((t,i),as) =
-    edge2task' as (Task t i False False Nothing Nothing Nothing Nothing "" defaultUser)
+    edge2task' as (Task t i False False Nothing Nothing Nothing Nothing Nothing defaultUser)
 
 edge2task' :: [Attr] -> Task -> Task
 edge2task' [] task = 
     task
-edge2task' (a:as) (Task t i d s ml ms md mw tt u) =
+edge2task' (a:as) (Task t i d s ml ms md mw mt u) =
     case a of
         IsDone '>' ->
-            edge2task' as (Task t i True s ml ms md mw tt u)
+            edge2task' as (Task t i True s ml ms md mw mt u)
         IsDone _ ->
-            edge2task' as (Task t i False s ml ms md mw tt u)
+            edge2task' as (Task t i False s ml ms md mw mt u)
         IsStarred '>' ->
-            edge2task' as (Task t i d True ml ms md mw tt u)
+            edge2task' as (Task t i d True ml ms md mw mt u)
         IsStarred _ ->
-            edge2task' as (Task t i d False ml ms md mw tt u)
+            edge2task' as (Task t i d False ml ms md mw mt u)
         Link l ->
-            edge2task' as (Task t i d s (Just l) ms md mw tt u)
+            edge2task' as (Task t i d s (Just l) ms md mw mt u)
         StartDate yyyy mm dd ->
             let
                 nd = fromGregorian (fromIntegral yyyy) mm dd
             in
                 case ms of
                     Just (UTCTime od ot) ->
-                        edge2task' as (Task t i d s ml (Just (UTCTime nd ot)) md mw tt u)
+                        edge2task' as (Task t i d s ml (Just (UTCTime nd ot)) md mw mt u)
                     Nothing ->
-                        edge2task' as (Task t i d s ml (Just (UTCTime nd 0)) md mw tt u)
+                        edge2task' as (Task t i d s ml (Just (UTCTime nd 0)) md mw mt u)
         StartTime hh mm ss ->
             let
                 nt = secondsToDiffTime $ fromIntegral $ ss + 60 * (mm + 60 * hh)
             in
                 case ms of
                     Just (UTCTime od ot) ->
-                        edge2task' as (Task t i d s ml (Just (UTCTime od nt)) md mw tt u)
+                        edge2task' as (Task t i d s ml (Just (UTCTime od nt)) md mw mt u)
                     Nothing ->
                         let
                             nd = fromGregorian 3000 0 0
                         in
-                            edge2task' as (Task t i d s ml (Just (UTCTime nd nt)) md mw tt u)
+                            edge2task' as (Task t i d s ml (Just (UTCTime nd nt)) md mw mt u)
         DeadlineDate yyyy mm dd ->
             let
                 nd = fromGregorian (fromIntegral yyyy) mm dd
             in
                 case ms of
                     Just (UTCTime od ot) ->
-                        edge2task' as (Task t i d s ml ms (Just (UTCTime nd ot)) mw tt u)
+                        edge2task' as (Task t i d s ml ms (Just (UTCTime nd ot)) mw mt u)
                     Nothing ->
-                        edge2task' as (Task t i d s ml ms (Just (UTCTime nd 0)) mw tt u)
+                        edge2task' as (Task t i d s ml ms (Just (UTCTime nd 0)) mw mt u)
         DeadlineTime hh mm ss ->
             let
                 nt = secondsToDiffTime $ fromIntegral $ ss + 60 * (mm + 60 * hh)
             in
                 case ms of
                     Just (UTCTime od ot) ->
-                        edge2task' as (Task t i d s ml ms (Just (UTCTime od nt)) mw tt u)
+                        edge2task' as (Task t i d s ml ms (Just (UTCTime od nt)) mw mt u)
                     Nothing ->
                         let
                             nd = fromGregorian 3000 0 0
                         in
-                            edge2task' as (Task t i d s ml ms (Just (UTCTime nd nt)) mw tt u)
+                            edge2task' as (Task t i d s ml ms (Just (UTCTime nd nt)) mw mt u)
         Weight w ->
-            edge2task' as (Task t i d s ml ms md (Just w) tt u)
+            edge2task' as (Task t i d s ml ms md (Just w) mt u)
         Title tt' ->
-            edge2task' as (Task t i d s ml ms md mw (Data.Text.concat[tt', tt]) u)
+            case mt of
+                Just tt ->
+                    edge2task' as (Task t i d s ml ms md mw (Just $ Data.Text.intercalate " " [tt', tt]) u)
+                Nothing ->
+                    edge2task' as (Task t i d s ml ms md mw (Just tt') u)
+
 
 text2graph :: Text -> Graph
 text2graph = spanLink . assemble . markUp . chopLines
@@ -449,10 +454,14 @@ toElmTask :: UTCTime -> Entity Task -> ElmTask
 toElmTask now e =
     let
         ei  = idFromEntity e
-        Task _ _ d s ml ms md mw tt _ = entityVal e
+        Task _ _ d s ml ms md mw mt _ = entityVal e
         ed  = d
         es  = s
-        ett = tt
+        et = case mt of
+                Just title ->
+                    title
+                Nothing ->
+                    ""
         el  = case ml of
                 Just link ->
                     link
@@ -468,7 +477,7 @@ toElmTask now e =
         eus = secUntil now ms
         eud = secUntil now md
     in
-        ElmTask ei ed es ett el ess edd ew eus eud
+        ElmTask ei ed es et el ess edd ew eus eud
 
 toElmTime :: Maybe UTCTime -> Text
 toElmTime mt =

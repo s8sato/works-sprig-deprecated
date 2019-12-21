@@ -67,10 +67,10 @@ insUser user = do
         insert $ user
         return ()
 
-ins = do
-    pool <- pgPool
-    flip runSqlPool pool $ do
-        insert $ Task 7 8 False True (Just "https://") Nothing Nothing (Just 30) "title" 1
+-- ins = do
+--     pool <- pgPool
+--     flip runSqlPool pool $ do
+--         insert $ Task 7 8 False True (Just "https://") Nothing Nothing (Just 30) "title" 1
 
 insTasks :: [Task] -> IO ()
 insTasks ts = do

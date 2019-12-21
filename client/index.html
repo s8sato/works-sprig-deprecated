@@ -7515,7 +7515,7 @@ var $author$project$Main$viewTaskHeader = function (m) {
 		$elm$html$Html$div,
 		_List_fromArray(
 			[
-				$elm$html$Html$Attributes$class('taskHeader')
+				$elm$html$Html$Attributes$id('taskHeader')
 			]),
 		_List_fromArray(
 			[
@@ -7525,40 +7525,28 @@ var $author$project$Main$viewTaskHeader = function (m) {
 					[
 						$elm$html$Html$Attributes$class('selection')
 					]),
-				_List_fromArray(
-					[
-						$elm$html$Html$text('Sel')
-					])),
+				_List_Nil),
 				A2(
 				$elm$html$Html$div,
 				_List_fromArray(
 					[
 						$elm$html$Html$Attributes$class('star')
 					]),
-				_List_fromArray(
-					[
-						$elm$html$Html$text('Sta')
-					])),
+				_List_Nil),
 				A2(
 				$elm$html$Html$div,
 				_List_fromArray(
 					[
 						$elm$html$Html$Attributes$class('title')
 					]),
-				_List_fromArray(
-					[
-						$elm$html$Html$text('title')
-					])),
+				_List_Nil),
 				A2(
 				$elm$html$Html$div,
 				_List_fromArray(
 					[
 						$elm$html$Html$Attributes$class('start')
 					]),
-				_List_fromArray(
-					[
-						$elm$html$Html$text('start')
-					])),
+				_List_Nil),
 				A2(
 				$elm$html$Html$div,
 				_List_fromArray(
@@ -7568,13 +7556,13 @@ var $author$project$Main$viewTaskHeader = function (m) {
 				_List_fromArray(
 					[
 						$elm$html$Html$text(
-						function () {
+						'As of ' + function () {
 							var _v0 = m.barLeftEdgeTime;
 							if (_v0.$ === 'Nothing') {
-								return 'Unknown left edge time';
+								return 'UNKNOWN TIME';
 							} else {
 								var t = _v0.a;
-								return 'As of ' + t;
+								return t;
 							}
 						}()),
 						$elm$html$Html$text(
@@ -7586,10 +7574,7 @@ var $author$project$Main$viewTaskHeader = function (m) {
 					[
 						$elm$html$Html$Attributes$class('deadline')
 					]),
-				_List_fromArray(
-					[
-						$elm$html$Html$text('dead')
-					])),
+				_List_Nil),
 				A2(
 				$elm$html$Html$div,
 				_List_fromArray(
@@ -7598,7 +7583,7 @@ var $author$project$Main$viewTaskHeader = function (m) {
 					]),
 				_List_fromArray(
 					[
-						$elm$html$Html$text('wei')
+						$elm$html$Html$text('W')
 					])),
 				A2(
 				$elm$html$Html$div,
@@ -7606,10 +7591,7 @@ var $author$project$Main$viewTaskHeader = function (m) {
 					[
 						$elm$html$Html$Attributes$class('done')
 					]),
-				_List_fromArray(
-					[
-						$elm$html$Html$text('Done')
-					]))
+				_List_Nil)
 			]));
 };
 var $author$project$Main$view = function (model) {
@@ -7617,7 +7599,7 @@ var $author$project$Main$view = function (model) {
 		$elm$html$Html$div,
 		_List_fromArray(
 			[
-				$elm$html$Html$Attributes$class('container')
+				$elm$html$Html$Attributes$id('container')
 			]),
 		_List_fromArray(
 			[
@@ -7625,7 +7607,7 @@ var $author$project$Main$view = function (model) {
 				$elm$html$Html$div,
 				_List_fromArray(
 					[
-						$elm$html$Html$Attributes$class('header')
+						$elm$html$Html$Attributes$id('header')
 					]),
 				_List_fromArray(
 					[
@@ -7633,7 +7615,7 @@ var $author$project$Main$view = function (model) {
 						$elm$html$Html$div,
 						_List_fromArray(
 							[
-								$elm$html$Html$Attributes$class('logo')
+								$elm$html$Html$Attributes$id('logo')
 							]),
 						_List_Nil),
 						A2(
@@ -7659,7 +7641,7 @@ var $author$project$Main$view = function (model) {
 						$elm$html$Html$div,
 						_List_fromArray(
 							[
-								$elm$html$Html$Attributes$class('submission')
+								$elm$html$Html$Attributes$id('submission')
 							]),
 						_List_fromArray(
 							[
@@ -7679,7 +7661,7 @@ var $author$project$Main$view = function (model) {
 						$elm$html$Html$div,
 						_List_fromArray(
 							[
-								$elm$html$Html$Attributes$class('account')
+								$elm$html$Html$Attributes$id('account')
 							]),
 						_List_Nil)
 					])),
@@ -7687,7 +7669,7 @@ var $author$project$Main$view = function (model) {
 				$elm$html$Html$div,
 				_List_fromArray(
 					[
-						$elm$html$Html$Attributes$class('body')
+						$elm$html$Html$Attributes$id('body')
 					]),
 				_List_fromArray(
 					[
@@ -7695,14 +7677,14 @@ var $author$project$Main$view = function (model) {
 						$elm$html$Html$div,
 						_List_fromArray(
 							[
-								$elm$html$Html$Attributes$class('lSideBar')
+								$elm$html$Html$Attributes$id('lSideBar')
 							]),
 						_List_Nil),
 						A2(
 						$elm$html$Html$div,
 						_List_fromArray(
 							[
-								$elm$html$Html$Attributes$class('mainContainer')
+								$elm$html$Html$Attributes$id('mainContainer')
 							]),
 						_List_fromArray(
 							[
@@ -7710,7 +7692,7 @@ var $author$project$Main$view = function (model) {
 								$elm$html$Html$div,
 								_List_fromArray(
 									[
-										$elm$html$Html$Attributes$class('cmdBar')
+										$elm$html$Html$Attributes$id('mainHeader')
 									]),
 								_List_fromArray(
 									[
@@ -7718,7 +7700,7 @@ var $author$project$Main$view = function (model) {
 										$elm$html$Html$div,
 										_List_fromArray(
 											[
-												$elm$html$Html$Attributes$class('selectionCmd')
+												$elm$html$Html$Attributes$id('selectionCmd')
 											]),
 										_List_fromArray(
 											[
@@ -7773,7 +7755,7 @@ var $author$project$Main$view = function (model) {
 										$elm$html$Html$div,
 										_List_fromArray(
 											[
-												$elm$html$Html$Attributes$class('viewCmd')
+												$elm$html$Html$Attributes$id('viewCmd')
 											]),
 										_List_fromArray(
 											[
@@ -7825,7 +7807,7 @@ var $author$project$Main$view = function (model) {
 								$elm$html$Html$div,
 								_List_fromArray(
 									[
-										$elm$html$Html$Attributes$class('mainBody')
+										$elm$html$Html$Attributes$id('mainBody')
 									]),
 								_List_fromArray(
 									[
@@ -7834,7 +7816,7 @@ var $author$project$Main$view = function (model) {
 										$elm$html$Html$div,
 										_List_fromArray(
 											[
-												$elm$html$Html$Attributes$class('tasks')
+												$elm$html$Html$Attributes$id('tasks')
 											]),
 										A2(
 											$elm$core$List$map,
@@ -7846,7 +7828,7 @@ var $author$project$Main$view = function (model) {
 						$elm$html$Html$div,
 						_List_fromArray(
 							[
-								$elm$html$Html$Attributes$class('rSideBar')
+								$elm$html$Html$Attributes$id('rSideBar')
 							]),
 						_List_Nil)
 					])),
@@ -7854,7 +7836,7 @@ var $author$project$Main$view = function (model) {
 				$elm$html$Html$div,
 				_List_fromArray(
 					[
-						$elm$html$Html$Attributes$class('fotter')
+						$elm$html$Html$Attributes$id('fotter')
 					]),
 				_List_Nil)
 			]));

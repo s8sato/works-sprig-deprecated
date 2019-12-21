@@ -64,7 +64,7 @@ Task json
     start           UTCTime Maybe
     deadline        UTCTime Maybe
     weight          Double Maybe
-    title           Text
+    title           Text Maybe
     user            Int
     deriving Show
 |]
