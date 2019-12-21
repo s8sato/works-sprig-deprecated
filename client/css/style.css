@@ -40,15 +40,37 @@ button, input, select, textarea {
     background-size: contain;
 }
 
-.inputField {
+#inputBox {
     flex-grow: 1;
     height: inherit;
+}
+
+#inputArea {
+    margin-top: 8px;
+    width: 95%;
+    line-height: 1em;
 }
 
 #submission {
     width : 136px;
     height: inherit;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
+
+#submitButton {
+    width : 128px;
+    height: 56px;
+    background-image: url("../images/sprig_normal.png");
+    background-size: contain;
+    border-radius: 6px;
+}
+
+#submitButton:hover {
+    background-image: url("../images/sprig_hover.png");
+}
+
 #account {
     width : 200px;
     height: inherit;
@@ -61,7 +83,7 @@ button, input, select, textarea {
 }
 
 #lSideBar {
-    width : 72px;
+    width : 64px;
     height: inherit;
     background-color: #DDF0E4;
 }
@@ -73,7 +95,7 @@ button, input, select, textarea {
 }
 
 #rSideBar {
-    width : 72px;
+    width : 64px;
     height: inherit;
 }
 
@@ -125,13 +147,9 @@ button, input, select, textarea {
     width : inherit;
     background-color: #DDF0E4;
     background-image: url("../images/shisocho.png");
+    background-position-x: center;
     flex-grow: 1;
 }
-
-/* .mainBody div {
-    align-items: center;
-    justify-content: center;
-} */
 
 #tasks {
     width : inherit;
@@ -176,12 +194,12 @@ button, input, select, textarea {
 }
 
 #mainBody .selection {
-    width : 30px;
+    width : 40px;
     height: inherit;
 }
 
 #mainBody .star {
-    width : 30px;
+    width : 40px;
     height: inherit;
 }
 
@@ -191,7 +209,7 @@ button, input, select, textarea {
 }
 
 #mainBody .start {
-    width : 72px;
+    width : 84px;
     height: inherit;
 }
 
@@ -201,12 +219,12 @@ button, input, select, textarea {
 }
 
 #mainBody .deadline {
-    width : 72px;
+    width : 84px;
     height: inherit;
 }
 
 #mainBody .weight {
-    width : 72px;
+    width : 84px;
     height: inherit;
 }
 
@@ -229,7 +247,6 @@ button, input, select, textarea {
 
 #inverseSelect:hover {
     background-image: url("../images/cmd_i_hover.png");
-    background-size: contain;
 }
 
 #eliminate {
@@ -239,7 +256,6 @@ button, input, select, textarea {
 
 #eliminate:hover {
     background-image: url("../images/cmd_e_hover.png");
-    background-size: contain;
 }
 
 #create {
@@ -249,7 +265,6 @@ button, input, select, textarea {
 
 #create:hover {
     background-image: url("../images/cmd_c_hover.png");
-    background-size: contain;
 }
 
 #reschedule {
@@ -259,7 +274,6 @@ button, input, select, textarea {
 
 #reschedule:hover {
     background-image: url("../images/cmd_r_hover.png");
-    background-size: contain;
 }
 
 #linksOpen {
@@ -269,7 +283,6 @@ button, input, select, textarea {
 
 #linksOpen:hover {
     background-image: url("../images/cmd_l_hover.png");
-    background-size: contain;
 }
 
 #focus {
@@ -279,7 +292,6 @@ button, input, select, textarea {
 
 #focus:hover {
     background-image: url("../images/cmd_f_hover.png");
-    background-size: contain;
 }
 
 #archives {
@@ -289,7 +301,6 @@ button, input, select, textarea {
 
 #archives:hover {
     background-image: url("../images/cmd_a_hover.png");
-    background-size: contain;
 }
 
 #trunk {
@@ -299,7 +310,6 @@ button, input, select, textarea {
 
 #trunk:hover {
     background-image: url("../images/cmd_t_hover.png");
-    background-size: contain;
 }
 
 #buds {
@@ -309,7 +319,6 @@ button, input, select, textarea {
 
 #buds:hover {
     background-image: url("../images/cmd_b_hover.png");
-    background-size: contain;
 }
 
 #home {
@@ -319,7 +328,6 @@ button, input, select, textarea {
 
 #home:hover {
     background-image: url("../images/cmd_h_hover.png");
-    background-size: contain;
 }
 
 #criticalPath {
@@ -329,35 +337,4 @@ button, input, select, textarea {
 
 #criticalPath:hover {
     background-image: url("../images/cmd_p_hover.png");
-    background-size: contain;
-}
-
-# {
-    background-image: url("../images/cmd__normal.png");
-    background-size: contain;
-}
-
-# {
-    background-image: url("../images/cmd__normal.png");
-    background-size: contain;
-}
-
-# {
-    background-image: url("../images/cmd__normal.png");
-    background-size: contain;
-}
-
-# {
-    background-image: url("../images/cmd__normal.png");
-    background-size: contain;
-}
-
-# {
-    background-image: url("../images/cmd__normal.png");
-    background-size: contain;
-}
-
-# {
-    background-image: url("../images/cmd__normal.png");
-    background-size: contain;
 }

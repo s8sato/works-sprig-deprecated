@@ -7182,7 +7182,6 @@ var $author$project$Main$Input = function (a) {
 	return {$: 'Input', a: a};
 };
 var $author$project$Main$TextPost = {$: 'TextPost'};
-var $elm$html$Html$button = _VirtualDom_node('button');
 var $elm$html$Html$Attributes$stringProperty = F2(
 	function (key, string) {
 		return A2(
@@ -7191,12 +7190,6 @@ var $elm$html$Html$Attributes$stringProperty = F2(
 			$elm$json$Json$Encode$string(string));
 	});
 var $elm$html$Html$Attributes$class = $elm$html$Html$Attributes$stringProperty('className');
-var $elm$html$Html$Attributes$cols = function (n) {
-	return A2(
-		_VirtualDom_attribute,
-		'cols',
-		$elm$core$String$fromInt(n));
-};
 var $elm$html$Html$div = _VirtualDom_node('div');
 var $author$project$Main$em = function (model) {
 	var _v0 = model.errorMessage;
@@ -7261,17 +7254,10 @@ var $elm$core$Tuple$pair = F2(
 		return _Utils_Tuple2(a, b);
 	});
 var $elm$html$Html$Attributes$placeholder = $elm$html$Html$Attributes$stringProperty('placeholder');
-var $elm$html$Html$Attributes$rows = function (n) {
-	return A2(
-		_VirtualDom_attribute,
-		'rows',
-		$elm$core$String$fromInt(n));
-};
 var $elm$virtual_dom$VirtualDom$text = _VirtualDom_text;
 var $elm$html$Html$text = $elm$virtual_dom$VirtualDom$text;
-var $author$project$Main$textPlaceholder = 'Task subject\n\njump\n    step\n        hop\n\nA task to complete by the end of 2020 -2020/12/31\n    A task expected to take 300 hours $300\n        A task you can start in the beginning of 2020 2020/1/1-\n\nA time-critical task 2020/1/01- 1:02:3- $0.001 -23:59:59 -2020/01/1\n\ntrunk\n    branch Alice\n        bud \n    branch Bob\n        bud\n        bud\n\njump\n    step\n        hop1 depends on hop2 [key\n    step\n        key] hop2\n\n# A task to register as completed\n* A task to register as starred\n\nA linked task e.g. slack permalink &https://\n\n@777 The task with ID 777 whose weight will be updated to 30 $30';
+var $author$project$Main$textPlaceholder = 'ENTER TASKS OR A COMMAND:\n\njump\n    step\n        hop\n\nA task to complete by the end of 2020 -2020/12/31\n    A task expected to take 300 hours $300\n        A task you can start in the beginning of 2020 2020/1/1-\n\nA time-critical task 2020/01/1- 23:59:59- $0.001 -0:0:3 -2020/1/02\n\ntrunk\n    branch Alice\n        bud \n    branch Bob\n        bud\n        bud\n\njump\n    step\n        hop2 dependent on hop1 [key\n    step\n        key] hop1\n\n# A task to register as completed\n* A task to register as starred\n\nA linked task e.g. slack permalink &https://\n\n@777 The task with ID 777 whose weight will be updated to 30 $30\n\n@777 The complex task\n    A simpler task\n    A simpler task\n\nA new emerging task dependent on existing @777 and @888\n    @777\n    @888\n\nYOU CAN ALSO ENTER ONE OF THE FOLLOWING SLASH COMMANDS:\n\n/dpy 1\nSet dpy (dots per year) 1, that is, a dot represents a year.\n\n/asof 2020/01/01_12:0:0\nSet the time corresponding to the left edge of the bar to noon on January 1, 2020.\n\n/sel -t word\nSelect tasks whose title contains \'word\'.\n\n/sel -s 2020/1/1_12:0:0< <2020/1/2\nSelect tasks whose start is in the afternoon of January 1, 2020.\n\n/sel -d <23:59:59\nSelect tasks whose deadline is today\'s end.\n\n/sel -w 30< <300\nSelect tasks whose weight is between 30 and 300 hours.\n\n/sel -arc\nSelect archived tasks.\n\n/sel -star\nSelect starred tasks.\n\n/sel -trunk\nSelect trunk, namely, tasks with no successor.\n\n/sel -buds\nSelect buds, namely, tasks with no predecessor.\n\n/sel -t word -s 2020/1/1< -d <23:59:59 -w 30< <300 -arc -star\nSpecify multiple conditions.\n\nTHANK YOU FOR READING!\n';
 var $elm$html$Html$textarea = _VirtualDom_node('textarea');
-var $elm$html$Html$Attributes$type_ = $elm$html$Html$Attributes$stringProperty('type');
 var $author$project$Main$SwitchSelect = function (a) {
 	return {$: 'SwitchSelect', a: a};
 };
@@ -7345,7 +7331,7 @@ var $author$project$Main$barString = F4(
 						$elm$core$String$toList(
 							A3(
 								$author$project$Main$fill,
-								50,
+								48,
 								'.',
 								_Utils_ap(
 									A2($elm$core$String$repeat, dot, '.'),
@@ -7507,7 +7493,7 @@ var $author$project$Main$viewTask = F2(
 						]),
 					_List_fromArray(
 						[
-							task.isDone ? $elm$html$Html$text('DONE') : $elm$html$Html$text('----')
+							task.isDone ? $elm$html$Html$text('DONE') : $elm$html$Html$text('-')
 						]))
 				]));
 	});
@@ -7582,10 +7568,7 @@ var $author$project$Main$viewTaskHeader = function (m) {
 					[
 						$elm$html$Html$Attributes$class('weight')
 					]),
-				_List_fromArray(
-					[
-						$elm$html$Html$text('W')
-					])),
+				_List_Nil),
 				A2(
 				$elm$html$Html$div,
 				_List_fromArray(
@@ -7623,7 +7606,7 @@ var $author$project$Main$view = function (model) {
 						$elm$html$Html$div,
 						_List_fromArray(
 							[
-								$elm$html$Html$Attributes$class('inputField')
+								$elm$html$Html$Attributes$id('inputBox')
 							]),
 						_List_fromArray(
 							[
@@ -7631,8 +7614,7 @@ var $author$project$Main$view = function (model) {
 								$elm$html$Html$textarea,
 								_List_fromArray(
 									[
-										$elm$html$Html$Attributes$cols(80),
-										$elm$html$Html$Attributes$rows(2),
+										$elm$html$Html$Attributes$id('inputArea'),
 										$elm$html$Html$Attributes$placeholder($author$project$Main$textPlaceholder),
 										$elm$html$Html$Events$onInput($author$project$Main$Input)
 									]),
@@ -7647,16 +7629,13 @@ var $author$project$Main$view = function (model) {
 						_List_fromArray(
 							[
 								A2(
-								$elm$html$Html$button,
+								$elm$html$Html$div,
 								_List_fromArray(
 									[
-										$elm$html$Html$Attributes$type_('button'),
+										$elm$html$Html$Attributes$id('submitButton'),
 										$elm$html$Html$Events$onClick($author$project$Main$TextPost)
 									]),
-								_List_fromArray(
-									[
-										$elm$html$Html$text('Submit')
-									]))
+								_List_Nil)
 							])),
 						A2(
 						$elm$html$Html$div,

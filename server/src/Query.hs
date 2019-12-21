@@ -82,9 +82,9 @@ getUndoneTasks pool user = flip runSqlPool pool $ do
             &&. not_ ( task ^. TaskIsDone )
             )
         orderBy
-            [ asc (task ^. TaskDeadline)
+            [ desc (task ^. TaskIsStarred)
+            , asc (task ^. TaskDeadline)
             , asc (task ^. TaskStart)
-            , desc (task ^. TaskIsStarred)
             , asc (task ^. TaskTitle)
             ]
         return (task)
@@ -175,9 +175,9 @@ getBeforeMe pool me = flip runSqlPool pool $ do
             (   task ^. TaskTerminal ==. myInitial
             )
         orderBy
-            [ asc (task ^. TaskDeadline)
+            [ desc (task ^. TaskIsStarred)
+            , asc (task ^. TaskDeadline)
             , asc (task ^. TaskStart)
-            , desc (task ^. TaskIsStarred)
             , asc (task ^. TaskTitle)
             ]
         return (task)
@@ -194,9 +194,9 @@ getAfterMe pool me = flip runSqlPool pool $ do
             (   task ^. TaskInitial ==. myTerminal
             )
         orderBy
-            [ asc (task ^. TaskDeadline)
+            [ desc (task ^. TaskIsStarred)
+            , asc (task ^. TaskDeadline)
             , asc (task ^. TaskStart)
-            , desc (task ^. TaskIsStarred)
             , asc (task ^. TaskTitle)
             ]
         return (task)

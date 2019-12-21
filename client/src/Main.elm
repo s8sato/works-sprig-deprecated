@@ -1,16 +1,15 @@
 module Main exposing (main)
 
-import Array exposing (Array)
+import Array exposing (fromList, get, set, toList)
 import Browser
 import Browser.Events exposing (onKeyPress)
-import Html exposing (..)
-import Html.Attributes exposing (class, cols, href, id, placeholder, rows, style, type_, value)
+import Html exposing (Html, a, div, text, textarea)
+import Html.Attributes exposing (class, href, id, placeholder, style)
 import Html.Events exposing (onClick, onInput)
 import Http
 import Json.Decode as Decode exposing (Decoder, bool, float, int, list, nullable, string)
 import Json.Decode.Pipeline exposing (optional, required)
 import Json.Encode as Encode
-import Styles as S
 
 
 main : Program () Model Msg
@@ -469,10 +468,16 @@ view model =
     div [ id "container" ]
         [ div [ id "header" ]
             [ div [ id "logo" ] []
-            , div [ class "inputField" ]
-                [ textarea [ cols 80, rows 2, placeholder textPlaceholder, onInput Input ] [] ]
+            , div [ id "inputBox" ]
+                [ textarea
+                    [ id "inputArea"
+                    , placeholder textPlaceholder
+                    , onInput Input
+                    ]
+                    []
+                ]
             , div [ id "submission" ]
-                [ button [ type_ "button", onClick TextPost ] [ text "Submit" ] ]
+                [ div [ id "submitButton", onClick TextPost ] [] ]
             , div [ id "account" ] []
             ]
         , div [ id "body" ]
@@ -543,8 +548,7 @@ viewTaskHeader m =
             , text (", " ++ String.fromInt m.dpy ++ " dpy")
             ]
         , div [ class "deadline" ] []
-        , div [ class "weight" ]
-            [ text "W" ]
+        , div [ class "weight" ] []
         , div [ class "done" ] []
         ]
 
@@ -594,7 +598,7 @@ viewTask model ( idx, task ) =
                 text "DONE"
 
               else
-                text "----"
+                text "-"
             ]
         ]
 
@@ -650,7 +654,7 @@ barString dpy weight secUS secUD =
     in
     String.repeat dot "."
         ++ String.repeat sha "#"
-        |> fill 50 "."
+        |> fill 48 "."
         |> String.toList
         |> Array.fromList
         |> Array.set exc '!'
@@ -670,7 +674,7 @@ weight2sec w =
 
 textPlaceholder : String
 textPlaceholder =
-    "Task subject\n\njump\n    step\n        hop\n\nA task to complete by the end of 2020 -2020/12/31\n    A task expected to take 300 hours $300\n        A task you can start in the beginning of 2020 2020/1/1-\n\nA time-critical task 2020/1/01- 1:02:3- $0.001 -23:59:59 -2020/01/1\n\ntrunk\n    branch Alice\n        bud \n    branch Bob\n        bud\n        bud\n\njump\n    step\n        hop1 depends on hop2 [key\n    step\n        key] hop2\n\n# A task to register as completed\n* A task to register as starred\n\nA linked task e.g. slack permalink &https://\n\n@777 The task with ID 777 whose weight will be updated to 30 $30"
+    "ENTER TASKS OR A COMMAND:\n\njump\n    step\n        hop\n\nA task to complete by the end of 2020 -2020/12/31\n    A task expected to take 300 hours $300\n        A task you can start in the beginning of 2020 2020/1/1-\n\nA time-critical task 2020/01/1- 23:59:59- $0.001 -0:0:3 -2020/1/02\n\ntrunk\n    branch Alice\n        bud \n    branch Bob\n        bud\n        bud\n\njump\n    step\n        hop2 dependent on hop1 [key\n    step\n        key] hop1\n\n# A task to register as completed\n* A task to register as starred\n\nA linked task e.g. slack permalink &https://\n\n@777 The task with ID 777 whose weight will be updated to 30 $30\n\n@777 The complex task\n    A simpler task\n    A simpler task\n\nA new emerging task dependent on existing @777 and @888\n    @777\n    @888\n\nYOU CAN ALSO ENTER ONE OF THE FOLLOWING SLASH COMMANDS:\n\n/dpy 1\nSet dpy (dots per year) 1, that is, a dot represents a year.\n\n/asof 2020/01/01_12:0:0\nSet the time corresponding to the left edge of the bar to noon on January 1, 2020.\n\n/sel -t word\nSelect tasks whose title contains 'word'.\n\n/sel -s 2020/1/1_12:0:0< <2020/1/2\nSelect tasks whose start is in the afternoon of January 1, 2020.\n\n/sel -d <23:59:59\nSelect tasks whose deadline is today's end.\n\n/sel -w 30< <300\nSelect tasks whose weight is between 30 and 300 hours.\n\n/sel -arc\nSelect archived tasks.\n\n/sel -star\nSelect starred tasks.\n\n/sel -trunk\nSelect trunk, namely, tasks with no successor.\n\n/sel -buds\nSelect buds, namely, tasks with no predecessor.\n\n/sel -t word -s 2020/1/1< -d <23:59:59 -w 30< <300 -arc -star\nSpecify multiple conditions.\n\nTHANK YOU FOR READING!\n"
 
 
 
