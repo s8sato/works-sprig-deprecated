@@ -1,19 +1,14 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module Query where
-import Db                           
-                                    -- ( pgPool
-                                    -- , User (..)
-                                    -- , Task (..)
-                                    -- )
+
+import Entity
 import Database.Esqueleto
 import Database.Persist.Sql         ( ConnectionPool
                                     , runSqlPool
                                     , Entity (..)
                                     , Key (..)
                                     , insert
-                                    -- , getEntity
-                                    -- , selectList
                                     )
 import Data.Time
 

@@ -7,8 +7,9 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module Db where
+module Entity where
 
+import Database.Persist
 import Control.Monad.Logger         ( runStdoutLoggingT )
 import Control.Monad.Trans.Reader   ( runReaderT )
 import Control.Monad.Trans.Resource ( runResourceT )
@@ -20,22 +21,15 @@ import Database.Persist.Sql         ( Migration
                                     , ConnectionPool
                                     , runMigration
                                     )
-
-import Control.Lens                 ((^.))
-import Data.Text                    (Text)
-import Database.Persist             
-import Database.Persist.Sql         (ConnectionPool
-                                   , runSqlPool
+import Database.Persist.TH          ( mkMigrate
+                                    , mkPersist
+                                    , persistLowerCase
+                                    , share
+                                    , sqlSettings
                                     )
-import Database.Persist.TH          (mkMigrate
-                                   , mkPersist
-                                   , persistLowerCase
-                                   , share
-                                   , sqlSettings
-                                   , mpsGenerateLenses
-                                    )
+import Data.Text                    ( Text )
+import Data.Time                    ( UTCTime )
 
-import Data.Time (UTCTime)
 
 pgPool :: IO ConnectionPool
 pgPool = do

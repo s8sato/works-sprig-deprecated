@@ -7,7 +7,7 @@
 
 
 
-module Lib where
+module Controller where
 
 import Prelude hiding (take, drop)
 
@@ -25,7 +25,6 @@ import Network.Wai.Middleware.Servant.Options
 -- json
 import Data.Aeson
 import Data.Text hiding (map, filter, reverse, zip)
-import Ch10.Builder (Person(..), Client(..))
 -- for jsonTo_
 import Data.Aeson.Types hiding (Parser)
 import Control.Applicative
@@ -34,7 +33,6 @@ import qualified Data.HashMap.Strict as M
 
 -- parse
 import Data.Attoparsec.Text hiding (take)
-import Ch10.Builder (Person(..), Client(..), clientToText)
 -- for parseClients
 import Data.Attoparsec.Combinator
 -- for loadClients
@@ -54,7 +52,7 @@ import Data.Time
 -- for fileTest
 -- import System.IO
 
-import Db
+import Entity
 import Database.Persist (Entity(..))
 import Control.Monad.IO.Class   (liftIO)
 
@@ -63,6 +61,12 @@ import Data.Double.Conversion.Text (toFixed)
 import Database.Persist.Sql (fromSqlKey ,SqlBackend (..), ToBackendKey)
 
 import Query
+
+
+
+-- type alias
+
+
 
 yeaPerY = 1
 quaPerY = 4
@@ -75,6 +79,12 @@ secPerY = 31536000
 
 defaultTaskLink = pack ""
 defaultUser = 1
+
+
+
+-- DATA DECLARATION
+
+
 
 data ElmTask = ElmTask
     { elmTaskId :: Integer
@@ -129,6 +139,12 @@ data FocusTask = FocusTask
 
 $(deriveJSON defaultOptions ''FocusTask)
 
+
+
+-- API DEFINITION
+
+
+
 type API =  "tasks" :> "all" :> Get '[JSON] ElmModel
     :<|>    "tasks" :> ReqBody '[JSON] TextPost :> Post '[JSON] ElmModel
     :<|>    "tasks" :> "done" :> ReqBody '[JSON] DoneTasks :> Post '[JSON] ElmModel
@@ -146,9 +162,9 @@ app :: Application
 app = cors (const $ Just policy)
     $ provideOptions api
     $ serve api server
-  where
-  policy = simpleCorsResourcePolicy
-           { corsRequestHeaders = [ "content-type" ] }
+    where
+        policy = simpleCorsResourcePolicy
+                { corsRequestHeaders = [ "content-type" ] }
 
 api :: Proxy API
 api = Proxy
@@ -159,7 +175,6 @@ server = undoneElmModel
     :<|> doneTasksReload
     :<|> switchStar
     :<|> focusTask
-
     where
         undoneElmModel :: Handler ElmModel
         undoneElmModel = liftIO $ undoneElmModel' 1
@@ -171,7 +186,6 @@ server = undoneElmModel
         switchStar = liftIO . switchStar'
         focusTask :: FocusTask -> Handler ElmModel
         focusTask = liftIO . focusTask'
-
 
 stdElmModel :: Int -> [Entity Task] -> Int -> IO ElmModel
 stdElmModel user tasks indicator = do
@@ -214,23 +228,23 @@ focusTask' (FocusTask user task) = do
 
 
 
--- 
+-- INTERNAL OPERATIONS
 
 
 
 type Graph = [Edge]
 type Edge = ((Node, Node), [Attr])
 type Node  = Int
-data Attr  =  AttrTaskId       { attrTaskId       :: Int    }
-    | IsDone       { isDone       :: Char }
-    | IsStarred    { isStarred    :: Char }
-    | Link         { link         :: Text }
-    | StartDate    { startYear    :: Int, startMonth     :: Int,  startDay       :: Int    }
-    | StartTime    { startHour    :: Int, startMinute    :: Int,  startSecond    :: Int    }
-    | DeadlineDate { deadlineYear :: Int, deadlineMonth  :: Int,  deadlineDay    :: Int    }
-    | DeadlineTime { deadlineHour :: Int, deadlineMinute :: Int,  deadlineSecond :: Int    }
-    | Weight       { weight       :: Double }
-    | Title        { title        :: Text }
+data Attr  = AttrTaskId { attrTaskId :: Int }
+    | IsDone       { isDone      :: Char }
+    | IsStarred    { isStarred   :: Char }
+    | Link         { link        :: Text }
+    | StartDate    { startYea    :: Int, startMon    :: Int, startDay    :: Int }
+    | StartTime    { startHou    :: Int, startMin    :: Int, startSec    :: Int }
+    | DeadlineDate { deadlineYea :: Int, deadlineMon :: Int, deadlineDay :: Int }
+    | DeadlineTime { deadlineHou :: Int, deadlineMin :: Int, deadlineSec :: Int }
+    | Weight       { weight      :: Double }
+    | Title        { title       :: Text }
     deriving (Eq, Show)
 
 text2tasks :: Text -> [Task]

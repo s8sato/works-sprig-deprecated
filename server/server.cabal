@@ -15,15 +15,7 @@ cabal-version:       >=1.10
 
 library
   hs-source-dirs:      src
-  exposed-modules:     Db
-                    --  , Cook
-                       -- https://qiita.com/jabaraster/items/e8ebbe6d25b535947aba
-                    --  , DataStore
-                    --  , DataStore.Internal
-                    --  , App
-                    -- hasbolt
-                     , Lib
-                     , Data.Text
+  exposed-modules:     Controller
   build-depends:       base >= 4.7 && < 5
                       -- servant
                      , aeson
@@ -39,25 +31,12 @@ library
                      -- Ch11
                      , persistent
                      , persistent-template
-                     , persistent-sqlite
                      , monad-logger
                      , esqueleto
                      -- https://qiita.com/jabaraster/items/e8ebbe6d25b535947aba
                      , transformers
                      , resourcet
-                    --  , yaml-config
                      , persistent-postgresql
-                     , lens
-                     -- Cook
-                    --  , bytestring
-                    --  , resource-pool
-                    --  , postgresql-simple
-                    --  , http-client
-                    --  , servant-client
-                     -- Hasbolt
-                    --  , hasbolt
-                    --  , mtl
-                    --  , data-default
                      -- 
                      , time
                      , double-conversion
