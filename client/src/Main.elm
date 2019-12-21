@@ -470,7 +470,7 @@ view model =
         [ div [ id "header" ]
             [ div [ id "logo" ] []
             , div [ class "inputField" ]
-                [ textarea [ cols 80, rows 2, placeholder "...", onInput Input ] [] ]
+                [ textarea [ cols 80, rows 2, placeholder textPlaceholder, onInput Input ] [] ]
             , div [ id "submission" ]
                 [ button [ type_ "button", onClick TextPost ] [ text "Submit" ] ]
             , div [ id "account" ] []
@@ -666,6 +666,11 @@ sec2dot dpy sec =
 weight2sec : Float -> Int
 weight2sec w =
     floor (60 * 60 * w)
+
+
+textPlaceholder : String
+textPlaceholder =
+    "Task subject\n\njump\n    step\n        hop\n\nA task to complete by the end of 2020 -2020/12/31\n    A task expected to take 300 hours $300\n        A task you can start in the beginning of 2020 2020/1/1-\n\nA time-critical task 2020/1/01- 1:02:3- $0.001 -23:59:59 -2020/01/1\n\ntrunk\n    branch Alice\n        bud \n    branch Bob\n        bud\n        bud\n\njump\n    step\n        hop1 depends on hop2 [key\n    step\n        key] hop2\n\n# A task to register as completed\n* A task to register as starred\n\nA linked task e.g. slack permalink &https://\n\n@777 The task with ID 777 whose weight will be updated to 30 $30"
 
 
 

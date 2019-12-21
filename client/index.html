@@ -7269,6 +7269,7 @@ var $elm$html$Html$Attributes$rows = function (n) {
 };
 var $elm$virtual_dom$VirtualDom$text = _VirtualDom_text;
 var $elm$html$Html$text = $elm$virtual_dom$VirtualDom$text;
+var $author$project$Main$textPlaceholder = 'Task subject\n\njump\n    step\n        hop\n\nA task to complete by the end of 2020 -2020/12/31\n    A task expected to take 300 hours $300\n        A task you can start in the beginning of 2020 2020/1/1-\n\nA time-critical task 2020/1/01- 1:02:3- $0.001 -23:59:59 -2020/01/1\n\ntrunk\n    branch Alice\n        bud \n    branch Bob\n        bud\n        bud\n\njump\n    step\n        hop1 depends on hop2 [key\n    step\n        key] hop2\n\n# A task to register as completed\n* A task to register as starred\n\nA linked task e.g. slack permalink &https://\n\n@777 The task with ID 777 whose weight will be updated to 30 $30';
 var $elm$html$Html$textarea = _VirtualDom_node('textarea');
 var $elm$html$Html$Attributes$type_ = $elm$html$Html$Attributes$stringProperty('type');
 var $author$project$Main$SwitchSelect = function (a) {
@@ -7632,7 +7633,7 @@ var $author$project$Main$view = function (model) {
 									[
 										$elm$html$Html$Attributes$cols(80),
 										$elm$html$Html$Attributes$rows(2),
-										$elm$html$Html$Attributes$placeholder('...'),
+										$elm$html$Html$Attributes$placeholder($author$project$Main$textPlaceholder),
 										$elm$html$Html$Events$onInput($author$project$Main$Input)
 									]),
 								_List_Nil)

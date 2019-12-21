@@ -248,14 +248,10 @@ edge2task' [] task =
     task
 edge2task' (a:as) (Task t i d s ml ms md mw mt u) =
     case a of
-        IsDone '>' ->
-            edge2task' as (Task t i True s ml ms md mw mt u)
         IsDone _ ->
-            edge2task' as (Task t i False s ml ms md mw mt u)
-        IsStarred '>' ->
-            edge2task' as (Task t i d True ml ms md mw mt u)
+            edge2task' as (Task t i True s ml ms md mw mt u)
         IsStarred _ ->
-            edge2task' as (Task t i d False ml ms md mw mt u)
+            edge2task' as (Task t i d True ml ms md mw mt u)
         Link l ->
             edge2task' as (Task t i d s (Just l) ms md mw mt u)
         StartDate yyyy mm dd ->
@@ -344,16 +340,15 @@ markUp'' sbj obj is mem
     | otherwise             = markUp'' sbj (obj - 1) is mem
 
 aAttr :: Parser Attr
-aAttr = AttrTaskId        <$  string "@"    <*> decimal
-        -- TODO if anyChar machies empty
-    <|> IsDone        <$  string "</"    <*> anyChar
-    <|> IsStarred     <$  string "<*"    <*> anyChar
-    <|> Link          <$  string "&"    <*> takeText
-    <|> StartDate     <$  string ""     <*> decimal <* char '/' <*> decimal <* char '/' <*> decimal <* char '-'
-    <|> StartTime     <$  string ""     <*> decimal <* char ':' <*> decimal <* char ':' <*> decimal <* char '-'
-    <|> DeadlineDate  <$  string "-"    <*> decimal <* char '/' <*> decimal <* char '/' <*> decimal
-    <|> DeadlineTime  <$  string "-"    <*> decimal <* char ':' <*> decimal <* char ':' <*> decimal
-    <|> Weight        <$  string "$"    <*> double
+aAttr = AttrTaskId    <$  char '@'  <*> decimal
+    <|> IsDone        <$> char '#'
+    <|> IsStarred     <$> char '*'
+    <|> Link          <$  char '&'  <*> takeText
+    <|> StartDate     <$> decimal   <* char '/' <*> decimal <* char '/' <*> decimal <* char '-'
+    <|> StartTime     <$> decimal   <* char ':' <*> decimal <* char ':' <*> decimal <* char '-'
+    <|> DeadlineDate  <$  char '-'  <*> decimal <* char '/' <*> decimal <* char '/' <*> decimal
+    <|> DeadlineTime  <$  char '-'  <*> decimal <* char ':' <*> decimal <* char ':' <*> decimal
+    <|> Weight        <$  char '$'  <*> double
     <|> Title         <$> takeText
 
 assemble  :: [((Node, Node), [Text])] -> Graph
