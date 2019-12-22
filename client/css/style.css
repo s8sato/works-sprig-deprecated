@@ -87,6 +87,23 @@ button, input, select, textarea {
     height: inherit;
     background-color: #DDF0E4;
 }
+
+#staticIconsBox {
+    width : inherit;
+    height: 192px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-direction: column;
+    margin-top: 104px;
+}
+
+#staticIconsBox div {
+    width : 40px;
+    height: 40px;
+    border-radius: 6px;
+}
+
 #mainContainer {
     flex-grow: 1;
     height: inherit;
@@ -105,25 +122,7 @@ button, input, select, textarea {
     display: flex;
     background-color: #DDF0E4;
 }
-#selectionCmd {
-    width : 240px;
-    height: inherit;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-#selectionCmd div {
-    width : 40px;
-    height: 40px;
-    border-radius: 6px;
-}
-
-.middleCmd {
-    flex-grow: 1;
-    height: inherit;
-}
-#viewCmd {
+#selectionCmdBox {
     width : 288px;
     height: inherit;
     display: flex;
@@ -131,7 +130,25 @@ button, input, select, textarea {
     align-items: center;
 }
 
-#viewCmd div {
+#selectionCmdBox div {
+    width : 40px;
+    height: 40px;
+    border-radius: 6px;
+}
+
+.middleCmdBox {
+    flex-grow: 1;
+    height: inherit;
+}
+#viewCmdBox {
+    width : 240px;
+    height: inherit;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+#viewCmdBox div {
     width : 40px;
     height: 40px;
     border-radius: 6px;
@@ -287,6 +304,15 @@ button, input, select, textarea {
     background-image: url("../images/cmd_l_hover.png");
 }
 
+#criticalPath {
+    background-image: url("../images/cmd_p_normal.png");
+    background-size: contain;
+}
+
+#criticalPath:hover {
+    background-image: url("../images/cmd_p_hover.png");
+}
+
 #focus {
     background-image: url("../images/cmd_f_normal.png");
     background-size: contain;
@@ -332,11 +358,19 @@ button, input, select, textarea {
     background-image: url("../images/cmd_h_hover.png");
 }
 
-#criticalPath {
-    background-image: url("../images/cmd_p_normal.png");
+#upAndDown {
+    background-image: url("../images/cmd_jk_normal.png");
     background-size: contain;
 }
-
-#criticalPath:hover {
-    background-image: url("../images/cmd_p_hover.png");
+#setSelected {
+    background-image: url("../images/cmd_x_normal.png");
+    background-size: contain;
+}
+#setStarred {
+    background-image: url("../images/cmd_s_normal.png");
+    background-size: contain;
+}
+#setDpy {
+    background-image: url("../images/cmd_v_normal.png");
+    background-size: contain;
 }

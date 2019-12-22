@@ -7421,7 +7421,10 @@ var $author$project$Main$viewTask = F2(
 			_List_fromArray(
 				[
 					$elm$html$Html$Attributes$class('task'),
-					_Utils_eq(idx, model.indicator) ? A2($elm$html$Html$Attributes$style, 'background-color', '#C2DBFF') : A2($elm$html$Html$Attributes$style, 'background-color', '#EEF4F2')
+					A2(
+					$elm$html$Html$Attributes$style,
+					'background-color',
+					_Utils_eq(idx, model.indicator) ? '#C2DBFF' : (task.isSelected ? '#FFF1BC' : '#EEF4F2'))
 				]),
 			_List_fromArray(
 				[
@@ -7726,7 +7729,46 @@ var $author$project$Main$view = function (model) {
 							[
 								$elm$html$Html$Attributes$id('lSideBar')
 							]),
-						_List_Nil),
+						_List_fromArray(
+							[
+								A2(
+								$elm$html$Html$div,
+								_List_fromArray(
+									[
+										$elm$html$Html$Attributes$id('staticIconsBox')
+									]),
+								_List_fromArray(
+									[
+										A2(
+										$elm$html$Html$div,
+										_List_fromArray(
+											[
+												$elm$html$Html$Attributes$id('upAndDown')
+											]),
+										_List_Nil),
+										A2(
+										$elm$html$Html$div,
+										_List_fromArray(
+											[
+												$elm$html$Html$Attributes$id('setSelected')
+											]),
+										_List_Nil),
+										A2(
+										$elm$html$Html$div,
+										_List_fromArray(
+											[
+												$elm$html$Html$Attributes$id('setStarred')
+											]),
+										_List_Nil),
+										A2(
+										$elm$html$Html$div,
+										_List_fromArray(
+											[
+												$elm$html$Html$Attributes$id('setDpy')
+											]),
+										_List_Nil)
+									]))
+							])),
 						A2(
 						$elm$html$Html$div,
 						_List_fromArray(
@@ -7747,7 +7789,7 @@ var $author$project$Main$view = function (model) {
 										$elm$html$Html$div,
 										_List_fromArray(
 											[
-												$elm$html$Html$Attributes$id('selectionCmd')
+												$elm$html$Html$Attributes$id('selectionCmdBox')
 											]),
 										_List_fromArray(
 											[
@@ -7785,13 +7827,20 @@ var $author$project$Main$view = function (model) {
 													[
 														$elm$html$Html$Attributes$id('linksOpen')
 													]),
+												_List_Nil),
+												A2(
+												$elm$html$Html$div,
+												_List_fromArray(
+													[
+														$elm$html$Html$Attributes$id('criticalPath')
+													]),
 												_List_Nil)
 											])),
 										A2(
 										$elm$html$Html$div,
 										_List_fromArray(
 											[
-												$elm$html$Html$Attributes$class('middleCmd')
+												$elm$html$Html$Attributes$class('middleCmdBox')
 											]),
 										_List_fromArray(
 											[
@@ -7802,7 +7851,7 @@ var $author$project$Main$view = function (model) {
 										$elm$html$Html$div,
 										_List_fromArray(
 											[
-												$elm$html$Html$Attributes$id('viewCmd')
+												$elm$html$Html$Attributes$id('viewCmdBox')
 											]),
 										_List_fromArray(
 											[
@@ -7839,13 +7888,6 @@ var $author$project$Main$view = function (model) {
 												_List_fromArray(
 													[
 														$elm$html$Html$Attributes$id('home')
-													]),
-												_List_Nil),
-												A2(
-												$elm$html$Html$div,
-												_List_fromArray(
-													[
-														$elm$html$Html$Attributes$id('criticalPath')
 													]),
 												_List_Nil)
 											]))

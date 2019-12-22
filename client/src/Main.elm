@@ -481,25 +481,32 @@ view model =
             , div [ id "account" ] []
             ]
         , div [ id "body" ]
-            [ div [ id "lSideBar" ] []
+            [ div [ id "lSideBar" ]
+                [ div [ id "staticIconsBox" ]
+                    [ div [ id "upAndDown" ] []
+                    , div [ id "setSelected" ] []
+                    , div [ id "setStarred" ] []
+                    , div [ id "setDpy" ] []
+                    ]
+                ]
             , div [ id "mainContainer" ]
                 [ div [ id "mainHeader" ]
-                    [ div [ id "selectionCmd" ]
+                    [ div [ id "selectionCmdBox" ]
                         [ div [ id "inverseSelect" ] []
                         , div [ id "eliminate" ] []
                         , div [ id "create" ] []
                         , div [ id "reschedule" ] []
                         , div [ id "linksOpen" ] []
+                        , div [ id "criticalPath" ] []
                         ]
-                    , div [ class "middleCmd" ]
+                    , div [ class "middleCmdBox" ]
                         [ text (em model) ]
-                    , div [ id "viewCmd" ]
+                    , div [ id "viewCmdBox" ]
                         [ div [ id "focus" ] []
                         , div [ id "archives" ] []
                         , div [ id "trunk" ] []
                         , div [ id "buds" ] []
                         , div [ id "home" ] []
-                        , div [ id "criticalPath" ] []
                         ]
                     ]
                 , div [ id "mainBody" ]
@@ -557,11 +564,16 @@ viewTask : Model -> ( Int, Task ) -> Html Msg
 viewTask model ( idx, task ) =
     div
         [ class "task"
-        , if idx == model.indicator then
-            style "background-color" "#C2DBFF"
+        , style "background-color"
+            (if idx == model.indicator then
+                "#C2DBFF"
 
-          else
-            style "background-color" "#EEF4F2"
+             else if task.isSelected then
+                "#FFF1BC"
+
+             else
+                "#EEF4F2"
+            )
         ]
         [ div
             [ class "selection"
