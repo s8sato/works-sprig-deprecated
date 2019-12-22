@@ -151,10 +151,6 @@ button, input, select, textarea {
     flex-grow: 1;
 }
 
-#tasks {
-    width : inherit;
-}
-
 #taskHeader {
     width : inherit;
     height: 56px;
@@ -168,12 +164,18 @@ button, input, select, textarea {
     justify-content: center;
 }
 
+#tasks {
+    width : inherit;
+    height: inherit;
+    overflow: auto;
+}
+
 .task {
     width : inherit;
     height: 40px;
     background-color: #EEF4F2;
     display :flex;
-    border-bottom: lightseagreen thick;
+    border-bottom: #DDE5E5 solid 1px;
 }
 
 .task div {

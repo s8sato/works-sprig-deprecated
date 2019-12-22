@@ -90,13 +90,13 @@ data ElmTask = ElmTask
     { elmTaskId :: Integer
     , elmTaskIsDone :: Bool
     , elmTaskIsStarred :: Bool
-    , elmTaskTitle :: Text
-    , elmTaskLink :: Text
-    , elmTaskStart :: Text
-    , elmTaskDeadline :: Text
-    , elmTaskWeight :: Double
-    , elmTaskSecUntilStart :: Integer
-    , elmTaskSecUntilDeadline :: Integer
+    , elmTaskTitle :: Maybe Text
+    , elmTaskLink :: Maybe Text
+    , elmTaskStart :: Maybe Text
+    , elmTaskDeadline :: Maybe Text
+    , elmTaskWeight :: Maybe Double
+    , elmTaskSecUntilStart :: Maybe Integer
+    , elmTaskSecUntilDeadline :: Maybe Integer
     } deriving (Eq, Show)
 
 $(deriveJSON defaultOptions ''ElmTask)
@@ -104,8 +104,8 @@ $(deriveJSON defaultOptions ''ElmTask)
 data ElmModel = ElmModel
     { elmModelUser :: Int
     , elmModelTasks :: [ElmTask]
-    , elmModelInputText :: Text
-    , elmModelBarLeftEdgeTime :: Text
+    , elmModelInputText :: Maybe Text
+    , elmModelBarLeftEdgeTime :: Maybe Text
     , elmModelIndicator :: Int
     }
 
@@ -193,7 +193,7 @@ stdElmModel user tasks indicator = do
     now <- zonedTimeToUTC <$> getZonedTime
     let elmTasks = map (toElmTask now) tasks
     zNowStr <- formatTime defaultTimeLocale "%Y/%m/%d %T %a" <$> getZonedTime
-    return $ ElmModel user elmTasks "" (pack zNowStr) indicator
+    return $ ElmModel user elmTasks Nothing (Just $ pack zNowStr) indicator
 
 undoneElmModel' :: Int -> IO ElmModel
 undoneElmModel' user = do
@@ -459,50 +459,33 @@ idFromEntity :: ToBackendKey SqlBackend record => Entity record -> Integer
 idFromEntity = fromIntegral . fromSqlKey . entityKey
 
 toElmTask :: UTCTime -> Entity Task -> ElmTask
--- dots per year
 toElmTask now e =
     let
         ei  = idFromEntity e
         Task _ _ d s ml ms md mw mt _ = entityVal e
         ed  = d
         es  = s
-        et = case mt of
-                Just title ->
-                    title
-                Nothing ->
-                    ""
-        el  = case ml of
-                Just link ->
-                    link
-                Nothing ->
-                    defaultTaskLink
-        ess = toElmTime ms
-        edd = toElmTime md
-        ew  = case mw of
-                Just weight ->
-                    weight
-                Nothing ->
-                    0
-        eus = secUntil now ms
-        eud = secUntil now md
+        emt = mt
+        eml  = ml
+        ems = toElmTime ms
+        emd = toElmTime md
+        emw  = mw
+        emus = secUntil now ms
+        emud = secUntil now md
     in
-        ElmTask ei ed es et el ess edd ew eus eud
+        ElmTask ei ed es emt eml ems emd emw emus emud
 
-toElmTime :: Maybe UTCTime -> Text
-toElmTime mt =
-    case mt of
-        Just t ->
-            pack $ formatTime defaultTimeLocale "%0Y/%m/%d %H:%M'%S" t
-        Nothing ->
-            "----/--/-- --:--'--"
+toElmTime :: Maybe UTCTime -> Maybe Text
+toElmTime Nothing = 
+    Nothing
+toElmTime (Just t) =
+    Just $ pack $ formatTime defaultTimeLocale "%0Y/%m/%d %H:%M'%S" t
 
-secUntil :: UTCTime -> Maybe UTCTime -> Integer
-secUntil now mt =
-    case mt of
-        Nothing ->
-            0
-        Just t ->
-            floor $ diffUTCTime t now
+secUntil :: UTCTime -> Maybe UTCTime -> Maybe Integer
+secUntil now Nothing =
+    Nothing
+secUntil now (Just t) =
+    Just $ floor $ diffUTCTime t now
 
 -- dot = case ms of
 --     Just s ->

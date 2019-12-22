@@ -41,13 +41,13 @@ type alias Task =
     { id : Int
     , isDone : Bool
     , isStarred : Bool
-    , title : String
-    , link : String
-    , start : String -- "YYYY/MM/DD HH:MM'SS"
-    , deadline : String
-    , weight : Float
-    , secUntilStart : Int
-    , secUntilDeadline : Int
+    , title : Maybe String
+    , link : Maybe String
+    , start : Maybe String -- "YYYY/MM/DD HH:MM'SS"
+    , deadline : Maybe String
+    , weight : Maybe Float
+    , secUntilStart : Maybe Int
+    , secUntilDeadline : Maybe Int
     , isSelected : Bool
     }
 
@@ -432,8 +432,8 @@ modelDecoder =
     Decode.succeed Model
         |> required "elmModelUser" int
         |> required "elmModelTasks" (list taskDecoder)
-        |> required "elmModelInputText" (nullable string)
-        |> required "elmModelBarLeftEdgeTime" (nullable string)
+        |> optional "elmModelInputText" (nullable string) Nothing
+        |> optional "elmModelBarLeftEdgeTime" (nullable string) Nothing
         |> optional "elmModelDpy" int dayPerY
         |> optional "elmModelIndicator" int 0
         |> optional "elmModelErrorMessage" (nullable string) Nothing
@@ -445,13 +445,13 @@ taskDecoder =
         |> required "elmTaskId" int
         |> required "elmTaskIsDone" bool
         |> required "elmTaskIsStarred" bool
-        |> required "elmTaskTitle" string
-        |> required "elmTaskLink" string
-        |> required "elmTaskStart" string
-        |> required "elmTaskDeadline" string
-        |> required "elmTaskWeight" float
-        |> required "elmTaskSecUntilStart" int
-        |> required "elmTaskSecUntilDeadline" int
+        |> optional "elmTaskTitle" (nullable string) Nothing
+        |> optional "elmTaskLink" (nullable string) Nothing
+        |> optional "elmTaskStart" (nullable string) Nothing
+        |> optional "elmTaskDeadline" (nullable string) Nothing
+        |> optional "elmTaskWeight" (nullable float) Nothing
+        |> optional "elmTaskSecUntilStart" (nullable int) Nothing
+        |> optional "elmTaskSecUntilDeadline" (nullable int) Nothing
         |> optional "elmTaskIsSelected" bool False
 
 
@@ -571,7 +571,7 @@ viewTask model ( idx, task ) =
                 text "SEL"
 
               else
-                text "---"
+                text "-"
             ]
         , div
             [ class "star"
@@ -584,7 +584,19 @@ viewTask model ( idx, task ) =
                 text "☆"
             ]
         , div [ class "title" ]
-            [ a [ href task.link ] [ text task.title ] ]
+            [ case ( task.title, task.link ) of
+                ( Just t, Just l ) ->
+                    a [ href l ] [ text t ]
+
+                ( Just t, Nothing ) ->
+                    text t
+
+                ( Nothing, Just l ) ->
+                    a [ href l ] [ text "LINK ONLY" ]
+
+                ( Nothing, Nothing ) ->
+                    div [] []
+            ]
         , div [ class "start" ]
             [ text (viewTimeByDpy task.start model.dpy) ]
         , div [ class "bar" ]
@@ -592,7 +604,15 @@ viewTask model ( idx, task ) =
         , div [ class "deadline" ]
             [ text (viewTimeByDpy task.deadline model.dpy) ]
         , div [ class "weight" ]
-            [ text (String.fromFloat task.weight) ]
+            [ text
+                (case task.weight of
+                    Nothing ->
+                        "-"
+
+                    Just w ->
+                        String.fromFloat w
+                )
+            ]
         , div [ class "done" ]
             [ if task.isDone then
                 text "DONE"
@@ -603,26 +623,31 @@ viewTask model ( idx, task ) =
         ]
 
 
-viewTimeByDpy : String -> Int -> String
+viewTimeByDpy : Maybe String -> Int -> String
 viewTimeByDpy time dpy =
-    -- "YYYY/MM/DD HH:MM'SS"
-    if dpy <= yeaPerY then
-        fill 7 " " <| String.left 4 time
+    case time of
+        Nothing ->
+            "-"
 
-    else if dpy <= monPerY then
-        fill 7 " " <| String.slice 2 7 time
+        Just t ->
+            -- "YYYY/MM/DD HH:MM'SS"
+            if dpy <= yeaPerY then
+                fill 7 " " <| String.left 4 t
 
-    else if dpy <= dayPerY then
-        fill 7 " " <| String.slice 5 10 time
+            else if dpy <= monPerY then
+                fill 7 " " <| String.slice 2 7 t
 
-    else if dpy <= houPerY then
-        fill 7 " " <| String.slice 7 14 time
+            else if dpy <= dayPerY then
+                fill 7 " " <| String.slice 5 10 t
 
-    else if dpy <= minPerY then
-        fill 7 " " <| String.slice 11 16 time
+            else if dpy <= houPerY then
+                fill 7 " " <| String.slice 7 14 t
 
-    else
-        fill 7 " " <| String.right 5 time
+            else if dpy <= minPerY then
+                fill 7 " " <| String.slice 11 16 t
+
+            else
+                fill 7 " " <| String.right 5 t
 
 
 fill : Int -> String -> String -> String
@@ -630,27 +655,37 @@ fill n putty target =
     String.left n <| target ++ String.repeat n putty
 
 
-barString : Int -> Float -> Int -> Int -> String
+barString : Int -> Maybe Float -> Maybe Int -> Maybe Int -> String
 barString dpy weight secUS secUD =
     let
         dot =
-            sec2dot dpy secUS
-
-        sha =
-            case weight2sec weight of
-                0 ->
+            case secUS of
+                Nothing ->
                     0
 
-                s ->
-                    sec2dot dpy s + 1
+                Just s ->
+                    sec2dot dpy s
+
+        sha =
+            case weight of
+                Nothing ->
+                    0
+
+                Just w ->
+                    case weight2sec w of
+                        0 ->
+                            0
+
+                        s ->
+                            sec2dot dpy s + 1
 
         exc =
             case secUD of
-                0 ->
+                Nothing ->
                     -1
 
-                _ ->
-                    sec2dot dpy secUD
+                Just s ->
+                    sec2dot dpy s
     in
     String.repeat dot "."
         ++ String.repeat sha "#"

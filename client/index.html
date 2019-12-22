@@ -6495,34 +6495,41 @@ var $author$project$Main$taskDecoder = A4(
 	'elmTaskIsSelected',
 	$elm$json$Json$Decode$bool,
 	false,
-	A3(
-		$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
+	A4(
+		$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$optional,
 		'elmTaskSecUntilDeadline',
-		$elm$json$Json$Decode$int,
-		A3(
-			$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
+		$elm$json$Json$Decode$nullable($elm$json$Json$Decode$int),
+		$elm$core$Maybe$Nothing,
+		A4(
+			$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$optional,
 			'elmTaskSecUntilStart',
-			$elm$json$Json$Decode$int,
-			A3(
-				$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
+			$elm$json$Json$Decode$nullable($elm$json$Json$Decode$int),
+			$elm$core$Maybe$Nothing,
+			A4(
+				$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$optional,
 				'elmTaskWeight',
-				$elm$json$Json$Decode$float,
-				A3(
-					$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
+				$elm$json$Json$Decode$nullable($elm$json$Json$Decode$float),
+				$elm$core$Maybe$Nothing,
+				A4(
+					$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$optional,
 					'elmTaskDeadline',
-					$elm$json$Json$Decode$string,
-					A3(
-						$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
+					$elm$json$Json$Decode$nullable($elm$json$Json$Decode$string),
+					$elm$core$Maybe$Nothing,
+					A4(
+						$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$optional,
 						'elmTaskStart',
-						$elm$json$Json$Decode$string,
-						A3(
-							$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
+						$elm$json$Json$Decode$nullable($elm$json$Json$Decode$string),
+						$elm$core$Maybe$Nothing,
+						A4(
+							$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$optional,
 							'elmTaskLink',
-							$elm$json$Json$Decode$string,
-							A3(
-								$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
+							$elm$json$Json$Decode$nullable($elm$json$Json$Decode$string),
+							$elm$core$Maybe$Nothing,
+							A4(
+								$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$optional,
 								'elmTaskTitle',
-								$elm$json$Json$Decode$string,
+								$elm$json$Json$Decode$nullable($elm$json$Json$Decode$string),
+								$elm$core$Maybe$Nothing,
 								A3(
 									$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
 									'elmTaskIsStarred',
@@ -6551,14 +6558,16 @@ var $author$project$Main$modelDecoder = A4(
 			'elmModelDpy',
 			$elm$json$Json$Decode$int,
 			$author$project$Main$dayPerY,
-			A3(
-				$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
+			A4(
+				$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$optional,
 				'elmModelBarLeftEdgeTime',
 				$elm$json$Json$Decode$nullable($elm$json$Json$Decode$string),
-				A3(
-					$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
+				$elm$core$Maybe$Nothing,
+				A4(
+					$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$optional,
 					'elmModelInputText',
 					$elm$json$Json$Decode$nullable($elm$json$Json$Decode$string),
+					$elm$core$Maybe$Nothing,
 					A3(
 						$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
 						'elmModelTasks',
@@ -7305,22 +7314,35 @@ var $author$project$Main$weight2sec = function (w) {
 var $author$project$Main$barString = F4(
 	function (dpy, weight, secUS, secUD) {
 		var sha = function () {
-			var _v1 = $author$project$Main$weight2sec(weight);
-			if (!_v1) {
+			if (weight.$ === 'Nothing') {
 				return 0;
 			} else {
-				var s = _v1;
-				return A2($author$project$Main$sec2dot, dpy, s) + 1;
+				var w = weight.a;
+				var _v3 = $author$project$Main$weight2sec(w);
+				if (!_v3) {
+					return 0;
+				} else {
+					var s = _v3;
+					return A2($author$project$Main$sec2dot, dpy, s) + 1;
+				}
 			}
 		}();
 		var exc = function () {
-			if (!secUD) {
+			if (secUD.$ === 'Nothing') {
 				return -1;
 			} else {
-				return A2($author$project$Main$sec2dot, dpy, secUD);
+				var s = secUD.a;
+				return A2($author$project$Main$sec2dot, dpy, s);
 			}
 		}();
-		var dot = A2($author$project$Main$sec2dot, dpy, secUS);
+		var dot = function () {
+			if (secUS.$ === 'Nothing') {
+				return 0;
+			} else {
+				var s = secUS.a;
+				return A2($author$project$Main$sec2dot, dpy, s);
+			}
+		}();
 		return $elm$core$String$fromList(
 			$elm$core$Array$toList(
 				A3(
@@ -7359,31 +7381,36 @@ var $elm$core$String$right = F2(
 var $author$project$Main$yeaPerY = 1;
 var $author$project$Main$viewTimeByDpy = F2(
 	function (time, dpy) {
-		return (_Utils_cmp(dpy, $author$project$Main$yeaPerY) < 1) ? A3(
-			$author$project$Main$fill,
-			7,
-			' ',
-			A2($elm$core$String$left, 4, time)) : ((_Utils_cmp(dpy, $author$project$Main$monPerY) < 1) ? A3(
-			$author$project$Main$fill,
-			7,
-			' ',
-			A3($elm$core$String$slice, 2, 7, time)) : ((_Utils_cmp(dpy, $author$project$Main$dayPerY) < 1) ? A3(
-			$author$project$Main$fill,
-			7,
-			' ',
-			A3($elm$core$String$slice, 5, 10, time)) : ((_Utils_cmp(dpy, $author$project$Main$houPerY) < 1) ? A3(
-			$author$project$Main$fill,
-			7,
-			' ',
-			A3($elm$core$String$slice, 7, 14, time)) : ((_Utils_cmp(dpy, $author$project$Main$minPerY) < 1) ? A3(
-			$author$project$Main$fill,
-			7,
-			' ',
-			A3($elm$core$String$slice, 11, 16, time)) : A3(
-			$author$project$Main$fill,
-			7,
-			' ',
-			A2($elm$core$String$right, 5, time))))));
+		if (time.$ === 'Nothing') {
+			return '-';
+		} else {
+			var t = time.a;
+			return (_Utils_cmp(dpy, $author$project$Main$yeaPerY) < 1) ? A3(
+				$author$project$Main$fill,
+				7,
+				' ',
+				A2($elm$core$String$left, 4, t)) : ((_Utils_cmp(dpy, $author$project$Main$monPerY) < 1) ? A3(
+				$author$project$Main$fill,
+				7,
+				' ',
+				A3($elm$core$String$slice, 2, 7, t)) : ((_Utils_cmp(dpy, $author$project$Main$dayPerY) < 1) ? A3(
+				$author$project$Main$fill,
+				7,
+				' ',
+				A3($elm$core$String$slice, 5, 10, t)) : ((_Utils_cmp(dpy, $author$project$Main$houPerY) < 1) ? A3(
+				$author$project$Main$fill,
+				7,
+				' ',
+				A3($elm$core$String$slice, 7, 14, t)) : ((_Utils_cmp(dpy, $author$project$Main$minPerY) < 1) ? A3(
+				$author$project$Main$fill,
+				7,
+				' ',
+				A3($elm$core$String$slice, 11, 16, t)) : A3(
+				$author$project$Main$fill,
+				7,
+				' ',
+				A2($elm$core$String$right, 5, t))))));
+		}
 	});
 var $author$project$Main$viewTask = F2(
 	function (model, _v0) {
@@ -7408,7 +7435,7 @@ var $author$project$Main$viewTask = F2(
 						]),
 					_List_fromArray(
 						[
-							task.isSelected ? $elm$html$Html$text('SEL') : $elm$html$Html$text('---')
+							task.isSelected ? $elm$html$Html$text('SEL') : $elm$html$Html$text('-')
 						])),
 					A2(
 					$elm$html$Html$div,
@@ -7430,16 +7457,48 @@ var $author$project$Main$viewTask = F2(
 						]),
 					_List_fromArray(
 						[
-							A2(
-							$elm$html$Html$a,
-							_List_fromArray(
-								[
-									$elm$html$Html$Attributes$href(task.link)
-								]),
-							_List_fromArray(
-								[
-									$elm$html$Html$text(task.title)
-								]))
+							function () {
+							var _v1 = _Utils_Tuple2(task.title, task.link);
+							if (_v1.a.$ === 'Just') {
+								if (_v1.b.$ === 'Just') {
+									var t = _v1.a.a;
+									var l = _v1.b.a;
+									return A2(
+										$elm$html$Html$a,
+										_List_fromArray(
+											[
+												$elm$html$Html$Attributes$href(l)
+											]),
+										_List_fromArray(
+											[
+												$elm$html$Html$text(t)
+											]));
+								} else {
+									var t = _v1.a.a;
+									var _v2 = _v1.b;
+									return $elm$html$Html$text(t);
+								}
+							} else {
+								if (_v1.b.$ === 'Just') {
+									var _v3 = _v1.a;
+									var l = _v1.b.a;
+									return A2(
+										$elm$html$Html$a,
+										_List_fromArray(
+											[
+												$elm$html$Html$Attributes$href(l)
+											]),
+										_List_fromArray(
+											[
+												$elm$html$Html$text('LINK ONLY')
+											]));
+								} else {
+									var _v4 = _v1.a;
+									var _v5 = _v1.b;
+									return A2($elm$html$Html$div, _List_Nil, _List_Nil);
+								}
+							}
+						}()
 						])),
 					A2(
 					$elm$html$Html$div,
@@ -7483,7 +7542,15 @@ var $author$project$Main$viewTask = F2(
 					_List_fromArray(
 						[
 							$elm$html$Html$text(
-							$elm$core$String$fromFloat(task.weight))
+							function () {
+								var _v6 = task.weight;
+								if (_v6.$ === 'Nothing') {
+									return '-';
+								} else {
+									var w = _v6.a;
+									return $elm$core$String$fromFloat(w);
+								}
+							}())
 						])),
 					A2(
 					$elm$html$Html$div,
