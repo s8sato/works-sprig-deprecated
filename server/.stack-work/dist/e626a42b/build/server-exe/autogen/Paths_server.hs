@@ -30,7 +30,7 @@ version = Version [0,1,0,0] []
 bindir, libdir, dynlibdir, datadir, libexecdir, sysconfdir :: FilePath
 
 bindir     = "C:\\Users\\pfmxx\\works\\sprig\\server\\.stack-work\\install\\99a5c7ce\\bin"
-libdir     = "C:\\Users\\pfmxx\\works\\sprig\\server\\.stack-work\\install\\99a5c7ce\\lib\\x86_64-windows-ghc-8.6.5\\server-0.1.0.0-vD5WzWrZSZu5KTkbYpoL-server-exe"
+libdir     = "C:\\Users\\pfmxx\\works\\sprig\\server\\.stack-work\\install\\99a5c7ce\\lib\\x86_64-windows-ghc-8.6.5\\server-0.1.0.0-4lK92XlRYLN9yK9leztsjN-server-exe"
 dynlibdir  = "C:\\Users\\pfmxx\\works\\sprig\\server\\.stack-work\\install\\99a5c7ce\\lib\\x86_64-windows-ghc-8.6.5"
 datadir    = "C:\\Users\\pfmxx\\works\\sprig\\server\\.stack-work\\install\\99a5c7ce\\share\\x86_64-windows-ghc-8.6.5\\server-0.1.0.0"
 libexecdir = "C:\\Users\\pfmxx\\works\\sprig\\server\\.stack-work\\install\\99a5c7ce\\libexec\\x86_64-windows-ghc-8.6.5\\server-0.1.0.0"

@@ -12,7 +12,7 @@ import Database.Persist.Sql         ( ConnectionPool
                                     )
 import Data.Time
 
-
+import Control.Monad.IO.Class   (MonadIO)
 
 -- getTasks :: ConnectionPool -> IO [Entity Task]
 -- getTasks pool = flip runSqlPool pool $ selectList [] []
@@ -200,3 +200,31 @@ getAfterMe pool me = flip runSqlPool pool $ do
             , asc (task ^. TaskTitle)
             ]
         return (task)
+
+maybeMaxTaskIdKey' :: ConnectionPool -> IO [Value (Maybe (Key Task))]
+maybeMaxTaskIdKey' pool = flip runSqlPool pool $ do
+    select $ from $ \task -> do
+        return $ max_ (task ^. TaskId)
+
+maybeMaxTaskIdKey :: IO (Maybe (Key Task))
+maybeMaxTaskIdKey = do
+    pool <- pgPool
+    vmks <- maybeMaxTaskIdKey' pool
+    let mk = case vmks of
+                []  -> Nothing
+                _   -> head $ map (\(Value mk) -> mk) vmks
+    return mk
+
+
+-- getMe' :: MonadIO m => Integer -> SqlPersistT m [Entity Task]
+-- getMe' me = 
+--     select $ from $ \task -> do
+--         where_
+--             (   task ^. TaskId ==. val (TaskKey . keyFromInt $ me)
+--             )
+--         return (task)
+
+-- meh :: ConnectionPool -> Integer -> IO [Entity Task]
+-- meh pool arg = 
+--     flip runSqlPool pool $ do
+--         getMe' arg

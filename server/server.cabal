@@ -40,6 +40,7 @@ library
                      -- 
                      , time
                      , double-conversion
+                     , extra
                      -- CORS
                      , servant-options
                      , wai-cors

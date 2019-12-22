@@ -139,6 +139,9 @@ button, input, select, textarea {
 .middleCmdBox {
     flex-grow: 1;
     height: inherit;
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 #viewCmdBox {
     width : 240px;
@@ -370,7 +373,7 @@ button, input, select, textarea {
     background-image: url("../images/cmd_s_normal.png");
     background-size: contain;
 }
-#setDpy {
+/* #setDpy {
     background-image: url("../images/cmd_v_normal.png");
     background-size: contain;
-}
+} */

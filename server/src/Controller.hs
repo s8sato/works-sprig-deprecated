@@ -62,7 +62,7 @@ import Database.Persist.Sql (fromSqlKey ,SqlBackend (..), ToBackendKey)
 
 import Query
 
-
+import Data.Tuple.Extra (both)
 
 -- type alias
 
@@ -77,7 +77,6 @@ houPerY = 8760
 minPerY = 525600
 secPerY = 31536000
 
-defaultTaskLink = pack ""
 defaultUser = 1
 
 
@@ -177,7 +176,7 @@ server = undoneElmModel
     :<|> focusTask
     where
         undoneElmModel :: Handler ElmModel
-        undoneElmModel = liftIO $ undoneElmModel' 1
+        undoneElmModel = liftIO $ undoneElmModel' defaultUser
         textPostReload :: TextPost -> Handler ElmModel
         textPostReload = liftIO . textPostReload'
         doneTasksReload :: DoneTasks -> Handler ElmModel
@@ -202,8 +201,13 @@ undoneElmModel' user = do
     stdElmModel user tasks 0
 
 textPostReload' :: TextPost -> IO ElmModel
-textPostReload' (TextPost u content) = do
-    insTasks $ text2tasks content
+textPostReload' (TextPost u text) = do
+    mk <- maybeMaxTaskIdKey
+    let max = case mk of
+            Nothing -> 0
+            Just k  -> idFromKey k
+    let shift = max + 0  -- TODO 
+    insTasks . (shiftTaskNodes shift) . tasksFromText $ text
     undoneElmModel' u
 
 doneTasksReload' :: DoneTasks -> IO ElmModel
@@ -247,81 +251,81 @@ data Attr  = AttrTaskId { attrTaskId :: Int }
     | Title        { title       :: Text }
     deriving (Eq, Show)
 
-text2tasks :: Text -> [Task]
-text2tasks = graph2tasks . text2graph
+tasksFromText :: Text -> [Task]
+tasksFromText = tasksFromGraph . graphFromText
 
-graph2tasks :: Graph -> [Task]
-graph2tasks = map edge2task
+tasksFromGraph :: Graph -> [Task]
+tasksFromGraph = map taskFromEdge
 
-edge2task :: Edge -> Task
-edge2task ((t,i),as) =
-    edge2task' as (Task t i False False Nothing Nothing Nothing Nothing Nothing defaultUser)
+taskFromEdge :: Edge -> Task
+taskFromEdge ((t,i),as) =
+    taskFromEdge' as (Task t i False False Nothing Nothing Nothing Nothing Nothing defaultUser)
 
-edge2task' :: [Attr] -> Task -> Task
-edge2task' [] task = 
+taskFromEdge' :: [Attr] -> Task -> Task
+taskFromEdge' [] task = 
     task
-edge2task' (a:as) (Task t i d s ml ms md mw mt u) =
+taskFromEdge' (a:as) (Task t i d s ml ms md mw mt u) =
     case a of
         IsDone _ ->
-            edge2task' as (Task t i True s ml ms md mw mt u)
+            taskFromEdge' as (Task t i True s ml ms md mw mt u)
         IsStarred _ ->
-            edge2task' as (Task t i d True ml ms md mw mt u)
+            taskFromEdge' as (Task t i d True ml ms md mw mt u)
         Link l ->
-            edge2task' as (Task t i d s (Just l) ms md mw mt u)
+            taskFromEdge' as (Task t i d s (Just l) ms md mw mt u)
         StartDate yyyy mm dd ->
             let
                 nd = fromGregorian (fromIntegral yyyy) mm dd
             in
                 case ms of
                     Just (UTCTime od ot) ->
-                        edge2task' as (Task t i d s ml (Just (UTCTime nd ot)) md mw mt u)
+                        taskFromEdge' as (Task t i d s ml (Just (UTCTime nd ot)) md mw mt u)
                     Nothing ->
-                        edge2task' as (Task t i d s ml (Just (UTCTime nd 0)) md mw mt u)
+                        taskFromEdge' as (Task t i d s ml (Just (UTCTime nd 0)) md mw mt u)
         StartTime hh mm ss ->
             let
                 nt = secondsToDiffTime $ fromIntegral $ ss + 60 * (mm + 60 * hh)
             in
                 case ms of
                     Just (UTCTime od ot) ->
-                        edge2task' as (Task t i d s ml (Just (UTCTime od nt)) md mw mt u)
+                        taskFromEdge' as (Task t i d s ml (Just (UTCTime od nt)) md mw mt u)
                     Nothing ->
                         let
                             nd = fromGregorian 3000 0 0
                         in
-                            edge2task' as (Task t i d s ml (Just (UTCTime nd nt)) md mw mt u)
+                            taskFromEdge' as (Task t i d s ml (Just (UTCTime nd nt)) md mw mt u)
         DeadlineDate yyyy mm dd ->
             let
                 nd = fromGregorian (fromIntegral yyyy) mm dd
             in
                 case ms of
                     Just (UTCTime od ot) ->
-                        edge2task' as (Task t i d s ml ms (Just (UTCTime nd ot)) mw mt u)
+                        taskFromEdge' as (Task t i d s ml ms (Just (UTCTime nd ot)) mw mt u)
                     Nothing ->
-                        edge2task' as (Task t i d s ml ms (Just (UTCTime nd 0)) mw mt u)
+                        taskFromEdge' as (Task t i d s ml ms (Just (UTCTime nd 0)) mw mt u)
         DeadlineTime hh mm ss ->
             let
                 nt = secondsToDiffTime $ fromIntegral $ ss + 60 * (mm + 60 * hh)
             in
                 case ms of
                     Just (UTCTime od ot) ->
-                        edge2task' as (Task t i d s ml ms (Just (UTCTime od nt)) mw mt u)
+                        taskFromEdge' as (Task t i d s ml ms (Just (UTCTime od nt)) mw mt u)
                     Nothing ->
                         let
                             nd = fromGregorian 3000 0 0
                         in
-                            edge2task' as (Task t i d s ml ms (Just (UTCTime nd nt)) mw mt u)
+                            taskFromEdge' as (Task t i d s ml ms (Just (UTCTime nd nt)) mw mt u)
         Weight w ->
-            edge2task' as (Task t i d s ml ms md (Just w) mt u)
+            taskFromEdge' as (Task t i d s ml ms md (Just w) mt u)
         Title tt' ->
             case mt of
                 Just tt ->
-                    edge2task' as (Task t i d s ml ms md mw (Just $ Data.Text.intercalate " " [tt', tt]) u)
+                    taskFromEdge' as (Task t i d s ml ms md mw (Just $ Data.Text.intercalate " " [tt', tt]) u)
                 Nothing ->
-                    edge2task' as (Task t i d s ml ms md mw (Just tt') u)
+                    taskFromEdge' as (Task t i d s ml ms md mw (Just tt') u)
 
 
-text2graph :: Text -> Graph
-text2graph = spanLink . assemble . markUp . chopLines
+graphFromText :: Text -> Graph
+graphFromText = spanLink . assemble . markUp . chopLines
 
 type Indent = Int
 indent :: Text
@@ -340,7 +344,32 @@ indentAndWords' c t
     where l = Data.Text.length indent
 
 markUp :: [(Indent, [Text])] -> [((Node, Node), [Text])]
-markUp xs = zip (markUp' $ map fst xs) (map snd xs)
+markUp xs =
+    let
+        pairs = shiftConcat . (map markUp') . groupsFrom $ map fst xs
+    in
+        zip pairs (map snd xs)
+
+groupsFrom :: [Indent] -> [[Indent]]
+groupsFrom is = reverse . map reverse $ groupsFrom' is [] []
+
+groupsFrom' :: [Indent] -> [Indent] -> [[Indent]] -> [[Indent]]
+groupsFrom' [] memory store  = memory : store
+groupsFrom' (0:is) [] s      = groupsFrom' is [0] s
+groupsFrom' (0:is) m s       = groupsFrom' is [0] (m:s)
+groupsFrom' (n:is) m s       = groupsFrom' is (n:m) s
+
+shiftConcat :: [[(Node, Node)]] -> [(Node, Node)]
+shiftConcat pss = Prelude.concat . reverse $ shiftConcat' pss 0 []
+
+shiftConcat' :: [[(Node, Node)]] -> Int -> [[(Node, Node)]] -> [[(Node, Node)]]
+shiftConcat' [] _ store = store
+shiftConcat' ([]:r) shift s = shiftConcat' r shift s
+shiftConcat' (pairs:r) shift s = 
+    shiftConcat' r (1 + shift + Prelude.length pairs) ((shiftNodes shift pairs) : s)
+
+shiftNodes :: Int -> [(Node, Node)] -> [(Node, Node)]
+shiftNodes shift = map . both $ (+) shift
 
 markUp' :: [Indent] -> [(Node, Node)]
 markUp' is = markUp'' l l is []
@@ -383,24 +412,24 @@ spanLink g = g
 -- fileTest inFile = do
 --     withFile inFile ReadMode $ \inHandle ->
 --         do  text <- hGetContents inHandle
---             print (text2graph $ pack text)
+--             print (graphFromText $ pack text)
 
 -- fileTest2 :: FilePath -> IO ()
 -- fileTest2 inFile = do
 --     withFile inFile ReadMode $ \inHandle ->
 --         do  text <- hGetContents inHandle
---             print (text2tasks $ pack text)
+--             print (tasksFromText $ pack text)
 
 -- fileTest3 :: FilePath -> IO ()
 -- fileTest3 inFile = do
 --     withFile inFile ReadMode $ \inHandle ->
 --         do  text <- hGetContents inHandle
---             insTasks $ text2tasks $ pack text
+--             insTasks $ tasksFromText $ pack text
 
 
 
--- graph2text :: Graph [Attr] -> B.Builder
--- graph2text = setText . setIndent . sortEdge
+-- textFromGraph :: Graph [Attr] -> B.Builder
+-- textFromGraph = setText . setIndent . sortEdge
 
 -- sortEdge :: Graph [Attr] -> [Edge [Attr]]
 
@@ -410,22 +439,22 @@ spanLink g = g
 
 
 
--- json2graph :: Value -> Parser Graph
+-- graphFromJson :: Value -> Parser Graph
 
--- graph2json :: Graph -> Value
--- graph2json (Graph es) =
---     object  [ "edges"   .= object [ edge2json es ] 
+-- jsonFromGraph :: Graph -> Value
+-- jsonFromGraph (Graph es) =
+--     object  [ "edges"   .= object [ jsonFromEdge es ] 
 --             ]
 
--- edge2json :: Edge -> Value
--- edge2json (Edge t i as) =
+-- jsonFromEdge :: Edge -> Value
+-- jsonFromEdge (Edge t i as) =
 --     object  [ "terminal"    .= Number (fromIntegral t)
 --             , "initial"     .= Number (fromInteger i)
---             , "attrs"       .= object [ attr2json as ]
+--             , "attrs"       .= object [ jsonFromAttr as ]
 --             ]
 
--- attr2json :: Attr -> Value
--- attr2json (AttrTaskId i) =
+-- jsonFromAttr :: Attr -> Value
+-- jsonFromAttr (AttrTaskId i) =
 --     object  [ "taskId"      .= Number (fromInteger i)
 --             ]
 
@@ -456,7 +485,12 @@ spanLink g = g
 --
 
 idFromEntity :: ToBackendKey SqlBackend record => Entity record -> Integer
-idFromEntity = fromIntegral . fromSqlKey . entityKey
+idFromEntity = idFromKey . entityKey
+
+idFromKey :: ToBackendKey SqlBackend record => Key record -> Integer
+idFromKey = fromIntegral . fromSqlKey
+
+
 
 toElmTask :: UTCTime -> Entity Task -> ElmTask
 toElmTask now e =
@@ -489,31 +523,37 @@ secUntil now (Just t) =
 
 -- dot = case ms of
 --     Just s ->
---         sec2dot dpy $ diffSeconds s now
+--         dotsFromSec dpy $ diffSeconds s now
 --     Nothing ->
 --         0
 -- sha = case mw of
 --     Just w ->
---         (+) 1 $ sec2dot dpy $ weight2sec w 
+--         (+) 1 $ dotsFromSec dpy $ SecFromWeight w 
 --     Nothing ->
 --         0
 -- exc = case md of
 --     Just d ->
---         sec2dot dpy $ diffSeconds d now 
+--         dotsFromSec dpy $ diffSeconds d now 
 --     Nothing ->
 --         -1
 
 -- diffSeconds :: UTCTime -> UTCTime -> Integer
--- diffSeconds t1 t2 = floor $ diffUTCTime t1 t2
+-- diffSeconds t1 t = floor $ diffUTCTime t1 t
 
--- sec2dot :: Int -> Integer -> Int
--- sec2dot dpy sec =
+-- dotsFromSec :: Int -> Integer -> Int
+-- dotsFromSec dpy sec =
 --     (dpy * fromIntegral(sec)) `div` (60 * 60 * 24 * 365)
 
--- weight2sec :: Double -> Integer
--- weight2sec w = floor (60 * 60 * w)
+-- SecFromWeight :: Double -> Integer
+-- SecFromWeight w = floor (60 * 60 * w)
 
 
---
-
-
+shiftTaskNodes :: Integer -> [Task] -> [Task]
+shiftTaskNodes sh ts =
+    map (
+        \(Task t i d s l ss dd w tt u) -> 
+            let 
+                (t',i') = both ((+) $ fromIntegral sh) (t,i)
+            in
+                Task t' i' d s l ss dd w tt u
+        ) ts

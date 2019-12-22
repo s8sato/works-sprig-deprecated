@@ -6864,7 +6864,11 @@ var $author$project$Main$getTasksAll = $elm$http$Http$get(
 		url: 'http://localhost:8080/tasks/all'
 	});
 var $author$project$Main$houPerY = 8760;
+var $author$project$Main$minPerY = 525600;
+var $author$project$Main$monPerY = 12;
 var $elm$core$Basics$not = _Basics_not;
+var $author$project$Main$quaPerY = 4;
+var $author$project$Main$secPerY = 31536000;
 var $elm$core$Elm$JsArray$unsafeSet = _JsArray_unsafeSet;
 var $elm$core$Array$setHelp = F4(
 	function (shift, index, value, tree) {
@@ -7027,6 +7031,8 @@ var $author$project$Main$textPost = function (m) {
 			url: 'http://localhost:8080/tasks'
 		});
 };
+var $author$project$Main$weePerY = 52;
+var $author$project$Main$yeaPerY = 1;
 var $author$project$Main$update = F2(
 	function (msg, model) {
 		switch (msg.$) {
@@ -7098,14 +7104,85 @@ var $author$project$Main$update = F2(
 							A2($author$project$Main$switchStar, model, model.indicator));
 					case 'x':
 						return A2($author$project$Main$switchSelect, model, model.indicator);
-					case 'y':
+					case '1':
+						return _Utils_Tuple2(
+							_Utils_update(
+								model,
+								{dpy: $author$project$Main$yeaPerY}),
+							$elm$core$Platform$Cmd$none);
+					case '2':
+						return _Utils_Tuple2(
+							_Utils_update(
+								model,
+								{dpy: $author$project$Main$quaPerY}),
+							$elm$core$Platform$Cmd$none);
+					case '3':
+						return _Utils_Tuple2(
+							_Utils_update(
+								model,
+								{dpy: $author$project$Main$monPerY}),
+							$elm$core$Platform$Cmd$none);
+					case '4':
+						return _Utils_Tuple2(
+							_Utils_update(
+								model,
+								{dpy: $author$project$Main$weePerY}),
+							$elm$core$Platform$Cmd$none);
+					case '5':
+						return _Utils_Tuple2(
+							_Utils_update(
+								model,
+								{dpy: $author$project$Main$dayPerY}),
+							$elm$core$Platform$Cmd$none);
+					case '6':
 						return _Utils_Tuple2(
 							_Utils_update(
 								model,
 								{dpy: $author$project$Main$houPerY}),
-							$author$project$Main$getTasksAll);
+							$elm$core$Platform$Cmd$none);
+					case '7':
+						return _Utils_Tuple2(
+							_Utils_update(
+								model,
+								{dpy: $author$project$Main$minPerY}),
+							$elm$core$Platform$Cmd$none);
+					case '8':
+						return _Utils_Tuple2(
+							_Utils_update(
+								model,
+								{dpy: $author$project$Main$secPerY}),
+							$elm$core$Platform$Cmd$none);
+					case 'a':
+						return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
+					case 't':
+						return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
+					case 'h':
+						return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
+					case 'b':
+						return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
+					case 'p':
+						return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
+					case 'r':
+						return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
+					case 'i':
+						return _Utils_Tuple2(
+							_Utils_update(
+								model,
+								{
+									tasks: A2(
+										$elm$core$List$map,
+										function (task) {
+											return _Utils_update(
+												task,
+												{isSelected: !task.isSelected});
+										},
+										model.tasks)
+								}),
+							$elm$core$Platform$Cmd$none);
+					case 'l':
+						return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
 					case '#':
-						return _Utils_Tuple2(model, $author$project$Main$getTasksAll);
+						return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
 					default:
 						return _Utils_Tuple2(model, $author$project$Main$getTasksAll);
 				}
@@ -7368,8 +7445,6 @@ var $elm$html$Html$Attributes$href = function (url) {
 };
 var $elm$virtual_dom$VirtualDom$style = _VirtualDom_style;
 var $elm$html$Html$Attributes$style = $elm$virtual_dom$VirtualDom$style;
-var $author$project$Main$minPerY = 525600;
-var $author$project$Main$monPerY = 12;
 var $elm$core$String$right = F2(
 	function (n, string) {
 		return (n < 1) ? '' : A3(
@@ -7378,7 +7453,6 @@ var $elm$core$String$right = F2(
 			$elm$core$String$length(string),
 			string);
 	});
-var $author$project$Main$yeaPerY = 1;
 var $author$project$Main$viewTimeByDpy = F2(
 	function (time, dpy) {
 		if (time.$ === 'Nothing') {
@@ -7797,14 +7871,20 @@ var $author$project$Main$view = function (model) {
 												$elm$html$Html$div,
 												_List_fromArray(
 													[
-														$elm$html$Html$Attributes$id('inverseSelect')
+														$elm$html$Html$Attributes$id('inverseSelect'),
+														$elm$html$Html$Events$onClick(
+														$author$project$Main$CharacterKey(
+															_Utils_chr('i')))
 													]),
 												_List_Nil),
 												A2(
 												$elm$html$Html$div,
 												_List_fromArray(
 													[
-														$elm$html$Html$Attributes$id('eliminate')
+														$elm$html$Html$Attributes$id('eliminate'),
+														$elm$html$Html$Events$onClick(
+														$author$project$Main$CharacterKey(
+															_Utils_chr('e')))
 													]),
 												_List_Nil),
 												A2(

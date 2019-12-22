@@ -54,13 +54,13 @@ type alias Task =
 
 init : () -> ( Model, Cmd Msg )
 init _ =
-    ( { dpy = dayPerY
+    ( { user = 1
       , tasks = []
+      , inputText = Nothing
+      , barLeftEdgeTime = Nothing
+      , dpy = dayPerY
       , indicator = 0
       , errorMessage = Nothing
-      , inputText = Nothing
-      , user = 1
-      , barLeftEdgeTime = Nothing
       }
     , Cmd.none
     )
@@ -212,6 +212,7 @@ update msg model =
         --   }
         -- , Cmd.none
         -- )
+        --
         -- APIに送る：taskId
         -- APIからもらう：[Task]
         CharacterKey 'f' ->
@@ -228,12 +229,66 @@ update msg model =
         CharacterKey 'x' ->
             switchSelect model model.indicator
 
-        CharacterKey 'y' ->
-            ( { model | dpy = houPerY }, getTasksAll )
+        CharacterKey '1' ->
+            ( { model | dpy = yeaPerY }, Cmd.none )
+
+        CharacterKey '2' ->
+            ( { model | dpy = quaPerY }, Cmd.none )
+
+        CharacterKey '3' ->
+            ( { model | dpy = monPerY }, Cmd.none )
+
+        CharacterKey '4' ->
+            ( { model | dpy = weePerY }, Cmd.none )
+
+        CharacterKey '5' ->
+            ( { model | dpy = dayPerY }, Cmd.none )
+
+        CharacterKey '6' ->
+            ( { model | dpy = houPerY }, Cmd.none )
+
+        CharacterKey '7' ->
+            ( { model | dpy = minPerY }, Cmd.none )
+
+        CharacterKey '8' ->
+            ( { model | dpy = secPerY }, Cmd.none )
+
+        CharacterKey 'a' ->
+            ( model, Cmd.none )
+
+        CharacterKey 't' ->
+            ( model, Cmd.none )
+
+        CharacterKey 'h' ->
+            ( model, Cmd.none )
+
+        CharacterKey 'b' ->
+            ( model, Cmd.none )
+
+        CharacterKey 'p' ->
+            ( model, Cmd.none )
+
+        CharacterKey 'r' ->
+            ( model, Cmd.none )
+
+        CharacterKey 'i' ->
+            ( { model
+                | tasks =
+                    List.map
+                        (\task ->
+                            { task | isSelected = not task.isSelected }
+                        )
+                        model.tasks
+              }
+            , Cmd.none
+            )
+
+        CharacterKey 'l' ->
+            ( model, Cmd.none )
 
         CharacterKey '#' ->
             -- Delete selected tasks
-            ( model, getTasksAll )
+            ( model, Cmd.none )
 
         CharacterKey _ ->
             ( model, getTasksAll )
@@ -492,8 +547,8 @@ view model =
             , div [ id "mainContainer" ]
                 [ div [ id "mainHeader" ]
                     [ div [ id "selectionCmdBox" ]
-                        [ div [ id "inverseSelect" ] []
-                        , div [ id "eliminate" ] []
+                        [ div [ id "inverseSelect", onClick (CharacterKey 'i') ] []
+                        , div [ id "eliminate", onClick (CharacterKey 'e') ] []
                         , div [ id "create" ] []
                         , div [ id "reschedule" ] []
                         , div [ id "linksOpen" ] []
@@ -502,7 +557,7 @@ view model =
                     , div [ class "middleCmdBox" ]
                         [ text (em model) ]
                     , div [ id "viewCmdBox" ]
-                        [ div [ id "focus" ] []
+                        [ div [ id "focus", onClick (CharacterKey 'f') ] []
                         , div [ id "archives" ] []
                         , div [ id "trunk" ] []
                         , div [ id "buds" ] []
