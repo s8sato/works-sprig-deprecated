@@ -206,7 +206,7 @@ textPostReload' (TextPost u text) = do
     let max = case mk of
             Nothing -> 0
             Just k  -> idFromKey k
-    let shift = max + 0  -- TODO 
+    let shift = max + 2  -- TODO 
     insTasks . (shiftTaskNodes shift) . tasksFromText $ text
     undoneElmModel' u
 
@@ -239,7 +239,7 @@ focusTask' (FocusTask user task) = do
 type Graph = [Edge]
 type Edge = ((Node, Node), [Attr])
 type Node  = Int
-data Attr  = AttrTaskId { attrTaskId :: Int }
+data Attr  = AttrTaskId { attrTaskId :: Integer }
     | IsDone       { isDone      :: Char }
     | IsStarred    { isStarred   :: Char }
     | Link         { link        :: Text }
@@ -248,6 +248,8 @@ data Attr  = AttrTaskId { attrTaskId :: Int }
     | DeadlineDate { deadlineYea :: Int, deadlineMon :: Int, deadlineDay :: Int }
     | DeadlineTime { deadlineHou :: Int, deadlineMin :: Int, deadlineSec :: Int }
     | Weight       { weight      :: Double }
+    | HeadLink     { headLink    :: Text }
+    | TailLink     { tailLink    :: Text }
     | Title        { title       :: Text }
     deriving (Eq, Show)
 
@@ -266,6 +268,10 @@ taskFromEdge' [] task =
     task
 taskFromEdge' (a:as) (Task t i d s ml ms md mw mt u) =
     case a of
+        AttrTaskId 0 ->
+            taskFromEdge' as (Task t i d s ml ms md mw mt u)
+        AttrTaskId n ->  -- TODO
+            taskFromEdge' as (Task t i d s ml ms md mw mt u)
         IsDone _ ->
             taskFromEdge' as (Task t i True s ml ms md mw mt u)
         IsStarred _ ->
@@ -322,7 +328,8 @@ taskFromEdge' (a:as) (Task t i d s ml ms md mw mt u) =
                     taskFromEdge' as (Task t i d s ml ms md mw (Just $ Data.Text.intercalate " " [tt', tt]) u)
                 Nothing ->
                     taskFromEdge' as (Task t i d s ml ms md mw (Just tt') u)
-
+        _ -> 
+            taskFromEdge' as (Task t i d s ml ms md mw mt u)
 
 graphFromText :: Text -> Graph
 graphFromText = spanLink . assemble . markUp . chopLines
@@ -387,11 +394,13 @@ aAttr = AttrTaskId    <$  char '@'  <*> decimal
     <|> IsDone        <$> char '#'
     <|> IsStarred     <$> char '*'
     <|> Link          <$  char '&'  <*> takeText
-    <|> StartDate     <$> decimal   <* char '/' <*> decimal <* char '/' <*> decimal <* char '-'
-    <|> StartTime     <$> decimal   <* char ':' <*> decimal <* char ':' <*> decimal <* char '-'
+    <|> StartDate     <$> decimal   <*  char '/' <*> decimal <* char '/' <*> decimal <* char '-'
+    <|> StartTime     <$> decimal   <*  char ':' <*> decimal <* char ':' <*> decimal <* char '-'
     <|> DeadlineDate  <$  char '-'  <*> decimal <* char '/' <*> decimal <* char '/' <*> decimal
     <|> DeadlineTime  <$  char '-'  <*> decimal <* char ':' <*> decimal <* char ':' <*> decimal
     <|> Weight        <$  char '$'  <*> double
+    <|> HeadLink      <$  char ']'  <*> takeText
+    <|> TailLink      <$  char '['  <*> takeText
     <|> Title         <$> takeText
 
 assemble  :: [((Node, Node), [Text])] -> Graph
@@ -405,8 +414,38 @@ assemble' mem ((t,i), a:as)  =
         Right r -> assemble' (r:mem) ((t,i), as)
 
 spanLink :: Graph -> Graph
-spanLink g = g
+-- TODO
+spanLink g = spanLink' g g g
 
+spanLink' :: [Edge] -> [Edge] -> Graph -> Graph
+spanLink' [] _ g                    = g
+spanLink' (t:ts) [] g               = spanLink' ts g g
+spanLink' ((p,at):ts) ((q,ah):hs) g = 
+    if keyMatch at ah ah then
+        spanLink' ((p,at):ts) hs (spanLink'' p q g)
+    else
+        spanLink' ((p,at):ts) hs g
+
+keyMatch :: [Attr] -> [Attr] -> [Attr] -> Bool
+keyMatch [] _ _ = False
+keyMatch (a:as) [] ah = keyMatch as ah ah
+keyMatch (a:as) (b:bs) ah = case a of
+    TailLink t ->
+        case b of
+            HeadLink t ->
+                True
+            _ ->
+                keyMatch (a:as) bs ah
+    _ ->
+        keyMatch as (b:bs) ah
+
+spanLink'' :: (Node, Node) -> (Node, Node) -> Graph -> Graph
+spanLink'' (_,t) (i,_) g = ((t,i), [AttrTaskId 0, IsDone '#', Title "LINKER"]) : g
+
+    --     headLs = map (\(, ) g
+    --         map
+    -- in
+    --     spanLink' headLs tailLs
 
 -- fileTest :: FilePath -> IO ()
 -- fileTest inFile = do
