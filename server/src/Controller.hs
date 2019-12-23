@@ -339,7 +339,7 @@ indent :: Text
 indent = "    "
 
 chopLines :: Text -> [(Indent, [Text])]
-chopLines t =  map indentAndWords $ filter (/= "") $ splitOn "\n" t
+chopLines = map indentAndWords . filter (/= "") . splitOn "\n"
 
 indentAndWords :: Text -> (Indent, [Text])
 indentAndWords = indentAndWords' 0
@@ -404,7 +404,7 @@ aAttr = AttrTaskId    <$  char '@'  <*> decimal
     <|> Title         <$> takeText
 
 assemble  :: [((Node, Node), [Text])] -> Graph
-assemble xs = map (assemble' []) xs
+assemble = map $ assemble' []
 
 assemble' :: [Attr] -> ((Node, Node), [Text]) -> Edge
 assemble' mem ((t,i), []) = ((t,i), mem)
@@ -552,13 +552,13 @@ toElmTime :: Maybe UTCTime -> Maybe Text
 toElmTime Nothing = 
     Nothing
 toElmTime (Just t) =
-    Just $ pack $ formatTime defaultTimeLocale "%0Y/%m/%d %H:%M'%S" t
+    Just . pack $ formatTime defaultTimeLocale "%0Y/%m/%d %H:%M'%S" t
 
 secUntil :: UTCTime -> Maybe UTCTime -> Maybe Integer
 secUntil now Nothing =
     Nothing
 secUntil now (Just t) =
-    Just $ floor $ diffUTCTime t now
+    Just . floor $ diffUTCTime t now
 
 -- dot = case ms of
 --     Just s ->
