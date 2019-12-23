@@ -21,7 +21,7 @@ jump
     step
         hop2 dependent on hop1 [key
     step
-        key] hop1
+        ]key hop1
 
 # A task to register as completed
 * A task to register as starred
