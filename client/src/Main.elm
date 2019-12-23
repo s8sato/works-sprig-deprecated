@@ -731,7 +731,7 @@ barString dpy weight secUS secUD =
                     0
 
                 Just s ->
-                    sec2dot dpy s
+                    dotsFromSec dpy s
 
         sha =
             case weight of
@@ -739,12 +739,12 @@ barString dpy weight secUS secUD =
                     0
 
                 Just w ->
-                    case weight2sec w of
+                    case secFromWeight w of
                         0 ->
                             0
 
                         s ->
-                            sec2dot dpy s + 1
+                            dotsFromSec dpy s + 1
 
         exc =
             case secUD of
@@ -752,7 +752,7 @@ barString dpy weight secUS secUD =
                     -1
 
                 Just s ->
-                    sec2dot dpy s
+                    dotsFromSec dpy s
     in
     String.repeat dot "."
         ++ String.repeat sha "#"
@@ -764,13 +764,13 @@ barString dpy weight secUS secUD =
         |> String.fromList
 
 
-sec2dot : Int -> Int -> Int
-sec2dot dpy sec =
+dotsFromSec : Int -> Int -> Int
+dotsFromSec dpy sec =
     floor <| toFloat (dpy * sec) / toFloat (60 * 60 * 24 * 365)
 
 
-weight2sec : Float -> Int
-weight2sec w =
+secFromWeight : Float -> Int
+secFromWeight w =
     floor (60 * 60 * w)
 
 

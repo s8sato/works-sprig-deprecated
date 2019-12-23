@@ -64,6 +64,12 @@ import Query
 
 import Data.Tuple.Extra (both)
 
+import System.Posix.Types (EpochTime)
+import Foreign.C.Types (CTime (..))
+import Data.Time.Clock.POSIX (utcTimeToPOSIXSeconds)
+
+
+
 -- type alias
 
 
@@ -596,3 +602,6 @@ shiftTaskNodes sh ts =
             in
                 Task t' i' d s l ss dd w tt u
         ) ts
+
+uToE :: UTCTime -> EpochTime
+uToE = CTime . truncate . utcTimeToPOSIXSeconds
