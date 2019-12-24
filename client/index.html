@@ -3,9 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <title>Main</title>
-  <link rel="stylesheet" type="text/css" href="css/style.css">
-</head>
-
+  <link rel="stylesheet" type="text/css" href="css/style.css"></head>
 <body>
 
 <pre id="elm"></pre>
@@ -5370,12 +5368,24 @@ var $elm$core$Task$perform = F2(
 				A2($elm$core$Task$map, toMessage, task)));
 	});
 var $elm$browser$Browser$element = _Browser_element;
+var $author$project$Main$User = F3(
+	function (id, name, admin) {
+		return {admin: admin, id: id, name: name};
+	});
 var $author$project$Main$dayPerY = 365;
 var $elm$core$Platform$Cmd$batch = _Platform_batch;
 var $elm$core$Platform$Cmd$none = $elm$core$Platform$Cmd$batch(_List_Nil);
 var $author$project$Main$init = function (_v0) {
 	return _Utils_Tuple2(
-		{barLeftEdgeTime: $elm$core$Maybe$Nothing, dpy: $author$project$Main$dayPerY, errorMessage: $elm$core$Maybe$Nothing, indicator: 0, inputText: $elm$core$Maybe$Nothing, tasks: _List_Nil, user: 1},
+		{
+			asOfTime: $elm$core$Maybe$Nothing,
+			dpy: $author$project$Main$dayPerY,
+			errorMessage: $elm$core$Maybe$Nothing,
+			indicator: 0,
+			inputText: $elm$core$Maybe$Nothing,
+			tasks: _List_Nil,
+			user: A3($author$project$Main$User, 1, 'no_one', true)
+		},
 		$elm$core$Platform$Cmd$none);
 };
 var $elm$core$Platform$Sub$batch = _Platform_batch;
@@ -5880,7 +5890,7 @@ var $author$project$Main$doneTasksEncoder = function (m) {
 			[
 				_Utils_Tuple2(
 				'doneTasksUser',
-				$elm$json$Json$Encode$int(m.user)),
+				$elm$json$Json$Encode$int(m.user.id)),
 				_Utils_Tuple2(
 				'doneTasksIds',
 				A2($elm$json$Json$Encode$list, $elm$json$Json$Encode$int, ids))
@@ -6394,189 +6404,6 @@ var $elm$http$Http$jsonBody = function (value) {
 		'application/json',
 		A2($elm$json$Json$Encode$encode, 0, value));
 };
-var $author$project$Main$Model = F7(
-	function (user, tasks, inputText, barLeftEdgeTime, dpy, indicator, errorMessage) {
-		return {barLeftEdgeTime: barLeftEdgeTime, dpy: dpy, errorMessage: errorMessage, indicator: indicator, inputText: inputText, tasks: tasks, user: user};
-	});
-var $elm$json$Json$Decode$int = _Json_decodeInt;
-var $elm$json$Json$Decode$list = _Json_decodeList;
-var $elm$json$Json$Decode$null = _Json_decodeNull;
-var $elm$json$Json$Decode$oneOf = _Json_oneOf;
-var $elm$json$Json$Decode$nullable = function (decoder) {
-	return $elm$json$Json$Decode$oneOf(
-		_List_fromArray(
-			[
-				$elm$json$Json$Decode$null($elm$core$Maybe$Nothing),
-				A2($elm$json$Json$Decode$map, $elm$core$Maybe$Just, decoder)
-			]));
-};
-var $NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$custom = $elm$json$Json$Decode$map2($elm$core$Basics$apR);
-var $elm$json$Json$Decode$andThen = _Json_andThen;
-var $elm$json$Json$Decode$decodeValue = _Json_run;
-var $elm$json$Json$Decode$fail = _Json_fail;
-var $elm$json$Json$Decode$value = _Json_decodeValue;
-var $NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$optionalDecoder = F3(
-	function (pathDecoder, valDecoder, fallback) {
-		var nullOr = function (decoder) {
-			return $elm$json$Json$Decode$oneOf(
-				_List_fromArray(
-					[
-						decoder,
-						$elm$json$Json$Decode$null(fallback)
-					]));
-		};
-		var handleResult = function (input) {
-			var _v0 = A2($elm$json$Json$Decode$decodeValue, pathDecoder, input);
-			if (_v0.$ === 'Ok') {
-				var rawValue = _v0.a;
-				var _v1 = A2(
-					$elm$json$Json$Decode$decodeValue,
-					nullOr(valDecoder),
-					rawValue);
-				if (_v1.$ === 'Ok') {
-					var finalResult = _v1.a;
-					return $elm$json$Json$Decode$succeed(finalResult);
-				} else {
-					var finalErr = _v1.a;
-					return $elm$json$Json$Decode$fail(
-						$elm$json$Json$Decode$errorToString(finalErr));
-				}
-			} else {
-				return $elm$json$Json$Decode$succeed(fallback);
-			}
-		};
-		return A2($elm$json$Json$Decode$andThen, handleResult, $elm$json$Json$Decode$value);
-	});
-var $NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$optional = F4(
-	function (key, valDecoder, fallback, decoder) {
-		return A2(
-			$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$custom,
-			A3(
-				$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$optionalDecoder,
-				A2($elm$json$Json$Decode$field, key, $elm$json$Json$Decode$value),
-				valDecoder,
-				fallback),
-			decoder);
-	});
-var $NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required = F3(
-	function (key, valDecoder, decoder) {
-		return A2(
-			$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$custom,
-			A2($elm$json$Json$Decode$field, key, valDecoder),
-			decoder);
-	});
-var $author$project$Main$Task = function (id) {
-	return function (isDone) {
-		return function (isStarred) {
-			return function (title) {
-				return function (link) {
-					return function (start) {
-						return function (deadline) {
-							return function (weight) {
-								return function (secUntilStart) {
-									return function (secUntilDeadline) {
-										return function (isSelected) {
-											return {deadline: deadline, id: id, isDone: isDone, isSelected: isSelected, isStarred: isStarred, link: link, secUntilDeadline: secUntilDeadline, secUntilStart: secUntilStart, start: start, title: title, weight: weight};
-										};
-									};
-								};
-							};
-						};
-					};
-				};
-			};
-		};
-	};
-};
-var $elm$json$Json$Decode$bool = _Json_decodeBool;
-var $elm$json$Json$Decode$float = _Json_decodeFloat;
-var $author$project$Main$taskDecoder = A4(
-	$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$optional,
-	'elmTaskIsSelected',
-	$elm$json$Json$Decode$bool,
-	false,
-	A4(
-		$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$optional,
-		'elmTaskSecUntilDeadline',
-		$elm$json$Json$Decode$nullable($elm$json$Json$Decode$int),
-		$elm$core$Maybe$Nothing,
-		A4(
-			$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$optional,
-			'elmTaskSecUntilStart',
-			$elm$json$Json$Decode$nullable($elm$json$Json$Decode$int),
-			$elm$core$Maybe$Nothing,
-			A4(
-				$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$optional,
-				'elmTaskWeight',
-				$elm$json$Json$Decode$nullable($elm$json$Json$Decode$float),
-				$elm$core$Maybe$Nothing,
-				A4(
-					$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$optional,
-					'elmTaskDeadline',
-					$elm$json$Json$Decode$nullable($elm$json$Json$Decode$string),
-					$elm$core$Maybe$Nothing,
-					A4(
-						$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$optional,
-						'elmTaskStart',
-						$elm$json$Json$Decode$nullable($elm$json$Json$Decode$string),
-						$elm$core$Maybe$Nothing,
-						A4(
-							$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$optional,
-							'elmTaskLink',
-							$elm$json$Json$Decode$nullable($elm$json$Json$Decode$string),
-							$elm$core$Maybe$Nothing,
-							A4(
-								$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$optional,
-								'elmTaskTitle',
-								$elm$json$Json$Decode$nullable($elm$json$Json$Decode$string),
-								$elm$core$Maybe$Nothing,
-								A3(
-									$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
-									'elmTaskIsStarred',
-									$elm$json$Json$Decode$bool,
-									A3(
-										$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
-										'elmTaskIsDone',
-										$elm$json$Json$Decode$bool,
-										A3(
-											$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
-											'elmTaskId',
-											$elm$json$Json$Decode$int,
-											$elm$json$Json$Decode$succeed($author$project$Main$Task))))))))))));
-var $author$project$Main$modelDecoder = A4(
-	$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$optional,
-	'elmModelErrorMessage',
-	$elm$json$Json$Decode$nullable($elm$json$Json$Decode$string),
-	$elm$core$Maybe$Nothing,
-	A4(
-		$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$optional,
-		'elmModelIndicator',
-		$elm$json$Json$Decode$int,
-		0,
-		A4(
-			$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$optional,
-			'elmModelDpy',
-			$elm$json$Json$Decode$int,
-			$author$project$Main$dayPerY,
-			A4(
-				$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$optional,
-				'elmModelBarLeftEdgeTime',
-				$elm$json$Json$Decode$nullable($elm$json$Json$Decode$string),
-				$elm$core$Maybe$Nothing,
-				A4(
-					$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$optional,
-					'elmModelInputText',
-					$elm$json$Json$Decode$nullable($elm$json$Json$Decode$string),
-					$elm$core$Maybe$Nothing,
-					A3(
-						$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
-						'elmModelTasks',
-						$elm$json$Json$Decode$list($author$project$Main$taskDecoder),
-						A3(
-							$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
-							'elmModelUser',
-							$elm$json$Json$Decode$int,
-							$elm$json$Json$Decode$succeed($author$project$Main$Model))))))));
 var $elm$http$Http$Request = function (a) {
 	return {$: 'Request', a: a};
 };
@@ -6730,12 +6557,158 @@ var $elm$http$Http$post = function (r) {
 	return $elm$http$Http$request(
 		{body: r.body, expect: r.expect, headers: _List_Nil, method: 'POST', timeout: $elm$core$Maybe$Nothing, tracker: $elm$core$Maybe$Nothing, url: r.url});
 };
+var $elm$json$Json$Decode$list = _Json_decodeList;
+var $author$project$Main$Task = function (id) {
+	return function (isDone) {
+		return function (isStarred) {
+			return function (title) {
+				return function (link) {
+					return function (start) {
+						return function (deadline) {
+							return function (weight) {
+								return function (secUntilStart) {
+									return function (secUntilDeadline) {
+										return function (isSelected) {
+											return {deadline: deadline, id: id, isDone: isDone, isSelected: isSelected, isStarred: isStarred, link: link, secUntilDeadline: secUntilDeadline, secUntilStart: secUntilStart, start: start, title: title, weight: weight};
+										};
+									};
+								};
+							};
+						};
+					};
+				};
+			};
+		};
+	};
+};
+var $elm$json$Json$Decode$bool = _Json_decodeBool;
+var $elm$json$Json$Decode$float = _Json_decodeFloat;
+var $elm$json$Json$Decode$int = _Json_decodeInt;
+var $elm$json$Json$Decode$null = _Json_decodeNull;
+var $elm$json$Json$Decode$oneOf = _Json_oneOf;
+var $elm$json$Json$Decode$nullable = function (decoder) {
+	return $elm$json$Json$Decode$oneOf(
+		_List_fromArray(
+			[
+				$elm$json$Json$Decode$null($elm$core$Maybe$Nothing),
+				A2($elm$json$Json$Decode$map, $elm$core$Maybe$Just, decoder)
+			]));
+};
+var $NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$custom = $elm$json$Json$Decode$map2($elm$core$Basics$apR);
+var $elm$json$Json$Decode$andThen = _Json_andThen;
+var $elm$json$Json$Decode$decodeValue = _Json_run;
+var $elm$json$Json$Decode$fail = _Json_fail;
+var $elm$json$Json$Decode$value = _Json_decodeValue;
+var $NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$optionalDecoder = F3(
+	function (pathDecoder, valDecoder, fallback) {
+		var nullOr = function (decoder) {
+			return $elm$json$Json$Decode$oneOf(
+				_List_fromArray(
+					[
+						decoder,
+						$elm$json$Json$Decode$null(fallback)
+					]));
+		};
+		var handleResult = function (input) {
+			var _v0 = A2($elm$json$Json$Decode$decodeValue, pathDecoder, input);
+			if (_v0.$ === 'Ok') {
+				var rawValue = _v0.a;
+				var _v1 = A2(
+					$elm$json$Json$Decode$decodeValue,
+					nullOr(valDecoder),
+					rawValue);
+				if (_v1.$ === 'Ok') {
+					var finalResult = _v1.a;
+					return $elm$json$Json$Decode$succeed(finalResult);
+				} else {
+					var finalErr = _v1.a;
+					return $elm$json$Json$Decode$fail(
+						$elm$json$Json$Decode$errorToString(finalErr));
+				}
+			} else {
+				return $elm$json$Json$Decode$succeed(fallback);
+			}
+		};
+		return A2($elm$json$Json$Decode$andThen, handleResult, $elm$json$Json$Decode$value);
+	});
+var $NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$optional = F4(
+	function (key, valDecoder, fallback, decoder) {
+		return A2(
+			$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$custom,
+			A3(
+				$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$optionalDecoder,
+				A2($elm$json$Json$Decode$field, key, $elm$json$Json$Decode$value),
+				valDecoder,
+				fallback),
+			decoder);
+	});
+var $NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required = F3(
+	function (key, valDecoder, decoder) {
+		return A2(
+			$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$custom,
+			A2($elm$json$Json$Decode$field, key, valDecoder),
+			decoder);
+	});
+var $author$project$Main$taskDecoder = A4(
+	$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$optional,
+	'elmTaskIsSelected',
+	$elm$json$Json$Decode$bool,
+	false,
+	A4(
+		$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$optional,
+		'elmTaskSecUntilDeadline',
+		$elm$json$Json$Decode$nullable($elm$json$Json$Decode$int),
+		$elm$core$Maybe$Nothing,
+		A4(
+			$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$optional,
+			'elmTaskSecUntilStart',
+			$elm$json$Json$Decode$nullable($elm$json$Json$Decode$int),
+			$elm$core$Maybe$Nothing,
+			A4(
+				$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$optional,
+				'elmTaskWeight',
+				$elm$json$Json$Decode$nullable($elm$json$Json$Decode$float),
+				$elm$core$Maybe$Nothing,
+				A4(
+					$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$optional,
+					'elmTaskDeadline',
+					$elm$json$Json$Decode$nullable($elm$json$Json$Decode$string),
+					$elm$core$Maybe$Nothing,
+					A4(
+						$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$optional,
+						'elmTaskStart',
+						$elm$json$Json$Decode$nullable($elm$json$Json$Decode$string),
+						$elm$core$Maybe$Nothing,
+						A4(
+							$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$optional,
+							'elmTaskLink',
+							$elm$json$Json$Decode$nullable($elm$json$Json$Decode$string),
+							$elm$core$Maybe$Nothing,
+							A4(
+								$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$optional,
+								'elmTaskTitle',
+								$elm$json$Json$Decode$nullable($elm$json$Json$Decode$string),
+								$elm$core$Maybe$Nothing,
+								A3(
+									$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
+									'elmTaskIsStarred',
+									$elm$json$Json$Decode$bool,
+									A3(
+										$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
+										'elmTaskIsDone',
+										$elm$json$Json$Decode$bool,
+										A3(
+											$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
+											'elmTaskId',
+											$elm$json$Json$Decode$int,
+											$elm$json$Json$Decode$succeed($author$project$Main$Task))))))))))));
+var $author$project$Main$tasksDecoder = $elm$json$Json$Decode$list($author$project$Main$taskDecoder);
 var $author$project$Main$doneTasks = function (m) {
 	return $elm$http$Http$post(
 		{
 			body: $elm$http$Http$jsonBody(
 				$author$project$Main$doneTasksEncoder(m)),
-			expect: A2($elm$http$Http$expectJson, $author$project$Main$TasksReceived, $author$project$Main$modelDecoder),
+			expect: A2($elm$http$Http$expectJson, $author$project$Main$TasksReceived, $author$project$Main$tasksDecoder),
 			url: 'http://localhost:8080/tasks/done'
 		});
 };
@@ -6836,9 +6809,6 @@ var $author$project$Main$focusTaskEncoder = F2(
 			_List_fromArray(
 				[
 					_Utils_Tuple2(
-					'focusTaskUser',
-					$elm$json$Json$Encode$int(m.user)),
-					_Utils_Tuple2(
 					'focusTaskId',
 					$elm$json$Json$Encode$int(taskId))
 				]));
@@ -6849,21 +6819,83 @@ var $author$project$Main$focusTask = F2(
 			{
 				body: $elm$http$Http$jsonBody(
 					A2($author$project$Main$focusTaskEncoder, m, i)),
-				expect: A2($elm$http$Http$expectJson, $author$project$Main$TasksReceived, $author$project$Main$modelDecoder),
+				expect: A2($elm$http$Http$expectJson, $author$project$Main$TasksReceived, $author$project$Main$tasksDecoder),
 				url: 'http://localhost:8080/tasks/focus'
 			});
 	});
-var $elm$http$Http$emptyBody = _Http_emptyBody;
-var $elm$http$Http$get = function (r) {
-	return $elm$http$Http$request(
-		{body: $elm$http$Http$emptyBody, expect: r.expect, headers: _List_Nil, method: 'GET', timeout: $elm$core$Maybe$Nothing, tracker: $elm$core$Maybe$Nothing, url: r.url});
-};
-var $author$project$Main$getTasksAll = $elm$http$Http$get(
-	{
-		expect: A2($elm$http$Http$expectJson, $author$project$Main$TasksReceived, $author$project$Main$modelDecoder),
-		url: 'http://localhost:8080/tasks/all'
-	});
 var $author$project$Main$houPerY = 8760;
+var $author$project$Main$ModelReceived = function (a) {
+	return {$: 'ModelReceived', a: a};
+};
+var $author$project$Main$initialEncoder = function (m) {
+	return $elm$json$Json$Encode$object(
+		_List_fromArray(
+			[
+				_Utils_Tuple2(
+				'initialUser',
+				$elm$json$Json$Encode$int(m.user.id))
+			]));
+};
+var $author$project$Main$Model = F7(
+	function (user, tasks, inputText, asOfTime, dpy, indicator, errorMessage) {
+		return {asOfTime: asOfTime, dpy: dpy, errorMessage: errorMessage, indicator: indicator, inputText: inputText, tasks: tasks, user: user};
+	});
+var $author$project$Main$userDecoder = A3(
+	$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
+	'elmUserAdmin',
+	$elm$json$Json$Decode$bool,
+	A3(
+		$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
+		'elmUserName',
+		$elm$json$Json$Decode$string,
+		A3(
+			$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
+			'elmUserId',
+			$elm$json$Json$Decode$int,
+			$elm$json$Json$Decode$succeed($author$project$Main$User))));
+var $author$project$Main$modelDecoder = A4(
+	$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$optional,
+	'elmModelErrorMessage',
+	$elm$json$Json$Decode$nullable($elm$json$Json$Decode$string),
+	$elm$core$Maybe$Nothing,
+	A4(
+		$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$optional,
+		'elmModelIndicator',
+		$elm$json$Json$Decode$int,
+		0,
+		A4(
+			$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$optional,
+			'elmModelDpy',
+			$elm$json$Json$Decode$int,
+			$author$project$Main$dayPerY,
+			A4(
+				$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$optional,
+				'elmModelAsOfTime',
+				$elm$json$Json$Decode$nullable($elm$json$Json$Decode$string),
+				$elm$core$Maybe$Nothing,
+				A4(
+					$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$optional,
+					'elmModelInputText',
+					$elm$json$Json$Decode$nullable($elm$json$Json$Decode$string),
+					$elm$core$Maybe$Nothing,
+					A3(
+						$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
+						'elmModelTasks',
+						$elm$json$Json$Decode$list($author$project$Main$taskDecoder),
+						A3(
+							$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
+							'elmModelUser',
+							$author$project$Main$userDecoder,
+							$elm$json$Json$Decode$succeed($author$project$Main$Model))))))));
+var $author$project$Main$initialize = function (m) {
+	return $elm$http$Http$post(
+		{
+			body: $elm$http$Http$jsonBody(
+				$author$project$Main$initialEncoder(m)),
+			expect: A2($elm$http$Http$expectJson, $author$project$Main$ModelReceived, $author$project$Main$modelDecoder),
+			url: 'http://localhost:8080/tasks/init'
+		});
+};
 var $author$project$Main$minPerY = 525600;
 var $author$project$Main$monPerY = 12;
 var $elm$core$Basics$not = _Basics_not;
@@ -6982,9 +7014,6 @@ var $author$project$Main$switchStarEncoder = F2(
 			_List_fromArray(
 				[
 					_Utils_Tuple2(
-					'switchStarUser',
-					$elm$json$Json$Encode$int(m.user)),
-					_Utils_Tuple2(
 					'switchStarId',
 					$elm$json$Json$Encode$int(taskId))
 				]));
@@ -7016,7 +7045,7 @@ var $author$project$Main$textPostEncoder = function (m) {
 			[
 				_Utils_Tuple2(
 				'textPostUser',
-				$elm$json$Json$Encode$int(m.user)),
+				$elm$json$Json$Encode$int(m.user.id)),
 				_Utils_Tuple2(
 				'textPostContent',
 				$elm$json$Json$Encode$string(content))
@@ -7027,8 +7056,8 @@ var $author$project$Main$textPost = function (m) {
 		{
 			body: $elm$http$Http$jsonBody(
 				$author$project$Main$textPostEncoder(m)),
-			expect: A2($elm$http$Http$expectJson, $author$project$Main$TasksReceived, $author$project$Main$modelDecoder),
-			url: 'http://localhost:8080/tasks'
+			expect: A2($elm$http$Http$expectJson, $author$project$Main$TasksReceived, $author$project$Main$tasksDecoder),
+			url: 'http://localhost:8080/tasks/post'
 		});
 };
 var $author$project$Main$weePerY = 52;
@@ -7038,11 +7067,11 @@ var $author$project$Main$update = F2(
 		switch (msg.$) {
 			case 'TasksReceived':
 				if (msg.a.$ === 'Ok') {
-					var newModel = msg.a.a;
+					var newTasks = msg.a.a;
 					return _Utils_Tuple2(
 						_Utils_update(
 							model,
-							{barLeftEdgeTime: newModel.barLeftEdgeTime, indicator: newModel.indicator, tasks: newModel.tasks}),
+							{tasks: newTasks}),
 						$elm$core$Platform$Cmd$none);
 				} else {
 					var httpError = msg.a.a;
@@ -7050,23 +7079,25 @@ var $author$project$Main$update = F2(
 						_Utils_update(
 							model,
 							{
-								dpy: 404,
 								errorMessage: $elm$core$Maybe$Just(
 									$author$project$Main$buildErrorMessage(httpError))
 							}),
 						$elm$core$Platform$Cmd$none);
 				}
-			case 'DataReceived':
+			case 'ModelReceived':
 				if (msg.a.$ === 'Ok') {
 					var newModel = msg.a.a;
+					return _Utils_Tuple2(newModel, $elm$core$Platform$Cmd$none);
+				} else {
+					var httpError = msg.a.a;
 					return _Utils_Tuple2(
 						_Utils_update(
 							model,
-							{dpy: newModel.dpy, tasks: newModel.tasks}),
+							{
+								errorMessage: $elm$core$Maybe$Just(
+									$author$project$Main$buildErrorMessage(httpError))
+							}),
 						$elm$core$Platform$Cmd$none);
-				} else {
-					var httpError = msg.a.a;
-					return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
 				}
 			case 'CharacterKey':
 				switch (msg.a.valueOf()) {
@@ -7184,7 +7215,9 @@ var $author$project$Main$update = F2(
 					case '#':
 						return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
 					default:
-						return _Utils_Tuple2(model, $author$project$Main$getTasksAll);
+						return _Utils_Tuple2(
+							model,
+							$author$project$Main$initialize(model));
 				}
 			case 'ControlKey':
 				return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
@@ -7231,7 +7264,6 @@ var $author$project$Main$update = F2(
 						_Utils_update(
 							model,
 							{
-								dpy: 404,
 								errorMessage: $elm$core$Maybe$Just(
 									$author$project$Main$buildErrorMessage(httpError))
 							}),
@@ -7342,7 +7374,7 @@ var $elm$core$Tuple$pair = F2(
 var $elm$html$Html$Attributes$placeholder = $elm$html$Html$Attributes$stringProperty('placeholder');
 var $elm$virtual_dom$VirtualDom$text = _VirtualDom_text;
 var $elm$html$Html$text = $elm$virtual_dom$VirtualDom$text;
-var $author$project$Main$textPlaceholder = 'ENTER TASKS OR A COMMAND:\n\njump\n    step\n        hop\n\nA task to complete by the end of 2020 -2020/12/31\n    A task expected to take 300 hours $300\n        A task you can start in the beginning of 2020 2020/1/1-\n\nA time-critical task 2020/01/1- 23:59:59- $0.001 -0:0:3 -2020/1/02\n\ntrunk\n    branch Alice\n        bud \n    branch Bob\n        bud\n        bud\n\njump\n    step\n        hop2 dependent on hop1 [key\n    step\n        key] hop1\n\n# A task to register as completed\n* A task to register as starred\n\nA linked task e.g. slack permalink &https://\n\n@777 The task with ID 777 whose weight will be updated to 30 $30\n\n@777 The complex task\n    A simpler task\n    A simpler task\n\nA new emerging task dependent on existing @777 and @888\n    @777\n    @888\n\nYOU CAN ALSO ENTER ONE OF THE FOLLOWING SLASH COMMANDS:\n\n/dpy 1\nSet dpy (dots per year) 1, that is, a dot represents a year.\n\n/asof 2020/01/01_12:0:0\nSet the time corresponding to the left edge of the bar to noon on January 1, 2020.\n\n/sel -t word\nSelect tasks whose title contains \'word\'.\n\n/sel -s 2020/1/1_12:0:0< <2020/1/2\nSelect tasks whose start is in the afternoon of January 1, 2020.\n\n/sel -d <23:59:59\nSelect tasks whose deadline is today\'s end.\n\n/sel -w 30< <300\nSelect tasks whose weight is between 30 and 300 hours.\n\n/sel -arc\nSelect archived tasks.\n\n/sel -star\nSelect starred tasks.\n\n/sel -trunk\nSelect trunk, namely, tasks with no successor.\n\n/sel -buds\nSelect buds, namely, tasks with no predecessor.\n\n/sel -t word -s 2020/1/1< -d <23:59:59 -w 30< <300 -arc -star\nSpecify multiple conditions.\n\nTHANK YOU FOR READING!\n';
+var $author$project$Main$textPlaceholder = 'ENTER TASKS OR A COMMAND:\n\njump\n    step\n        hop\n\nA task to complete by the end of 2020 -2020/12/31\n    A task expected to take 300 hours $300\n        A task you can start in the beginning of 2020 2020/1/1-\n\nA time-critical task 2020/01/1- 23:59:59- $0.001 -0:0:3 -2020/1/02\n\ntrunk\n    branch Alice\n        bud \n    branch Bob\n        bud\n        bud\n\njump\n    step\n        hop2 dependent on hop1 [key\n    step\n        ]key hop1\n\n% A task to register as completed\n* A task to register as starred\n\nA linked task e.g. slack permalink &https://\n\n#777 The task with ID 777 whose weight will be updated to 30 $30\n\n#777 The complex task\n    A simpler task\n    A simpler task\n\nA new emerging task dependent on existing #777 and #888\n    #777\n    #888\n\nYOU CAN ALSO ENTER ONE OF THE FOLLOWING SLASH COMMANDS:\n\n/dpy 1\nSet default dpy (dots per year) to 1, that is, a dot represents a year.\n\n/asof 2020/01/01_12:0:0\nSet the time corresponding to the left edge of the bar to noon on January 1, 2020.\n\n/sel -t word\nSelect tasks whose title contains \'word\'.\n\n/sel -s 2020/1/1_12:0:0< <2020/1/2\nSelect tasks whose start is in the afternoon of January 1, 2020.\n\n/sel -d <23:59:59\nSelect tasks whose deadline is today\'s end.\n\n/sel -w 30< <300\nSelect tasks whose weight is between 30 and 300 hours.\n\n/sel -arc\nSelect archived tasks.\n\n/sel -star\nSelect starred tasks.\n\n/sel -trunk\nSelect trunk, namely, tasks with no successor.\n\n/sel -buds\nSelect buds, namely, tasks with no predecessor.\n\n/sel -t word -s 2020/1/1< -d <23:59:59 -w 30< <300 -arc -star\nSpecify multiple conditions.\n\nTHANK YOU FOR READING!\n';
 var $elm$html$Html$textarea = _VirtualDom_node('textarea');
 var $author$project$Main$SwitchSelect = function (a) {
 	return {$: 'SwitchSelect', a: a};
@@ -7351,6 +7383,10 @@ var $author$project$Main$SwitchStar = function (a) {
 	return {$: 'SwitchStar', a: a};
 };
 var $elm$html$Html$a = _VirtualDom_node('a');
+var $author$project$Main$dotsFromSec = F2(
+	function (dpy, sec) {
+		return $elm$core$Basics$floor((dpy * sec) / (((60 * 60) * 24) * 365));
+	});
 var $elm$core$Bitwise$shiftRightBy = _Bitwise_shiftRightBy;
 var $elm$core$String$repeatHelp = F3(
 	function (n, chunk, result) {
@@ -7377,16 +7413,12 @@ var $elm$core$String$fromList = _String_fromList;
 var $elm$core$Basics$negate = function (n) {
 	return -n;
 };
-var $author$project$Main$sec2dot = F2(
-	function (dpy, sec) {
-		return $elm$core$Basics$floor((dpy * sec) / (((60 * 60) * 24) * 365));
-	});
+var $author$project$Main$secFromWeight = function (w) {
+	return $elm$core$Basics$floor((60 * 60) * w);
+};
 var $elm$core$String$foldr = _String_foldr;
 var $elm$core$String$toList = function (string) {
 	return A3($elm$core$String$foldr, $elm$core$List$cons, _List_Nil, string);
-};
-var $author$project$Main$weight2sec = function (w) {
-	return $elm$core$Basics$floor((60 * 60) * w);
 };
 var $author$project$Main$barString = F4(
 	function (dpy, weight, secUS, secUD) {
@@ -7395,12 +7427,12 @@ var $author$project$Main$barString = F4(
 				return 0;
 			} else {
 				var w = weight.a;
-				var _v3 = $author$project$Main$weight2sec(w);
+				var _v3 = $author$project$Main$secFromWeight(w);
 				if (!_v3) {
 					return 0;
 				} else {
 					var s = _v3;
-					return A2($author$project$Main$sec2dot, dpy, s) + 1;
+					return A2($author$project$Main$dotsFromSec, dpy, s) + 1;
 				}
 			}
 		}();
@@ -7409,7 +7441,7 @@ var $author$project$Main$barString = F4(
 				return -1;
 			} else {
 				var s = secUD.a;
-				return A2($author$project$Main$sec2dot, dpy, s);
+				return A2($author$project$Main$dotsFromSec, dpy, s);
 			}
 		}();
 		var dot = function () {
@@ -7417,7 +7449,7 @@ var $author$project$Main$barString = F4(
 				return 0;
 			} else {
 				var s = secUS.a;
-				return A2($author$project$Main$sec2dot, dpy, s);
+				return A2($author$project$Main$dotsFromSec, dpy, s);
 			}
 		}();
 		return $elm$core$String$fromList(
@@ -7688,7 +7720,7 @@ var $author$project$Main$viewTaskHeader = function (m) {
 					[
 						$elm$html$Html$text(
 						'As of ' + function () {
-							var _v0 = m.barLeftEdgeTime;
+							var _v0 = m.asOfTime;
 							if (_v0.$ === 'Nothing') {
 								return 'UNKNOWN TIME';
 							} else {
@@ -7787,7 +7819,10 @@ var $author$project$Main$view = function (model) {
 							[
 								$elm$html$Html$Attributes$id('account')
 							]),
-						_List_Nil)
+						_List_fromArray(
+							[
+								$elm$html$Html$text(model.user.name)
+							]))
 					])),
 				A2(
 				$elm$html$Html$div,
@@ -7939,7 +7974,10 @@ var $author$project$Main$view = function (model) {
 												$elm$html$Html$div,
 												_List_fromArray(
 													[
-														$elm$html$Html$Attributes$id('focus')
+														$elm$html$Html$Attributes$id('focus'),
+														$elm$html$Html$Events$onClick(
+														$author$project$Main$CharacterKey(
+															_Utils_chr('f')))
 													]),
 												_List_Nil),
 												A2(

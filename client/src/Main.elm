@@ -27,13 +27,24 @@ main =
 
 
 type alias Model =
-    { user : Int
+    { user : User
     , tasks : List Task
     , inputText : Maybe String
-    , barLeftEdgeTime : Maybe String
+    , asOfTime : Maybe String
     , dpy : Int
     , indicator : Int
     , errorMessage : Maybe String
+    }
+
+
+type alias User =
+    { id : Int
+    , name : String
+    , admin : Bool
+
+    -- , defaultDpy : Maybe Int
+    -- , lookUp : Maybe Int
+    -- , lookDown : Maybe Int
     }
 
 
@@ -54,10 +65,10 @@ type alias Task =
 
 init : () -> ( Model, Cmd Msg )
 init _ =
-    ( { user = 1
+    ( { user = User 1 "no_one" True
       , tasks = []
       , inputText = Nothing
-      , barLeftEdgeTime = Nothing
+      , asOfTime = Nothing
       , dpy = dayPerY
       , indicator = 0
       , errorMessage = Nothing
@@ -116,8 +127,8 @@ type Direction
 
 
 type Msg
-    = DataReceived (Result Http.Error Model)
-    | TasksReceived (Result Http.Error Model)
+    = ModelReceived (Result Http.Error Model)
+    | TasksReceived (Result Http.Error (List Task))
     | CharacterKey Char
     | ControlKey String
     | SwitchSelect Int
@@ -144,33 +155,31 @@ update msg model =
     case msg of
         -- SendHttpRequest ->
         --     ( model, httpCommand )
-        TasksReceived (Ok newModel) ->
+        TasksReceived (Ok newTasks) ->
             ( { model
-                | tasks = newModel.tasks
-                , indicator = newModel.indicator
-                , barLeftEdgeTime = newModel.barLeftEdgeTime
+                | tasks = newTasks
               }
             , Cmd.none
             )
 
         TasksReceived (Err httpError) ->
             ( { model
-                | dpy = 404
-                , errorMessage = Just (buildErrorMessage httpError)
+                | errorMessage = Just (buildErrorMessage httpError)
               }
             , Cmd.none
             )
 
-        DataReceived (Ok newModel) ->
+        ModelReceived (Ok newModel) ->
+            ( newModel
+            , Cmd.none
+            )
+
+        ModelReceived (Err httpError) ->
             ( { model
-                | dpy = newModel.dpy
-                , tasks = newModel.tasks
+                | errorMessage = Just (buildErrorMessage httpError)
               }
             , Cmd.none
             )
-
-        DataReceived (Err httpError) ->
-            ( model, Cmd.none )
 
         CharacterKey 'k' ->
             ( { model
@@ -291,7 +300,7 @@ update msg model =
             ( model, Cmd.none )
 
         CharacterKey _ ->
-            ( model, getTasksAll )
+            ( model, initialize model )
 
         ControlKey _ ->
             ( model, Cmd.none )
@@ -322,8 +331,7 @@ update msg model =
 
         StarSwitched _ (Err httpError) ->
             ( { model
-                | dpy = 404
-                , errorMessage = Just (buildErrorMessage httpError)
+                | errorMessage = Just (buildErrorMessage httpError)
               }
             , Cmd.none
             )
@@ -342,33 +350,6 @@ update msg model =
 
         Input newInput ->
             ( { model | inputText = Just newInput }, Cmd.none )
-
-
-textPost : Model -> Cmd Msg
-textPost m =
-    Http.post
-        { url = "http://localhost:8080/tasks"
-        , body = Http.jsonBody (textPostEncoder m)
-        , expect = Http.expectJson TasksReceived modelDecoder
-        }
-
-
-doneTasks : Model -> Cmd Msg
-doneTasks m =
-    Http.post
-        { url = "http://localhost:8080/tasks/done"
-        , body = Http.jsonBody (doneTasksEncoder m)
-        , expect = Http.expectJson TasksReceived modelDecoder
-        }
-
-
-switchStar : Model -> Int -> Cmd Msg
-switchStar m i =
-    Http.post
-        { url = "http://localhost:8080/tasks/star"
-        , body = Http.jsonBody (switchStarEncoder m i)
-        , expect = Http.expectWhatever (StarSwitched i)
-        }
 
 
 switchSelect : Model -> Int -> ( Model, Cmd Msg )
@@ -391,12 +372,57 @@ switchSelect model i =
     )
 
 
+
+-- getDevModel : Model -> Cmd Msg
+-- getDevModel m =
+--     Http.get
+--         { url = "http://localhost:8080/dev/model" ++ String.fromInt m.user.id
+--         , expect = Http.expectJson ModelReceived modelDecoder
+--         }
+
+
+initialize : Model -> Cmd Msg
+initialize m =
+    Http.post
+        { url = "http://localhost:8080/tasks/init"
+        , body = Http.jsonBody (initialEncoder m)
+        , expect = Http.expectJson ModelReceived modelDecoder
+        }
+
+
+textPost : Model -> Cmd Msg
+textPost m =
+    Http.post
+        { url = "http://localhost:8080/tasks/post"
+        , body = Http.jsonBody (textPostEncoder m)
+        , expect = Http.expectJson TasksReceived tasksDecoder
+        }
+
+
+doneTasks : Model -> Cmd Msg
+doneTasks m =
+    Http.post
+        { url = "http://localhost:8080/tasks/done"
+        , body = Http.jsonBody (doneTasksEncoder m)
+        , expect = Http.expectJson TasksReceived tasksDecoder
+        }
+
+
+switchStar : Model -> Int -> Cmd Msg
+switchStar m i =
+    Http.post
+        { url = "http://localhost:8080/tasks/star"
+        , body = Http.jsonBody (switchStarEncoder m i)
+        , expect = Http.expectWhatever (StarSwitched i)
+        }
+
+
 focusTask : Model -> Int -> Cmd Msg
 focusTask m i =
     Http.post
         { url = "http://localhost:8080/tasks/focus"
         , body = Http.jsonBody (focusTaskEncoder m i)
-        , expect = Http.expectJson TasksReceived modelDecoder
+        , expect = Http.expectJson TasksReceived tasksDecoder
         }
 
 
@@ -419,6 +445,13 @@ buildErrorMessage httpError =
             message
 
 
+initialEncoder : Model -> Encode.Value
+initialEncoder m =
+    Encode.object
+        [ ( "initialUser", Encode.int m.user.id )
+        ]
+
+
 textPostEncoder : Model -> Encode.Value
 textPostEncoder m =
     let
@@ -431,7 +464,7 @@ textPostEncoder m =
                     c
     in
     Encode.object
-        [ ( "textPostUser", Encode.int m.user )
+        [ ( "textPostUser", Encode.int m.user.id )
         , ( "textPostContent", Encode.string content )
         ]
 
@@ -443,7 +476,7 @@ doneTasksEncoder m =
             List.map .id <| List.filter .isSelected <| m.tasks
     in
     Encode.object
-        [ ( "doneTasksUser", Encode.int m.user )
+        [ ( "doneTasksUser", Encode.int m.user.id )
         , ( "doneTasksIds", Encode.list Encode.int ids )
         ]
 
@@ -460,8 +493,7 @@ switchStarEncoder m i =
                     .id task
     in
     Encode.object
-        [ ( "switchStarUser", Encode.int m.user )
-        , ( "switchStarId", Encode.int taskId )
+        [ ( "switchStarId", Encode.int taskId )
         ]
 
 
@@ -477,21 +509,39 @@ focusTaskEncoder m i =
                     .id task
     in
     Encode.object
-        [ ( "focusTaskUser", Encode.int m.user )
-        , ( "focusTaskId", Encode.int taskId )
+        [ ( "focusTaskId", Encode.int taskId )
         ]
 
 
 modelDecoder : Decoder Model
 modelDecoder =
     Decode.succeed Model
-        |> required "elmModelUser" int
+        |> required "elmModelUser" userDecoder
         |> required "elmModelTasks" (list taskDecoder)
         |> optional "elmModelInputText" (nullable string) Nothing
-        |> optional "elmModelBarLeftEdgeTime" (nullable string) Nothing
+        |> optional "elmModelAsOfTime" (nullable string) Nothing
         |> optional "elmModelDpy" int dayPerY
         |> optional "elmModelIndicator" int 0
         |> optional "elmModelErrorMessage" (nullable string) Nothing
+
+
+userDecoder : Decoder User
+userDecoder =
+    Decode.succeed User
+        |> required "elmUserId" int
+        |> required "elmUserName" string
+        |> required "elmUserAdmin" bool
+
+
+
+-- |> optional "elmUserDefaultDpy" (nullable int) Nothing
+-- |> optional "elmUserLookUp" (nullable int) Nothing
+-- |> optional "elmUserLookDown" (nullable int) Nothing
+
+
+tasksDecoder : Decoder (List Task)
+tasksDecoder =
+    list taskDecoder
 
 
 taskDecoder : Decoder Task
@@ -510,12 +560,8 @@ taskDecoder =
         |> optional "elmTaskIsSelected" bool False
 
 
-getTasksAll : Cmd Msg
-getTasksAll =
-    Http.get
-        { url = "http://localhost:8080/tasks/all"
-        , expect = Http.expectJson TasksReceived modelDecoder
-        }
+
+-- VIEW
 
 
 view : Model -> Html Msg
@@ -533,7 +579,8 @@ view model =
                 ]
             , div [ id "submission" ]
                 [ div [ id "submitButton", onClick TextPost ] [] ]
-            , div [ id "account" ] []
+            , div [ id "account" ]
+                [ text model.user.name ]
             ]
         , div [ id "body" ]
             [ div [ id "lSideBar" ]
@@ -599,7 +646,7 @@ viewTaskHeader m =
         , div [ class "bar" ]
             [ text
                 ("As of "
-                    ++ (case m.barLeftEdgeTime of
+                    ++ (case m.asOfTime of
                             Nothing ->
                                 "UNKNOWN TIME"
 
@@ -776,7 +823,7 @@ secFromWeight w =
 
 textPlaceholder : String
 textPlaceholder =
-    "ENTER TASKS OR A COMMAND:\n\njump\n    step\n        hop\n\nA task to complete by the end of 2020 -2020/12/31\n    A task expected to take 300 hours $300\n        A task you can start in the beginning of 2020 2020/1/1-\n\nA time-critical task 2020/01/1- 23:59:59- $0.001 -0:0:3 -2020/1/02\n\ntrunk\n    branch Alice\n        bud \n    branch Bob\n        bud\n        bud\n\njump\n    step\n        hop2 dependent on hop1 [key\n    step\n        key] hop1\n\n# A task to register as completed\n* A task to register as starred\n\nA linked task e.g. slack permalink &https://\n\n@777 The task with ID 777 whose weight will be updated to 30 $30\n\n@777 The complex task\n    A simpler task\n    A simpler task\n\nA new emerging task dependent on existing @777 and @888\n    @777\n    @888\n\nYOU CAN ALSO ENTER ONE OF THE FOLLOWING SLASH COMMANDS:\n\n/dpy 1\nSet dpy (dots per year) 1, that is, a dot represents a year.\n\n/asof 2020/01/01_12:0:0\nSet the time corresponding to the left edge of the bar to noon on January 1, 2020.\n\n/sel -t word\nSelect tasks whose title contains 'word'.\n\n/sel -s 2020/1/1_12:0:0< <2020/1/2\nSelect tasks whose start is in the afternoon of January 1, 2020.\n\n/sel -d <23:59:59\nSelect tasks whose deadline is today's end.\n\n/sel -w 30< <300\nSelect tasks whose weight is between 30 and 300 hours.\n\n/sel -arc\nSelect archived tasks.\n\n/sel -star\nSelect starred tasks.\n\n/sel -trunk\nSelect trunk, namely, tasks with no successor.\n\n/sel -buds\nSelect buds, namely, tasks with no predecessor.\n\n/sel -t word -s 2020/1/1< -d <23:59:59 -w 30< <300 -arc -star\nSpecify multiple conditions.\n\nTHANK YOU FOR READING!\n"
+    "ENTER TASKS OR A COMMAND:\n\njump\n    step\n        hop\n\nA task to complete by the end of 2020 -2020/12/31\n    A task expected to take 300 hours $300\n        A task you can start in the beginning of 2020 2020/1/1-\n\nA time-critical task 2020/01/1- 23:59:59- $0.001 -0:0:3 -2020/1/02\n\ntrunk\n    branch Alice\n        bud \n    branch Bob\n        bud\n        bud\n\njump\n    step\n        hop2 dependent on hop1 [key\n    step\n        ]key hop1\n\n% A task to register as completed\n* A task to register as starred\n\nA linked task e.g. slack permalink &https://\n\n#777 The task with ID 777 whose weight will be updated to 30 $30\n\n#777 The complex task\n    A simpler task\n    A simpler task\n\nA new emerging task dependent on existing #777 and #888\n    #777\n    #888\n\nYOU CAN ALSO ENTER ONE OF THE FOLLOWING SLASH COMMANDS:\n\n/dpy 1\nSet default dpy (dots per year) to 1, that is, a dot represents a year.\n\n/asof 2020/01/01_12:0:0\nSet the time corresponding to the left edge of the bar to noon on January 1, 2020.\n\n/sel -t word\nSelect tasks whose title contains 'word'.\n\n/sel -s 2020/1/1_12:0:0< <2020/1/2\nSelect tasks whose start is in the afternoon of January 1, 2020.\n\n/sel -d <23:59:59\nSelect tasks whose deadline is today's end.\n\n/sel -w 30< <300\nSelect tasks whose weight is between 30 and 300 hours.\n\n/sel -arc\nSelect archived tasks.\n\n/sel -star\nSelect starred tasks.\n\n/sel -trunk\nSelect trunk, namely, tasks with no successor.\n\n/sel -buds\nSelect buds, namely, tasks with no predecessor.\n\n/sel -t word -s 2020/1/1< -d <23:59:59 -w 30< <300 -arc -star\nSpecify multiple conditions.\n\nTHANK YOU FOR READING!\n"
 
 
 

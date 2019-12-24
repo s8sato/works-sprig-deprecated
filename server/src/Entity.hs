@@ -44,22 +44,41 @@ doMigration action = do
     runStdoutLoggingT $ runResourceT $ withPostgresqlConn (pgConnStr conf) $ runReaderT $ runMigration action
 
 share [mkPersist sqlSettings, mkMigrate "migrateAll"] [persistLowerCase|
-User json
-    name        String
-    UniqueUserName name
+User
+    name                Text
+    admin               Bool
+    defaultDpy          Int Maybe
+    lookUp              Int Maybe
+    lookDown            Int Maybe
+    -- salt                Text
+    encrypted           Text Maybe
+    UniqueUser          name
     deriving Show
 Task json
-    terminal        Int
-    initial         Int
-    -- isDummy         Bool
-    isDone          Bool
-    isStarred       Bool
-    link            Text Maybe
-    start           UTCTime Maybe
-    deadline        UTCTime Maybe
-    weight          Double Maybe
-    title           Text Maybe
-    user            Int
+    terminal            Int
+    initial             Int
+    -- isDummy             Bool
+    isDone              Bool
+    isStarred           Bool
+    link                Text Maybe
+    start               UTCTime Maybe
+    deadline            UTCTime Maybe
+    weight              Double Maybe
+    title               Text Maybe
+    user                UserId
+    UniqueTask          terminal initial
+    deriving Show
+Organization
+    parent              UserId
+    child               UserId
+    UniqueOrganization  parent child
+    deriving Show
+Permission
+    subject             UserId
+    object              UserId
+    view                Bool
+    edit                Bool
+    UniquePermission    subject object
     deriving Show
 |]
 

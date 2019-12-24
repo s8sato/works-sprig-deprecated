@@ -23,25 +23,25 @@ jump
     step
         ]key hop1
 
-# A task to register as completed
+% A task to register as completed
 * A task to register as starred
 
 A linked task e.g. slack permalink &https://
 
-@777 The task with ID 777 whose weight will be updated to 30 $30
+#777 The task with ID 777 whose weight will be updated to 30 $30
 
-@777 The complex task
+#777 The complex task
     A simpler task
     A simpler task
 
-A new emerging task dependent on existing @777 and @888
-    @777
-    @888
+A new emerging task dependent on existing #777 and #888
+    #777
+    #888
 
 YOU CAN ALSO ENTER ONE OF THE FOLLOWING SLASH COMMANDS:
 
 /dpy 1
-Set dpy (dots per year) 1, that is, a dot represents a year.
+Set default dpy (dots per year) to 1, that is, a dot represents a year.
 
 /asof 2020/01/01_12:0:0
 Set the time corresponding to the left edge of the bar to noon on January 1, 2020.

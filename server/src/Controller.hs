@@ -58,7 +58,7 @@ import Control.Monad.IO.Class   (liftIO)
 
 import Data.Double.Conversion.Text (toFixed)
 
-import Database.Persist.Sql (fromSqlKey ,SqlBackend (..), ToBackendKey)
+import Database.Persist.Sql (fromSqlKey ,SqlBackend (..), ToBackendKey, toSqlKey)
 
 import Query
 
@@ -67,6 +67,8 @@ import Data.Tuple.Extra (both)
 import System.Posix.Types (EpochTime)
 import Foreign.C.Types (CTime (..))
 import Data.Time.Clock.POSIX (utcTimeToPOSIXSeconds)
+-- import Data.Time.Clock.Internal.NominalDiffTime (nominalDiffTimeToSeconds)
+import qualified Database.Esqueleto as Q (Value (..)) 
 
 
 
@@ -83,7 +85,7 @@ houPerY = 8760
 minPerY = 525600
 secPerY = 31536000
 
-defaultUser = 1
+defaultUser = toSqlKey 1 :: UserId
 
 
 
@@ -91,30 +93,49 @@ defaultUser = 1
 
 
 
+data ElmUser = ElmUser
+    { elmUserId :: Int
+    , elmUserName :: Text
+    , elmUserAdmin :: Bool
+    -- , elmUserDefaultDpy :: Maybe Int
+    -- , elmUserLookUp :: Maybe Int
+    -- , elmUserLookDown :: Maybe Int
+    } deriving (Eq, Show)
+
+$(deriveJSON defaultOptions ''ElmUser)
+
 data ElmTask = ElmTask
     { elmTaskId :: Integer
     , elmTaskIsDone :: Bool
     , elmTaskIsStarred :: Bool
     , elmTaskTitle :: Maybe Text
     , elmTaskLink :: Maybe Text
-    , elmTaskStart :: Maybe Text
-    , elmTaskDeadline :: Maybe Text
+    , elmTaskStart :: Maybe Integer
+    , elmTaskDeadline :: Maybe Integer
     , elmTaskWeight :: Maybe Double
-    , elmTaskSecUntilStart :: Maybe Integer
-    , elmTaskSecUntilDeadline :: Maybe Integer
+    , elmTaskUser :: Text
+    -- , elmTaskSecUntilStart :: Maybe Integer
+    -- , elmTaskSecUntilDeadline :: Maybe Integer
     } deriving (Eq, Show)
 
 $(deriveJSON defaultOptions ''ElmTask)
 
 data ElmModel = ElmModel
-    { elmModelUser :: Int
+    { elmModelUser :: ElmUser
     , elmModelTasks :: [ElmTask]
     , elmModelInputText :: Maybe Text
-    , elmModelBarLeftEdgeTime :: Maybe Text
-    , elmModelIndicator :: Int
+    , elmModelDpy :: Maybe Int
+    -- , elmModelAsOfTime :: Maybe Text
+    -- , elmModelIndicator :: Int
     }
 
 $(deriveJSON defaultOptions ''ElmModel)
+
+data Initial = Initial
+    { initialUser :: Int
+    } deriving (Eq, Show)
+
+$(deriveJSON defaultOptions ''Initial)
 
 data TextPost = TextPost
     { textPostUser :: Int
@@ -131,15 +152,13 @@ data DoneTasks = DoneTasks
 $(deriveJSON defaultOptions ''DoneTasks)
 
 data SwitchStar = SwitchStar
-    { switchStarUser :: Int
-    , switchStarId :: Integer
+    { switchStarId :: Integer
     } deriving (Eq, Show)
 
 $(deriveJSON defaultOptions ''SwitchStar)
 
 data FocusTask = FocusTask
-    { focusTaskUser :: Int
-    , focusTaskId :: Integer
+    { focusTaskId :: Integer
     } deriving (Eq, Show)
 
 $(deriveJSON defaultOptions ''FocusTask)
@@ -150,11 +169,12 @@ $(deriveJSON defaultOptions ''FocusTask)
 
 
 
-type API =  "tasks" :> "all" :> Get '[JSON] ElmModel
-    :<|>    "tasks" :> ReqBody '[JSON] TextPost :> Post '[JSON] ElmModel
-    :<|>    "tasks" :> "done" :> ReqBody '[JSON] DoneTasks :> Post '[JSON] ElmModel
-    :<|>    "tasks" :> "star" :> ReqBody '[JSON] SwitchStar :> Post '[JSON] ()
-    :<|>    "tasks" :> "focus" :> ReqBody '[JSON] FocusTask :> Post '[JSON] ElmModel
+type API =  "dev"   :> "model"  :> Capture "userId" Int         :> Get  '[JSON] ElmModel
+    :<|>    "tasks" :> "init"   :> ReqBody '[JSON] Initial      :> Post '[JSON] ElmModel
+    :<|>    "tasks" :> "post"   :> ReqBody '[JSON] TextPost     :> Post '[JSON] [ElmTask]
+    :<|>    "tasks" :> "done"   :> ReqBody '[JSON] DoneTasks    :> Post '[JSON] [ElmTask]
+    :<|>    "tasks" :> "star"   :> ReqBody '[JSON] SwitchStar   :> Post '[JSON] ()
+    :<|>    "tasks" :> "focus"  :> ReqBody '[JSON] FocusTask    :> Post '[JSON] [ElmTask]
 
 startApp :: IO ()
 startApp = run 8080 app
@@ -175,38 +195,54 @@ api :: Proxy API
 api = Proxy
 
 server :: Server API
-server = undoneElmModel
+server = devModel
+    :<|> initialize
     :<|> textPostReload
     :<|> doneTasksReload
     :<|> switchStar
     :<|> focusTask
     where
-        undoneElmModel :: Handler ElmModel
-        undoneElmModel = liftIO $ undoneElmModel' defaultUser
-        textPostReload :: TextPost -> Handler ElmModel
+        devModel :: Int -> Handler ElmModel
+        devModel = liftIO . devModel'
+        initialize :: Initial -> Handler ElmModel
+        initialize = liftIO . initialize'
+        textPostReload :: TextPost -> Handler [ElmTask]
         textPostReload = liftIO . textPostReload'
-        doneTasksReload :: DoneTasks -> Handler ElmModel
+        doneTasksReload :: DoneTasks -> Handler [ElmTask]
         doneTasksReload = liftIO . doneTasksReload'
         switchStar :: SwitchStar -> Handler ()
         switchStar = liftIO . switchStar'
-        focusTask :: FocusTask -> Handler ElmModel
+        focusTask :: FocusTask -> Handler [ElmTask]
         focusTask = liftIO . focusTask'
 
-stdElmModel :: Int -> [Entity Task] -> Int -> IO ElmModel
-stdElmModel user tasks indicator = do
+devModel' :: Int -> IO ElmModel
+devModel' uid = do
     pool <- pgPool
-    now <- zonedTimeToUTC <$> getZonedTime
-    let elmTasks = map (toElmTask now) tasks
-    zNowStr <- formatTime defaultTimeLocale "%Y/%m/%d %T %a" <$> getZonedTime
-    return $ ElmModel user elmTasks Nothing (Just $ pack zNowStr) indicator
+    eUs <- getUserById pool uid
+    taskAssigns <- getUndoneTaskAssigns pool uid
+    let elmUser = toElmUser . Prelude.head $ eUs
+    let elmTasks = map toElmTask taskAssigns 
+    let mDpy =  userDefaultDpy . entityVal . Prelude.head $ eUs
+    return $ ElmModel elmUser elmTasks Nothing mDpy
 
-undoneElmModel' :: Int -> IO ElmModel
-undoneElmModel' user = do
+initialize' :: Initial -> IO ElmModel
+initialize' (Initial uid) = do
     pool <- pgPool
-    tasks <- getUndoneTasks pool user
-    stdElmModel user tasks 0
+    eUs <- getUserById pool uid
+    taskAssigns <- getUndoneTaskAssigns pool uid
+    let elmUser = toElmUser . Prelude.head $ eUs
+    let elmTasks = map toElmTask taskAssigns 
+    let mDpy =  userDefaultDpy . entityVal . Prelude.head $ eUs
+    return $ ElmModel elmUser elmTasks Nothing mDpy
 
-textPostReload' :: TextPost -> IO ElmModel
+
+getUndoneElmTasks :: Int -> IO [ElmTask]
+getUndoneElmTasks user = do
+    pool <- pgPool
+    taskAssigns <- getUndoneTaskAssigns pool user
+    return $ map toElmTask taskAssigns 
+
+textPostReload' :: TextPost -> IO [ElmTask]
 textPostReload' (TextPost u text) = do
     mk <- maybeMaxTaskIdKey
     let max = case mk of
@@ -214,27 +250,26 @@ textPostReload' (TextPost u text) = do
             Just k  -> idFromKey k
     let shift = max + 2  -- TODO 
     insTasks . (shiftTaskNodes shift) . tasksFromText $ text
-    undoneElmModel' u
+    getUndoneElmTasks u
 
-doneTasksReload' :: DoneTasks -> IO ElmModel
+doneTasksReload' :: DoneTasks -> IO [ElmTask]
 doneTasksReload' (DoneTasks u ids) = do
     pool <- pgPool
     setTasksDone pool ids
-    undoneElmModel' u
+    getUndoneElmTasks u
 
 switchStar' :: SwitchStar -> IO ()
-switchStar' (SwitchStar u id) = do
+switchStar' (SwitchStar id) = do
     pool <- pgPool
     setStarSwitched pool id
 
-focusTask' :: FocusTask -> IO ElmModel
-focusTask' (FocusTask user task) = do
+focusTask' :: FocusTask -> IO [ElmTask]
+focusTask' (FocusTask id) = do
     pool        <- pgPool
-    beforeMe    <- getBeforeMe  pool task
-    me          <- getMe        pool task
-    afterMe     <- getAfterMe   pool task
-    let aroundMe = beforeMe ++ me ++ afterMe
-    stdElmModel user aroundMe (Prelude.length beforeMe)
+    beforeMe    <- getBeforeMe  pool id
+    me          <- getMe        pool id
+    afterMe     <- getAfterMe   pool id
+    return . map toElmTask $ Prelude.concat [beforeMe, me, afterMe]
 
 
 
@@ -396,8 +431,8 @@ markUp'' sbj obj is mem
     | otherwise             = markUp'' sbj (obj - 1) is mem
 
 aAttr :: Parser Attr
-aAttr = AttrTaskId    <$  char '@'  <*> decimal
-    <|> IsDone        <$> char '#'
+aAttr = AttrTaskId    <$  char '#'  <*> decimal
+    <|> IsDone        <$> char '%'
     <|> IsStarred     <$> char '*'
     <|> Link          <$  char '&'  <*> takeText
     <|> StartDate     <$> decimal   <*  char '/' <*> decimal <* char '/' <*> decimal <* char '-'
@@ -446,7 +481,7 @@ keyMatch (a:as) (b:bs) ah = case a of
         keyMatch as (b:bs) ah
 
 spanLink'' :: (Node, Node) -> (Node, Node) -> Graph -> Graph
-spanLink'' (_,t) (i,_) g = ((t,i), [AttrTaskId 0, IsDone '#', Title "LINKER"]) : g
+spanLink'' (_,t) (i,_) g = ((t,i), [AttrTaskId 0, IsDone '%', Title "LINKER"]) : g
 
     --     headLs = map (\(, ) g
     --         map
@@ -529,42 +564,42 @@ spanLink'' (_,t) (i,_) g = ((t,i), [AttrTaskId 0, IsDone '#', Title "LINKER"]) :
 
 --
 
-idFromEntity :: ToBackendKey SqlBackend record => Entity record -> Integer
+idFromEntity :: (Integral a, ToBackendKey SqlBackend record) => Entity record -> a
 idFromEntity = idFromKey . entityKey
 
-idFromKey :: ToBackendKey SqlBackend record => Key record -> Integer
+idFromKey :: (Integral a, ToBackendKey SqlBackend record) => Key record -> a
 idFromKey = fromIntegral . fromSqlKey
 
-
-
-toElmTask :: UTCTime -> Entity Task -> ElmTask
-toElmTask now e =
+toElmTask :: (Entity Task, Q.Value Text) -> ElmTask
+toElmTask (e, u) =
     let
-        ei  = idFromEntity e
+        i  = idFromEntity e
         Task _ _ d s ml ms md mw mt _ = entityVal e
-        ed  = d
-        es  = s
-        emt = mt
-        eml  = ml
         ems = toElmTime ms
         emd = toElmTime md
-        emw  = mw
-        emus = secUntil now ms
-        emud = secUntil now md
+        eu  = Q.unValue u
     in
-        ElmTask ei ed es emt eml ems emd emw emus emud
+        ElmTask i d s mt ml ems emd mw eu
 
-toElmTime :: Maybe UTCTime -> Maybe Text
+toElmUser :: Entity User -> ElmUser
+toElmUser e =
+    let
+        i  = idFromEntity e
+        User n a _ _ _ _ = entityVal e
+    in
+        ElmUser i n a
+
+toElmTime :: Maybe UTCTime -> Maybe Integer
 toElmTime Nothing = 
     Nothing
 toElmTime (Just t) =
-    Just . pack $ formatTime defaultTimeLocale "%0Y/%m/%d %H:%M'%S" t
+    Just (floor $ utcTimeToPOSIXSeconds t)
 
-secUntil :: UTCTime -> Maybe UTCTime -> Maybe Integer
-secUntil now Nothing =
-    Nothing
-secUntil now (Just t) =
-    Just . floor $ diffUTCTime t now
+-- secUntil :: UTCTime -> Maybe UTCTime -> Maybe Integer
+-- secUntil now Nothing =
+--     Nothing
+-- secUntil now (Just t) =
+--     Just . floor $ diffUTCTime t now
 
 -- dot = case ms of
 --     Just s ->
@@ -605,3 +640,4 @@ shiftTaskNodes sh ts =
 
 uToE :: UTCTime -> EpochTime
 uToE = CTime . truncate . utcTimeToPOSIXSeconds
+

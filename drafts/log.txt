@@ -29,3 +29,35 @@ stack build --pedantic はそのショートカットです。
 しかも2回目以降の登録を考慮していなかったため、shiftNodesが抜けている
 2019-12-23 15:42:19
 
+-- TODO
+Albert "E=mc^2"
+<- Science Team "Prove some equation"
+<- Pisces Dep. "Say something crazy"
+<- Zodiac Inc. "Do something amazing"
+2019-12-23 20:56:22
+
+-- TODO
+You do not have permission to edit BOSS tasks.
+You do not have permission to view COMPANY tasks.
+2019-12-24 00:33:03
+
+insUser $ User (pack "dev") True (Just 730) Nothing Nothing Nothing
+insUser $ User (pack "satun") True (Just 1460) Nothing Nothing Nothing
+insUser $ User (pack "chiro") False (Just 2920) Nothing Nothing Nothing
+2019-12-24 15:23:28
+
+西暦3000年とかで日課（繰り返しのあるタスク）をシミュレートできる
+同様に年課、四半期課、月課、週課、時課、分課もシミュレートできる
+たとえば
+「年末年始の恒例の動きを3100/12-3101/01にテンプレとして書いておき、毎年コピーして編集する」
+    （dpyのショートカットキーと対応させる、たとえば日課なら3500年代を使うと覚えやすい）
+「社員番号4桁に10000を加えた年を空想に使って良い」
+といった使い方ができる
+-- TODO
+現状だとstartやdeadlineを設定していないリアルなタスクを下へ追いやってしまい邪魔...
+シミュレートは別アカウントでやるべきか
+「社員番号4桁に10000を加えたものをサブ垢にして良い」
+2019-12-24 16:38:56
+
+Problem with the value at json[1]: { "elmTaskId": 8, "elmTaskIsDone": false, "elmTaskIsStarred": false, "elmTaskTitle": "A task to complete by the end of 2020", "elmTaskLink": null, "elmTaskStart": null, "elmTaskDeadline": 1609372800, "elmTaskWeight": null, "elmTaskUser": "dev" } Json.Decode.oneOf failed in the following 2 ways: (1) Json.Decode.oneOf failed in the following 2 ways: (1) Problem with the given value: 1609372800 Expecting null (2) Problem with the given value: 1609372800 Expecting a STRING (2) Problem with the given value: 1609372800 Expecting null
+2019-12-24 17:34:46
