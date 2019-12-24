@@ -61,3 +61,6 @@ insUser $ User (pack "chiro") False (Just 2920) Nothing Nothing Nothing
 
 Problem with the value at json[1]: { "elmTaskId": 8, "elmTaskIsDone": false, "elmTaskIsStarred": false, "elmTaskTitle": "A task to complete by the end of 2020", "elmTaskLink": null, "elmTaskStart": null, "elmTaskDeadline": 1609372800, "elmTaskWeight": null, "elmTaskUser": "dev" } Json.Decode.oneOf failed in the following 2 ways: (1) Json.Decode.oneOf failed in the following 2 ways: (1) Problem with the given value: 1609372800 Expecting null (2) Problem with the given value: 1609372800 Expecting a STRING (2) Problem with the given value: 1609372800 Expecting null
 2019-12-24 17:34:46
+
+Delegated time handling to Elm and, in parallel, divided Model into Model and SubModel.
+TextPost issues remain.

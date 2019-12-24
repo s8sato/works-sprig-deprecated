@@ -139,7 +139,7 @@ button, input, select, textarea {
     border-radius: 6px;
 }
 
-.middleCmdBox {
+.messageBox {
     flex-grow: 1;
     height: inherit;
     display: flex;
@@ -253,8 +253,8 @@ button, input, select, textarea {
     height: inherit;
 }
 
-#mainBody .done {
-    width : 30px;
+#mainBody .assign {
+    width : 84px;
     height: inherit;
 }
 

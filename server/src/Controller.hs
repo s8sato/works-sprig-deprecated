@@ -76,14 +76,14 @@ import qualified Database.Esqueleto as Q (Value (..))
 
 
 
-yeaPerY = 1
-quaPerY = 4
-monPerY = 12
-weePerY = 52
-dayPerY = 365
-houPerY = 8760
-minPerY = 525600
-secPerY = 31536000
+-- yeaPerY = 1
+-- quaPerY = 4
+-- monPerY = 12
+-- weePerY = 52
+-- dayPerY = 365
+-- houPerY = 8760
+-- minPerY = 525600
+-- secPerY = 31536000
 
 defaultUser = toSqlKey 1 :: UserId
 
@@ -120,16 +120,15 @@ data ElmTask = ElmTask
 
 $(deriveJSON defaultOptions ''ElmTask)
 
-data ElmModel = ElmModel
-    { elmModelUser :: ElmUser
-    , elmModelTasks :: [ElmTask]
-    , elmModelInputText :: Maybe Text
-    , elmModelDpy :: Maybe Int
-    -- , elmModelAsOfTime :: Maybe Text
-    -- , elmModelIndicator :: Int
+data ElmSubModel = ElmSubModel
+    { elmSubModelUser :: ElmUser
+    , elmSubModelTasks :: [ElmTask]
+    , elmSubModelInputText :: Maybe Text
+    , elmSubModelDpy :: Maybe Int
+    , elmSubModelMessage :: Maybe Text
     }
 
-$(deriveJSON defaultOptions ''ElmModel)
+$(deriveJSON defaultOptions ''ElmSubModel)
 
 data Initial = Initial
     { initialUser :: Int
@@ -169,8 +168,8 @@ $(deriveJSON defaultOptions ''FocusTask)
 
 
 
-type API =  "dev"   :> "model"  :> Capture "userId" Int         :> Get  '[JSON] ElmModel
-    :<|>    "tasks" :> "init"   :> ReqBody '[JSON] Initial      :> Post '[JSON] ElmModel
+type API =  "dev"   :> "sModel" :> Capture "userId" Int         :> Get  '[JSON] ElmSubModel
+    :<|>    "tasks" :> "init"   :> ReqBody '[JSON] Initial      :> Post '[JSON] ElmSubModel
     :<|>    "tasks" :> "post"   :> ReqBody '[JSON] TextPost     :> Post '[JSON] [ElmTask]
     :<|>    "tasks" :> "done"   :> ReqBody '[JSON] DoneTasks    :> Post '[JSON] [ElmTask]
     :<|>    "tasks" :> "star"   :> ReqBody '[JSON] SwitchStar   :> Post '[JSON] ()
@@ -195,16 +194,16 @@ api :: Proxy API
 api = Proxy
 
 server :: Server API
-server = devModel
+server = devSubModel
     :<|> initialize
     :<|> textPostReload
     :<|> doneTasksReload
     :<|> switchStar
     :<|> focusTask
     where
-        devModel :: Int -> Handler ElmModel
-        devModel = liftIO . devModel'
-        initialize :: Initial -> Handler ElmModel
+        devSubModel :: Int -> Handler ElmSubModel
+        devSubModel = liftIO . devSubModel'
+        initialize :: Initial -> Handler ElmSubModel
         initialize = liftIO . initialize'
         textPostReload :: TextPost -> Handler [ElmTask]
         textPostReload = liftIO . textPostReload'
@@ -215,17 +214,17 @@ server = devModel
         focusTask :: FocusTask -> Handler [ElmTask]
         focusTask = liftIO . focusTask'
 
-devModel' :: Int -> IO ElmModel
-devModel' uid = do
+devSubModel' :: Int -> IO ElmSubModel
+devSubModel' uid = do
     pool <- pgPool
     eUs <- getUserById pool uid
     taskAssigns <- getUndoneTaskAssigns pool uid
     let elmUser = toElmUser . Prelude.head $ eUs
     let elmTasks = map toElmTask taskAssigns 
     let mDpy =  userDefaultDpy . entityVal . Prelude.head $ eUs
-    return $ ElmModel elmUser elmTasks Nothing mDpy
+    return $ ElmSubModel elmUser elmTasks Nothing mDpy Nothing
 
-initialize' :: Initial -> IO ElmModel
+initialize' :: Initial -> IO ElmSubModel
 initialize' (Initial uid) = do
     pool <- pgPool
     eUs <- getUserById pool uid
@@ -233,7 +232,7 @@ initialize' (Initial uid) = do
     let elmUser = toElmUser . Prelude.head $ eUs
     let elmTasks = map toElmTask taskAssigns 
     let mDpy =  userDefaultDpy . entityVal . Prelude.head $ eUs
-    return $ ElmModel elmUser elmTasks Nothing mDpy
+    return $ ElmSubModel elmUser elmTasks Nothing mDpy Nothing
 
 
 getUndoneElmTasks :: Int -> IO [ElmTask]

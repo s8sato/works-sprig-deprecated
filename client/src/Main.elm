@@ -10,6 +10,9 @@ import Http
 import Json.Decode as Decode exposing (Decoder, bool, float, int, list, nullable, string)
 import Json.Decode.Pipeline exposing (optional, required)
 import Json.Encode as Encode
+import Maybe
+import Task
+import Time exposing (Month(..), Posix, Weekday(..), Zone, millisToPosix, posixToMillis)
 
 
 main : Program () Model Msg
@@ -27,13 +30,19 @@ main =
 
 
 type alias Model =
+    { sub : SubModel
+    , zone : Zone
+    , asOfTime : Posix
+    , indicator : Int
+    }
+
+
+type alias SubModel =
     { user : User
     , tasks : List Task
     , inputText : Maybe String
-    , asOfTime : Maybe String
-    , dpy : Int
-    , indicator : Int
-    , errorMessage : Maybe String
+    , dpy : Maybe Int
+    , message : Maybe String
     }
 
 
@@ -41,10 +50,6 @@ type alias User =
     { id : Int
     , name : String
     , admin : Bool
-
-    -- , defaultDpy : Maybe Int
-    -- , lookUp : Maybe Int
-    -- , lookDown : Maybe Int
     }
 
 
@@ -54,26 +59,31 @@ type alias Task =
     , isStarred : Bool
     , title : Maybe String
     , link : Maybe String
-    , start : Maybe String -- "YYYY/MM/DD HH:MM'SS"
-    , deadline : Maybe String
+    , start : Maybe Int -- POSIX seconds
+    , deadline : Maybe Int
     , weight : Maybe Float
-    , secUntilStart : Maybe Int
-    , secUntilDeadline : Maybe Int
+    , user : String
     , isSelected : Bool
     }
 
 
 init : () -> ( Model, Cmd Msg )
 init _ =
-    ( { user = User 1 "no_one" True
-      , tasks = []
-      , inputText = Nothing
-      , asOfTime = Nothing
-      , dpy = dayPerY
+    let
+        initSub =
+            { user = User 1 "no_one" False
+            , tasks = []
+            , inputText = Nothing
+            , dpy = Nothing
+            , message = Nothing
+            }
+    in
+    ( { sub = initSub
+      , zone = Time.utc
+      , asOfTime = Time.millisToPosix 0
       , indicator = 0
-      , errorMessage = Nothing
       }
-    , Cmd.none
+    , Task.perform AdjustTimeZone Time.here
     )
 
 
@@ -117,28 +127,21 @@ secPerY =
     31536000
 
 
-type Direction
-    = Asc
-    | Dsc
-
-
 
 -- UPDATE
 
 
 type Msg
-    = ModelReceived (Result Http.Error Model)
+    = SubModelReceived (Result Http.Error SubModel)
     | TasksReceived (Result Http.Error (List Task))
     | CharacterKey Char
     | ControlKey String
     | SwitchSelect Int
     | Input String
     | TextPost
-    | DoneTasks
     | StarSwitched Int (Result Http.Error ())
-    | FocusTask Int
-    | Edit (List Task)
     | SwitchStar Int
+    | AdjustTimeZone Time.Zone
 
 
 
@@ -153,33 +156,32 @@ type Msg
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        -- SendHttpRequest ->
-        --     ( model, httpCommand )
-        TasksReceived (Ok newTasks) ->
+        SubModelReceived (Ok newSubModel) ->
             ( { model
-                | tasks = newTasks
+                | sub = newSubModel
+              }
+            , Cmd.none
+            )
+
+        SubModelReceived (Err httpError) ->
+            ( messageEH model httpError, Cmd.none )
+
+        TasksReceived (Ok newTasks) ->
+            ( let
+                sub =
+                    model.sub
+
+                newSub =
+                    { sub | tasks = newTasks }
+              in
+              { model
+                | sub = newSub
               }
             , Cmd.none
             )
 
         TasksReceived (Err httpError) ->
-            ( { model
-                | errorMessage = Just (buildErrorMessage httpError)
-              }
-            , Cmd.none
-            )
-
-        ModelReceived (Ok newModel) ->
-            ( newModel
-            , Cmd.none
-            )
-
-        ModelReceived (Err httpError) ->
-            ( { model
-                | errorMessage = Just (buildErrorMessage httpError)
-              }
-            , Cmd.none
-            )
+            ( messageEH model httpError, Cmd.none )
 
         CharacterKey 'k' ->
             ( { model
@@ -196,7 +198,7 @@ update msg model =
         CharacterKey 'j' ->
             ( { model
                 | indicator =
-                    if model.indicator < List.length model.tasks - 1 then
+                    if model.indicator < List.length model.sub.tasks - 1 then
                         model.indicator + 1
 
                     else
@@ -206,7 +208,7 @@ update msg model =
             )
 
         CharacterKey 'e' ->
-            ( model, doneTasks model )
+            ( model, doneTasks model.sub )
 
         -- ( { model
         --     | tasks =
@@ -225,136 +227,194 @@ update msg model =
         -- APIに送る：taskId
         -- APIからもらう：[Task]
         CharacterKey 'f' ->
-            ( model, focusTask model model.indicator )
+            ( model, focusTask model.sub model.indicator )
 
         -- APIに送る：[taskId]
         -- APIからもらう：String
         CharacterKey 'c' ->
+            -- TODO
             ( model, Cmd.none )
 
         CharacterKey 's' ->
-            ( model, switchStar model model.indicator )
+            ( model, switchStar model.sub model.indicator )
 
         CharacterKey 'x' ->
-            switchSelect model model.indicator
+            ( switchSelect model model.indicator, Cmd.none )
 
         CharacterKey '1' ->
-            ( { model | dpy = yeaPerY }, Cmd.none )
+            ( changeDpy model yeaPerY, Cmd.none )
 
         CharacterKey '2' ->
-            ( { model | dpy = quaPerY }, Cmd.none )
+            ( changeDpy model quaPerY, Cmd.none )
 
         CharacterKey '3' ->
-            ( { model | dpy = monPerY }, Cmd.none )
+            ( changeDpy model monPerY, Cmd.none )
 
         CharacterKey '4' ->
-            ( { model | dpy = weePerY }, Cmd.none )
+            ( changeDpy model weePerY, Cmd.none )
 
         CharacterKey '5' ->
-            ( { model | dpy = dayPerY }, Cmd.none )
+            ( changeDpy model dayPerY, Cmd.none )
 
         CharacterKey '6' ->
-            ( { model | dpy = houPerY }, Cmd.none )
+            ( changeDpy model houPerY, Cmd.none )
 
         CharacterKey '7' ->
-            ( { model | dpy = minPerY }, Cmd.none )
+            ( changeDpy model minPerY, Cmd.none )
 
         CharacterKey '8' ->
-            ( { model | dpy = secPerY }, Cmd.none )
+            ( changeDpy model secPerY, Cmd.none )
 
         CharacterKey 'a' ->
+            -- TODO
             ( model, Cmd.none )
 
         CharacterKey 't' ->
+            -- TODO
             ( model, Cmd.none )
 
         CharacterKey 'h' ->
+            -- TODO
             ( model, Cmd.none )
 
         CharacterKey 'b' ->
+            -- TODO
             ( model, Cmd.none )
 
         CharacterKey 'p' ->
+            -- TODO
             ( model, Cmd.none )
 
         CharacterKey 'r' ->
+            -- TODO
             ( model, Cmd.none )
 
         CharacterKey 'i' ->
-            ( { model
+            ( inverseSelect model, Cmd.none )
+
+        CharacterKey 'l' ->
+            -- TODO
+            ( model, Cmd.none )
+
+        CharacterKey '#' ->
+            -- Delete selected tasks?  -- TODO
+            ( model, Cmd.none )
+
+        CharacterKey _ ->
+            -- TODO
+            ( model, initialize model.sub )
+
+        ControlKey _ ->
+            -- TODO
+            ( model, Cmd.none )
+
+        TextPost ->
+            ( model, textPost model.sub )
+
+        StarSwitched i (Ok _) ->
+            ( starSwitched model i, Cmd.none )
+
+        StarSwitched _ (Err httpError) ->
+            ( messageEH model httpError, Cmd.none )
+
+        SwitchStar index ->
+            ( model, switchStar model.sub index )
+
+        SwitchSelect index ->
+            ( switchSelect model index, Cmd.none )
+
+        Input newInput ->
+            ( let
+                sub =
+                    model.sub
+
+                newSub =
+                    { sub | inputText = Just newInput }
+              in
+              { model | sub = newSub }
+            , Cmd.none
+            )
+
+        AdjustTimeZone newZone ->
+            ( { model | zone = newZone }, Cmd.none )
+
+
+starSwitched : Model -> Int -> Model
+starSwitched model i =
+    case Array.get i (Array.fromList model.sub.tasks) of
+        Nothing ->
+            model
+
+        Just task ->
+            let
+                newTask =
+                    { task | isStarred = not task.isStarred }
+
+                sub =
+                    model.sub
+
+                newSub =
+                    { sub
+                        | tasks =
+                            Array.toList <|
+                                Array.set i newTask (Array.fromList model.sub.tasks)
+                    }
+            in
+            { model
+                | sub = newSub
+            }
+
+
+inverseSelect : Model -> Model
+inverseSelect model =
+    let
+        sub =
+            model.sub
+
+        newSub =
+            { sub
                 | tasks =
                     List.map
                         (\task ->
                             { task | isSelected = not task.isSelected }
                         )
-                        model.tasks
-              }
-            , Cmd.none
-            )
-
-        CharacterKey 'l' ->
-            ( model, Cmd.none )
-
-        CharacterKey '#' ->
-            -- Delete selected tasks
-            ( model, Cmd.none )
-
-        CharacterKey _ ->
-            ( model, initialize model )
-
-        ControlKey _ ->
-            ( model, Cmd.none )
-
-        TextPost ->
-            ( model, textPost model )
-
-        DoneTasks ->
-            ( model, doneTasks model )
-
-        StarSwitched i (Ok _) ->
-            ( case Array.get i (Array.fromList model.tasks) of
-                Nothing ->
-                    model
-
-                Just task ->
-                    let
-                        newTask =
-                            { task | isStarred = not task.isStarred }
-                    in
-                    { model
-                        | tasks =
-                            Array.toList <|
-                                Array.set i newTask (Array.fromList model.tasks)
-                    }
-            , Cmd.none
-            )
-
-        StarSwitched _ (Err httpError) ->
-            ( { model
-                | errorMessage = Just (buildErrorMessage httpError)
-              }
-            , Cmd.none
-            )
-
-        FocusTask index ->
-            ( model, focusTask model index )
-
-        Edit tasks ->
-            ( model, Cmd.none )
-
-        SwitchStar index ->
-            ( model, switchStar model index )
-
-        SwitchSelect index ->
-            switchSelect model index
-
-        Input newInput ->
-            ( { model | inputText = Just newInput }, Cmd.none )
+                        model.sub.tasks
+            }
+    in
+    { model
+        | sub = newSub
+    }
 
 
-switchSelect : Model -> Int -> ( Model, Cmd Msg )
+messageEH : Model -> Http.Error -> Model
+messageEH model httpError =
+    let
+        sub =
+            model.sub
+
+        newSub =
+            { sub | message = Just (buildMessageEH httpError) }
+    in
+    { model
+        | sub = newSub
+    }
+
+
+changeDpy : Model -> Int -> Model
+changeDpy model dpy =
+    let
+        sub =
+            model.sub
+
+        newSub =
+            { sub | dpy = Just dpy }
+    in
+    { model | sub = newSub }
+
+
+switchSelect : Model -> Int -> Model
 switchSelect model i =
-    ( case Array.get i (Array.fromList model.tasks) of
+    case Array.get i (Array.fromList model.sub.tasks) of
         Nothing ->
             model
 
@@ -362,14 +422,20 @@ switchSelect model i =
             let
                 newTask =
                     { task | isSelected = not task.isSelected }
+
+                sub =
+                    model.sub
+
+                newSub =
+                    { sub
+                        | tasks =
+                            Array.toList <|
+                                Array.set i newTask (Array.fromList model.sub.tasks)
+                    }
             in
             { model
-                | tasks =
-                    Array.toList <|
-                        Array.set i newTask (Array.fromList model.tasks)
+                | sub = newSub
             }
-    , Cmd.none
-    )
 
 
 
@@ -381,16 +447,16 @@ switchSelect model i =
 --         }
 
 
-initialize : Model -> Cmd Msg
+initialize : SubModel -> Cmd Msg
 initialize m =
     Http.post
         { url = "http://localhost:8080/tasks/init"
         , body = Http.jsonBody (initialEncoder m)
-        , expect = Http.expectJson ModelReceived modelDecoder
+        , expect = Http.expectJson SubModelReceived subModelDecoder
         }
 
 
-textPost : Model -> Cmd Msg
+textPost : SubModel -> Cmd Msg
 textPost m =
     Http.post
         { url = "http://localhost:8080/tasks/post"
@@ -399,7 +465,7 @@ textPost m =
         }
 
 
-doneTasks : Model -> Cmd Msg
+doneTasks : SubModel -> Cmd Msg
 doneTasks m =
     Http.post
         { url = "http://localhost:8080/tasks/done"
@@ -408,7 +474,7 @@ doneTasks m =
         }
 
 
-switchStar : Model -> Int -> Cmd Msg
+switchStar : SubModel -> Int -> Cmd Msg
 switchStar m i =
     Http.post
         { url = "http://localhost:8080/tasks/star"
@@ -417,7 +483,7 @@ switchStar m i =
         }
 
 
-focusTask : Model -> Int -> Cmd Msg
+focusTask : SubModel -> Int -> Cmd Msg
 focusTask m i =
     Http.post
         { url = "http://localhost:8080/tasks/focus"
@@ -426,11 +492,11 @@ focusTask m i =
         }
 
 
-buildErrorMessage : Http.Error -> String
-buildErrorMessage httpError =
+buildMessageEH : Http.Error -> String
+buildMessageEH httpError =
     case httpError of
-        Http.BadUrl message ->
-            message
+        Http.BadUrl errorMessage ->
+            errorMessage
 
         Http.Timeout ->
             "Server is taking too long to respond. Please try again later."
@@ -441,18 +507,18 @@ buildErrorMessage httpError =
         Http.BadStatus statusCode ->
             "Request failed with status code: " ++ String.fromInt statusCode
 
-        Http.BadBody message ->
-            message
+        Http.BadBody errorMessage ->
+            errorMessage
 
 
-initialEncoder : Model -> Encode.Value
+initialEncoder : SubModel -> Encode.Value
 initialEncoder m =
     Encode.object
         [ ( "initialUser", Encode.int m.user.id )
         ]
 
 
-textPostEncoder : Model -> Encode.Value
+textPostEncoder : SubModel -> Encode.Value
 textPostEncoder m =
     let
         content =
@@ -469,7 +535,7 @@ textPostEncoder m =
         ]
 
 
-doneTasksEncoder : Model -> Encode.Value
+doneTasksEncoder : SubModel -> Encode.Value
 doneTasksEncoder m =
     let
         ids =
@@ -481,7 +547,7 @@ doneTasksEncoder m =
         ]
 
 
-switchStarEncoder : Model -> Int -> Encode.Value
+switchStarEncoder : SubModel -> Int -> Encode.Value
 switchStarEncoder m i =
     let
         taskId =
@@ -497,7 +563,7 @@ switchStarEncoder m i =
         ]
 
 
-focusTaskEncoder : Model -> Int -> Encode.Value
+focusTaskEncoder : SubModel -> Int -> Encode.Value
 focusTaskEncoder m i =
     let
         taskId =
@@ -513,16 +579,14 @@ focusTaskEncoder m i =
         ]
 
 
-modelDecoder : Decoder Model
-modelDecoder =
-    Decode.succeed Model
-        |> required "elmModelUser" userDecoder
-        |> required "elmModelTasks" (list taskDecoder)
-        |> optional "elmModelInputText" (nullable string) Nothing
-        |> optional "elmModelAsOfTime" (nullable string) Nothing
-        |> optional "elmModelDpy" int dayPerY
-        |> optional "elmModelIndicator" int 0
-        |> optional "elmModelErrorMessage" (nullable string) Nothing
+subModelDecoder : Decoder SubModel
+subModelDecoder =
+    Decode.succeed SubModel
+        |> required "elmSubModelUser" userDecoder
+        |> required "elmSubModelTasks" (list taskDecoder)
+        |> optional "elmSubModelInputText" (nullable string) Nothing
+        |> optional "elmSubModelDpy" (nullable int) Nothing
+        |> optional "elmSubModelMessage" (nullable string) Nothing
 
 
 userDecoder : Decoder User
@@ -552,11 +616,12 @@ taskDecoder =
         |> required "elmTaskIsStarred" bool
         |> optional "elmTaskTitle" (nullable string) Nothing
         |> optional "elmTaskLink" (nullable string) Nothing
-        |> optional "elmTaskStart" (nullable string) Nothing
-        |> optional "elmTaskDeadline" (nullable string) Nothing
+        |> optional "elmTaskStart" (nullable int) Nothing
+        |> optional "elmTaskDeadline" (nullable int) Nothing
         |> optional "elmTaskWeight" (nullable float) Nothing
-        |> optional "elmTaskSecUntilStart" (nullable int) Nothing
-        |> optional "elmTaskSecUntilDeadline" (nullable int) Nothing
+        |> required "elmTaskUser" string
+        -- |> optional "elmTaskSecUntilStart" (nullable int) Nothing
+        -- |> optional "elmTaskSecUntilDeadline" (nullable int) Nothing
         |> optional "elmTaskIsSelected" bool False
 
 
@@ -580,7 +645,7 @@ view model =
             , div [ id "submission" ]
                 [ div [ id "submitButton", onClick TextPost ] [] ]
             , div [ id "account" ]
-                [ text model.user.name ]
+                [ text model.sub.user.name ]
             ]
         , div [ id "body" ]
             [ div [ id "lSideBar" ]
@@ -596,19 +661,19 @@ view model =
                     [ div [ id "selectionCmdBox" ]
                         [ div [ id "inverseSelect", onClick (CharacterKey 'i') ] []
                         , div [ id "eliminate", onClick (CharacterKey 'e') ] []
-                        , div [ id "create" ] []
-                        , div [ id "reschedule" ] []
-                        , div [ id "linksOpen" ] []
-                        , div [ id "criticalPath" ] []
+                        , div [ id "create", onClick (CharacterKey 'c') ] []
+                        , div [ id "reschedule", onClick (CharacterKey 'r') ] []
+                        , div [ id "linksOpen", onClick (CharacterKey 'l') ] []
+                        , div [ id "criticalPath", onClick (CharacterKey 'p') ] []
                         ]
-                    , div [ class "middleCmdBox" ]
-                        [ text (em model) ]
+                    , div [ class "messageBox" ]
+                        [ text (viewMessage model.sub) ]
                     , div [ id "viewCmdBox" ]
                         [ div [ id "focus", onClick (CharacterKey 'f') ] []
-                        , div [ id "archives" ] []
-                        , div [ id "trunk" ] []
-                        , div [ id "buds" ] []
-                        , div [ id "home" ] []
+                        , div [ id "archives", onClick (CharacterKey 'a') ] []
+                        , div [ id "trunk", onClick (CharacterKey 't') ] []
+                        , div [ id "buds", onClick (CharacterKey 'b') ] []
+                        , div [ id "home", onClick (CharacterKey 'h') ] []
                         ]
                     ]
                 , div [ id "mainBody" ]
@@ -616,7 +681,7 @@ view model =
                     , div [ id "tasks" ]
                         (List.map
                             (viewTask model)
-                            (List.indexedMap Tuple.pair model.tasks)
+                            (List.indexedMap Tuple.pair model.sub.tasks)
                         )
                     ]
                 ]
@@ -626,11 +691,11 @@ view model =
         ]
 
 
-em : Model -> String
-em model =
-    case model.errorMessage of
-        Just e ->
-            e
+viewMessage : SubModel -> String
+viewMessage m =
+    case m.message of
+        Just me ->
+            me
 
         Nothing ->
             ""
@@ -646,15 +711,17 @@ viewTaskHeader m =
         , div [ class "bar" ]
             [ text
                 ("As of "
-                    ++ (case m.asOfTime of
+                    ++ strFromPosix m.zone m.asOfTime
+                    ++ ", "
+                    ++ (case m.sub.dpy of
                             Nothing ->
-                                "UNKNOWN TIME"
+                                "-"
 
-                            Just t ->
-                                t
+                            Just d ->
+                                String.fromInt d
                        )
+                    ++ " dpy"
                 )
-            , text (", " ++ String.fromInt m.dpy ++ " dpy")
             ]
         , div [ class "deadline" ] []
         , div [ class "weight" ] []
@@ -663,11 +730,11 @@ viewTaskHeader m =
 
 
 viewTask : Model -> ( Int, Task ) -> Html Msg
-viewTask model ( idx, task ) =
+viewTask m ( idx, task ) =
     div
         [ class "task"
         , style "background-color"
-            (if idx == model.indicator then
+            (if idx == m.indicator then
                 "#C2DBFF"
 
              else if task.isSelected then
@@ -712,56 +779,93 @@ viewTask model ( idx, task ) =
                     div [] []
             ]
         , div [ class "start" ]
-            [ text (viewTimeByDpy task.start model.dpy) ]
+            [ text (viewTimeByDpy m.sub.dpy m.zone task.start) ]
         , div [ class "bar" ]
-            [ text (barString model.dpy task.weight task.secUntilStart task.secUntilDeadline) ]
+            [ text (barString m task) ]
         , div [ class "deadline" ]
-            [ text (viewTimeByDpy task.deadline model.dpy) ]
+            [ text (viewTimeByDpy m.sub.dpy m.zone task.deadline) ]
         , div [ class "weight" ]
-            [ text
-                (case task.weight of
-                    Nothing ->
-                        "-"
-
-                    Just w ->
-                        String.fromFloat w
-                )
-            ]
-        , div [ class "done" ]
-            [ if task.isDone then
-                text "DONE"
-
-              else
-                text "-"
+            [ text (viewWeight task) ]
+        , div [ class "assign" ]
+            [ text (viewAssign m.sub.user task)
             ]
         ]
 
 
-viewTimeByDpy : Maybe String -> Int -> String
-viewTimeByDpy time dpy =
-    case time of
+viewAssign : User -> Task -> String
+viewAssign u t =
+    if u.name == t.user then
+        "me"
+
+    else
+        t.user
+
+
+viewWeight : Task -> String
+viewWeight task =
+    if task.isDone then
+        "DONE"
+
+    else
+        case task.weight of
+            Nothing ->
+                "-"
+
+            Just w ->
+                String.fromFloat w
+
+
+viewTimeByDpy : Maybe Int -> Zone -> Maybe Int -> String
+viewTimeByDpy mdpy z mt =
+    case mdpy of
         Nothing ->
             "-"
 
-        Just t ->
-            -- "YYYY/MM/DD HH:MM'SS"
-            if dpy <= yeaPerY then
-                fill 7 " " <| String.left 4 t
+        Just dpy ->
+            case mt of
+                Nothing ->
+                    "-"
 
-            else if dpy <= monPerY then
-                fill 7 " " <| String.slice 2 7 t
+                Just t ->
+                    let
+                        p =
+                            t |> (*) (10 ^ 3) |> millisToPosix
 
-            else if dpy <= dayPerY then
-                fill 7 " " <| String.slice 5 10 t
+                        yea =
+                            String.fromInt <| Time.toYear z p
 
-            else if dpy <= houPerY then
-                fill 7 " " <| String.slice 7 14 t
+                        mon =
+                            strFromMonth <| Time.toMonth z p
 
-            else if dpy <= minPerY then
-                fill 7 " " <| String.slice 11 16 t
+                        day =
+                            String.fromInt <| Time.toDay z p
 
-            else
-                fill 7 " " <| String.right 5 t
+                        hou =
+                            String.fromInt <| Time.toHour z p
+
+                        min =
+                            String.fromInt <| Time.toMinute z p
+
+                        sec =
+                            String.fromInt <| Time.toSecond z p
+                    in
+                    if dpy <= yeaPerY then
+                        yea
+
+                    else if dpy <= monPerY then
+                        String.right 2 yea ++ "/" ++ mon
+
+                    else if dpy <= dayPerY then
+                        mon ++ "/" ++ day
+
+                    else if dpy <= houPerY then
+                        "/" ++ day ++ " " ++ hou ++ ":"
+
+                    else if dpy <= minPerY then
+                        hou ++ ":" ++ min
+
+                    else
+                        min ++ "'" ++ sec
 
 
 fill : Int -> String -> String -> String
@@ -769,46 +873,63 @@ fill n putty target =
     String.left n <| target ++ String.repeat n putty
 
 
-barString : Int -> Maybe Float -> Maybe Int -> Maybe Int -> String
-barString dpy weight secUS secUD =
+barString : Model -> Task -> String
+barString model task =
     let
-        dot =
-            case secUS of
-                Nothing ->
-                    0
+        secUS =
+            secUntil (.asOfTime model) (.start task)
 
-                Just s ->
-                    dotsFromSec dpy s
+        secUD =
+            secUntil (.asOfTime model) (.deadline task)
+    in
+    barString_ model.sub.dpy task.weight secUS secUD
 
-        sha =
-            case weight of
-                Nothing ->
-                    0
 
-                Just w ->
-                    case secFromWeight w of
-                        0 ->
+barString_ : Maybe Int -> Maybe Float -> Maybe Int -> Maybe Int -> String
+barString_ mdpy weight secUS secUD =
+    case mdpy of
+        Nothing ->
+            "-"
+
+        Just dpy ->
+            let
+                dot =
+                    case secUS of
+                        Nothing ->
                             0
 
-                        s ->
-                            dotsFromSec dpy s + 1
+                        Just s ->
+                            dotsFromSec dpy s
 
-        exc =
-            case secUD of
-                Nothing ->
-                    -1
+                sha =
+                    case weight of
+                        Nothing ->
+                            0
 
-                Just s ->
-                    dotsFromSec dpy s
-    in
-    String.repeat dot "."
-        ++ String.repeat sha "#"
-        |> fill 48 "."
-        |> String.toList
-        |> Array.fromList
-        |> Array.set exc '!'
-        |> Array.toList
-        |> String.fromList
+                        Just w ->
+                            case secFromWeight w of
+                                0 ->
+                                    0
+
+                                s ->
+                                    dotsFromSec dpy s + 1
+
+                exc =
+                    case secUD of
+                        Nothing ->
+                            -1
+
+                        Just s ->
+                            dotsFromSec dpy s
+            in
+            String.repeat dot "."
+                ++ String.repeat sha "#"
+                |> fill 48 "."
+                |> String.toList
+                |> Array.fromList
+                |> Array.set exc '!'
+                |> Array.toList
+                |> String.fromList
 
 
 dotsFromSec : Int -> Int -> Int
@@ -821,9 +942,116 @@ secFromWeight w =
     floor (60 * 60 * w)
 
 
+secUntil : Posix -> Maybe Int -> Maybe Int
+secUntil now target =
+    let
+        nowSec =
+            now |> posixToMillis |> (//) (10 ^ 3)
+    in
+    Maybe.map ((-) nowSec) target
+
+
+strFromPosix : Zone -> Posix -> String
+strFromPosix z p =
+    let
+        yea =
+            String.fromInt <| Time.toYear z p
+
+        mon =
+            strFromMonth <| Time.toMonth z p
+
+        day =
+            String.fromInt <| Time.toDay z p
+
+        wed =
+            strFromWeekday <| Time.toWeekday z p
+
+        hou =
+            String.fromInt <| Time.toHour z p
+
+        min =
+            String.fromInt <| Time.toMinute z p
+
+        sec =
+            String.fromInt <| Time.toSecond z p
+
+        date =
+            String.join "/" [ yea, mon, day ]
+
+        time =
+            hou ++ ":" ++ min ++ "'" ++ sec
+    in
+    String.join " " [ date, wed, time ]
+
+
+strFromMonth : Month -> String
+strFromMonth month =
+    case month of
+        Jan ->
+            "1"
+
+        Feb ->
+            "2"
+
+        Mar ->
+            "3"
+
+        Apr ->
+            "4"
+
+        May ->
+            "5"
+
+        Jun ->
+            "6"
+
+        Jul ->
+            "7"
+
+        Aug ->
+            "8"
+
+        Sep ->
+            "9"
+
+        Oct ->
+            "10"
+
+        Nov ->
+            "11"
+
+        Dec ->
+            "12"
+
+
+strFromWeekday : Weekday -> String
+strFromWeekday weekday =
+    case weekday of
+        Mon ->
+            "Mon"
+
+        Tue ->
+            "Tue"
+
+        Wed ->
+            "Wed"
+
+        Thu ->
+            "Thu"
+
+        Fri ->
+            "Fri"
+
+        Sat ->
+            "Sat"
+
+        Sun ->
+            "Sun"
+
+
 textPlaceholder : String
 textPlaceholder =
-    "ENTER TASKS OR A COMMAND:\n\njump\n    step\n        hop\n\nA task to complete by the end of 2020 -2020/12/31\n    A task expected to take 300 hours $300\n        A task you can start in the beginning of 2020 2020/1/1-\n\nA time-critical task 2020/01/1- 23:59:59- $0.001 -0:0:3 -2020/1/02\n\ntrunk\n    branch Alice\n        bud \n    branch Bob\n        bud\n        bud\n\njump\n    step\n        hop2 dependent on hop1 [key\n    step\n        ]key hop1\n\n% A task to register as completed\n* A task to register as starred\n\nA linked task e.g. slack permalink &https://\n\n#777 The task with ID 777 whose weight will be updated to 30 $30\n\n#777 The complex task\n    A simpler task\n    A simpler task\n\nA new emerging task dependent on existing #777 and #888\n    #777\n    #888\n\nYOU CAN ALSO ENTER ONE OF THE FOLLOWING SLASH COMMANDS:\n\n/dpy 1\nSet default dpy (dots per year) to 1, that is, a dot represents a year.\n\n/asof 2020/01/01_12:0:0\nSet the time corresponding to the left edge of the bar to noon on January 1, 2020.\n\n/sel -t word\nSelect tasks whose title contains 'word'.\n\n/sel -s 2020/1/1_12:0:0< <2020/1/2\nSelect tasks whose start is in the afternoon of January 1, 2020.\n\n/sel -d <23:59:59\nSelect tasks whose deadline is today's end.\n\n/sel -w 30< <300\nSelect tasks whose weight is between 30 and 300 hours.\n\n/sel -arc\nSelect archived tasks.\n\n/sel -star\nSelect starred tasks.\n\n/sel -trunk\nSelect trunk, namely, tasks with no successor.\n\n/sel -buds\nSelect buds, namely, tasks with no predecessor.\n\n/sel -t word -s 2020/1/1< -d <23:59:59 -w 30< <300 -arc -star\nSpecify multiple conditions.\n\nTHANK YOU FOR READING!\n"
+    "ENTER TASKS OR A COMMAND:\n\njump\n    step\n        hop\n\nA task to complete by the end of 2020 -2020/12/31\n    A task expected to take 300 hours $300\n        A task you can start in the beginning of 2020 2020/1/1-\n\nA time-critical task 2020/01/1- 23:59:59- $0.001 -0:0:3 -2020/1/02\n\ntrunk\n    branch Alice\n        bud \n    branch Bob\n        bud\n        bud\n\njump\n    step\n        hop2 dependent on hop1 [key\n    step\n        ]key hop1\n\n% A task to register as completed\n* A task to register as starred\n\nA linked task e.g. slack permalink &https://\n\n#777 The task with ID 777 whose weight will be updated to 30 $30\n\n#777 The complex task\n    A simpler task\n    A simpler task\n\nA new emerging task dependent on existing #777 and #888\n    #777\n    #888\n\nYOU CAN ALSO ENTER ONE OF THE FOLLOWING SLASH COMMANDS:\n\n/dpy 1\nSet default dpy (dots per year) to 1, that is, a dot represents a year.\n\n/asof 2020/01/01_12:0:0\nSet the time corresponding to the left edge of the bar to noon on January 1, 2020.\n\n/sel -t word\nSelect tasks whose title contains 'word'.\n\n/sel -s 2020/1/1_12:0:0< <2020/1/2\nSelect tasks whose start is in the afternoon of January 1, 2020.\n\n/sel -d <23:59:59\nSelect tasks whose deadline is today's end.\n\n/sel -w 30< <300\nSelect tasks whose weight is between 30 and 300 hours.\n\n/sel -arc\nSelect archived tasks.\n\n/sel -star\nSelect starred tasks.\n\n/sel -trunk\nSelect trunk, namely, tasks with no successor.\n\n/sel -buds\nSelect buds, namely, tasks with no predecessor.\n\n/sel -t word -s 2020/1/1< -d <23:59:59 -w 30< <300 -arc -star\nSpecify multiple conditions.\n\n/care 1 2\nCare from parents to grandchildren, namely, watch their tasks too,\nprovided you have permission for each.\n\nCOMMANDS FOR ADMINISTRATORS:\n\n/allow albert edit sci_team\nAllow Albert to edit sci_team tasks; create, update, and perform.\nAutomatically allow to view.\n\n/ban pisces_dep view albert\nBan pisces_dep from viewing Albert tasks.\nAutomatically ban from editing.\n\n/connect zodiac_inc pisces_dep\nGive zodiac_inc and pisces_dep a parent-child relationship.\nYou can, by default,\nview direct parents and all descendants and\nedit direct children.\n\nTHANK YOU FOR READING!\n"
 
 
 

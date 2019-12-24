@@ -73,4 +73,24 @@ Select buds, namely, tasks with no predecessor.
 /sel -t word -s 2020/1/1< -d <23:59:59 -w 30< <300 -arc -star
 Specify multiple conditions.
 
+/care 1 2
+Care from parents to grandchildren, namely, watch their tasks too,
+provided you have permission for each.
+
+COMMANDS FOR ADMINISTRATORS:
+
+/allow albert edit sci_team
+Allow Albert to edit sci_team tasks; create, update, and perform.
+Automatically allow to view.
+
+/ban pisces_dep view albert
+Ban pisces_dep from viewing Albert tasks.
+Automatically ban from editing.
+
+/connect zodiac_inc pisces_dep
+Give zodiac_inc and pisces_dep a parent-child relationship.
+You can, by default,
+view direct parents and all descendants and
+edit direct children.
+
 THANK YOU FOR READING!
