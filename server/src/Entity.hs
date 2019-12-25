@@ -29,6 +29,7 @@ import Database.Persist.TH          ( mkMigrate
                                     )
 import Data.Text                    ( Text )
 import Data.Time                    ( UTCTime )
+-- import Data.Int                     ( Int64 )
 
 
 pgPool :: IO ConnectionPool
@@ -47,6 +48,7 @@ share [mkPersist sqlSettings, mkMigrate "migrateAll"] [persistLowerCase|
 User
     name                Text
     admin               Bool
+    timeZone            Int
     defaultDpy          Int Maybe
     lookUp              Int Maybe
     lookDown            Int Maybe

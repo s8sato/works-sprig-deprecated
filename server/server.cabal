@@ -16,6 +16,8 @@ cabal-version:       >=1.10
 library
   hs-source-dirs:      src
   exposed-modules:     Controller
+                     , Query
+                     , Entity
   build-depends:       base >= 4.7 && < 5
                       -- servant
                      , aeson

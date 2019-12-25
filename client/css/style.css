@@ -3,6 +3,10 @@
     box-sizing:border-box;
 } */
 
+.dev {
+    display: none !important;
+}
+
 html, body {
     margin: 0;
     height: 100%;
@@ -196,9 +200,21 @@ button, input, select, textarea {
 .task {
     width : inherit;
     height: 40px;
-    background-color: #EEF4F2;
     display :flex;
     border-bottom: #DDE5E5 solid 1px;
+    background-color: #EEF4F2;
+}
+
+.focused .indicator {
+    background-color: #769BA9;
+}
+
+.selected {
+    background-color: #C2DBFF;
+}
+
+.expired .deadline {
+    background-color: #E1F4C9;
 }
 
 .task div {
@@ -216,6 +232,11 @@ button, input, select, textarea {
 
 .task .title a {
     text-decoration: none;
+}
+
+#mainBody .indicator {
+    width : 3px;
+    height: inherit;
 }
 
 #mainBody .selection {

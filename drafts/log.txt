@@ -64,3 +64,49 @@ Problem with the value at json[1]: { "elmTaskId": 8, "elmTaskIsDone": false, "el
 
 Delegated time handling to Elm and, in parallel, divided Model into Model and SubModel.
 TextPost issues remain.
+2019-12-25 01:32:52
+
+elm-community/json-extra
+
+Persistent で `Integer` 型のフィールドを定義する方法はあるのでしょうか
+テーブル定義で Integer とすると、そんなものはないと言われるので仕方なく Int にしています
+PostgreSQLの場合、内部的には bigint で扱ってくれているようです
+ところがHaskell側にもってくると、やはり正体は Int です
+20億は超えてくる可能性があるので、Integer で定義したいのですが...
+
+`Int64` もありそうでないのです
+terminal というのはフィールド名です
+
+`Int64` とするとまた別の短いメッセージが
+
+    ? Not in scope: type constructor or class ‘Int64’
+    ? In the quasi-quotation:
+        [persistLowerCase|
+User
+    name                Text
+    admin               Bool
+    timeZone            Int
+    defaultDpy          Int Maybe
+    lookUp              Int Maybe
+    lookDown            Int Maybe
+    -- salt                Text
+    encrypted           Text Maybe
+    UniqueUser          name
+    deriving Show
+Task json
+    terminal            Int64
+    initial             Int
+...
+
+定義できたみたいです、ありがとうございます
+2019-12-25 16:58:26
+
+キー8、dpsが効かなくなった
+オーバーフローだろうか
+2019-12-25 21:00:01
+
+時計を仕込む
+2019-12-25 21:00:20
+
+Eliminated integers.
+Added getMaxNode, many Elm Task.performs.

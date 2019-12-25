@@ -12,8 +12,9 @@ import Database.Persist.Sql         ( ConnectionPool
                                     )
 import Data.Time
 
-import Control.Monad.IO.Class   (MonadIO)
+import Control.Monad.IO.Class       ( MonadIO )
 import Data.Text                    ( Text )
+-- import Data.Int                     ( Int64 )
 
 -- getTasks :: ConnectionPool -> IO [Entity Task]
 -- getTasks pool = flip runSqlPool pool $ selectList [] []
@@ -109,7 +110,7 @@ get = do
 
 
 
-setTasksDone :: ConnectionPool -> [Integer] -> IO ()
+setTasksDone :: ConnectionPool -> [Int] -> IO ()
 setTasksDone pool ids = flip runSqlPool pool $ do
     update $ \task -> do
         set
@@ -124,7 +125,7 @@ done = do
     setTasksDone pool [6]
 
 
-setStarSwitched :: ConnectionPool -> Integer -> IO ()
+setStarSwitched :: ConnectionPool -> Int -> IO ()
 setStarSwitched pool id = flip runSqlPool pool $ do
     update $ \task -> do
         let isStarred = sub_select $ from $ \task -> do
@@ -153,7 +154,7 @@ setStarSwitched pool id = flip runSqlPool pool $ do
 --             ]
 --         return (task)
 
-getMe :: ConnectionPool -> Integer -> IO [(Entity Task, Value Text)]
+getMe :: ConnectionPool -> Int -> IO [(Entity Task, Value Text)]
 getMe pool me = flip runSqlPool pool $ do
     select $ from $ \(task `InnerJoin` user) -> do
         on (task ^. TaskUser ==. user ^. UserId)
@@ -162,7 +163,7 @@ getMe pool me = flip runSqlPool pool $ do
             )
         return (task, user ^. UserName)
 
-getBeforeMe :: ConnectionPool -> Integer -> IO [(Entity Task, Value Text)]
+getBeforeMe :: ConnectionPool -> Int -> IO [(Entity Task, Value Text)]
 getBeforeMe pool me = flip runSqlPool pool $ do
     select $ from $ \(task `InnerJoin` user) -> do
         on (task ^. TaskUser ==. user ^. UserId)
@@ -182,7 +183,7 @@ getBeforeMe pool me = flip runSqlPool pool $ do
             ]
         return (task, user ^. UserName)
 
-getAfterMe :: ConnectionPool -> Integer -> IO [(Entity Task, Value Text)]
+getAfterMe :: ConnectionPool -> Int -> IO [(Entity Task, Value Text)]
 getAfterMe pool me = flip runSqlPool pool $ do
     select $ from $ \(task `InnerJoin` user) -> do
         on (task ^. TaskUser ==. user ^. UserId)
@@ -202,19 +203,25 @@ getAfterMe pool me = flip runSqlPool pool $ do
             ]
         return (task, user ^. UserName)
 
-maybeMaxTaskIdKey' :: ConnectionPool -> IO [Value (Maybe (Key Task))]
-maybeMaxTaskIdKey' pool = flip runSqlPool pool $ do
-    select $ from $ \task -> do
-        return $ max_ (task ^. TaskId)
+-- maybeMaxTaskIdKey' :: ConnectionPool -> IO [Value (Maybe (Key Task))]
+-- maybeMaxTaskIdKey' pool = flip runSqlPool pool $ do
+--     select $ from $ \task -> do
+--         return $ max_ (task ^. TaskId)
 
-maybeMaxTaskIdKey :: IO (Maybe (Key Task))
-maybeMaxTaskIdKey = do
-    pool <- pgPool
-    vmks <- maybeMaxTaskIdKey' pool
-    let mk = case vmks of
-                []  -> Nothing
-                _   -> head $ map (\(Value mk) -> mk) vmks
-    return mk
+-- maybeMaxTaskIdKey :: IO (Maybe (Key Task))
+-- maybeMaxTaskIdKey = do
+--     pool <- pgPool
+--     vmks <- maybeMaxTaskIdKey' pool
+--     let mk = case vmks of
+--                 []  -> Nothing
+--                 _   -> head $ map (\(Value mk) -> mk) vmks
+--     return mk
+
+getMaxNode' :: ConnectionPool -> IO [(Value (Maybe Int), Value (Maybe Int))]
+getMaxNode' pool = flip runSqlPool pool $ do
+    select $ from $ \task -> do
+        return $ (max_ (task ^. TaskTerminal), max_ (task ^. TaskInitial))
+
 
 
 -- getMe' :: MonadIO m => Integer -> SqlPersistT m [Entity Task]

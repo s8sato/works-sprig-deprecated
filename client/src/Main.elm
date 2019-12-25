@@ -4,7 +4,7 @@ import Array exposing (fromList, get, set, toList)
 import Browser
 import Browser.Events exposing (onKeyPress)
 import Html exposing (Html, a, div, text, textarea)
-import Html.Attributes exposing (class, href, id, placeholder, style)
+import Html.Attributes exposing (class, classList, href, id, placeholder, style)
 import Html.Events exposing (onClick, onInput)
 import Http
 import Json.Decode as Decode exposing (Decoder, bool, float, int, list, nullable, string)
@@ -12,7 +12,7 @@ import Json.Decode.Pipeline exposing (optional, required)
 import Json.Encode as Encode
 import Maybe
 import Task
-import Time exposing (Month(..), Posix, Weekday(..), Zone, millisToPosix, posixToMillis)
+import Time exposing (Month(..), Posix, Weekday(..), Zone, ZoneName(..), millisToPosix, posixToMillis)
 
 
 main : Program () Model Msg
@@ -29,17 +29,24 @@ main =
 -- MODEL
 
 
+type alias Index =
+    Int
+
+
 type alias Model =
     { sub : SubModel
     , zone : Zone
+    , currentTime : Posix
     , asOfTime : Posix
-    , indicator : Int
+    , indicator : Index
     }
 
 
 type alias SubModel =
     { user : User
     , tasks : List Task
+    , zoneName : Maybe String
+    , zoneOffset : Maybe Int
     , inputText : Maybe String
     , dpy : Maybe Int
     , message : Maybe String
@@ -64,6 +71,7 @@ type alias Task =
     , weight : Maybe Float
     , user : String
     , isSelected : Bool
+    , isExpired : Bool
     }
 
 
@@ -71,8 +79,10 @@ init : () -> ( Model, Cmd Msg )
 init _ =
     let
         initSub =
-            { user = User 1 "no_one" False
+            { user = User 1 "ANONYMOUS" False
             , tasks = []
+            , zoneName = Nothing
+            , zoneOffset = Nothing
             , inputText = Nothing
             , dpy = Nothing
             , message = Nothing
@@ -80,9 +90,11 @@ init _ =
     in
     ( { sub = initSub
       , zone = Time.utc
+      , currentTime = Time.millisToPosix 0
       , asOfTime = Time.millisToPosix 0
       , indicator = 0
       }
+      -- , Cmd.none
     , Task.perform AdjustTimeZone Time.here
     )
 
@@ -136,12 +148,19 @@ type Msg
     | TasksReceived (Result Http.Error (List Task))
     | CharacterKey Char
     | ControlKey String
-    | SwitchSelect Int
+    | SwitchSelect Index
     | Input String
     | TextPost
-    | StarSwitched Int (Result Http.Error ())
-    | SwitchStar Int
-    | AdjustTimeZone Time.Zone
+    | StarSwitched Index (Result Http.Error ())
+    | SwitchStar Index
+    | TaskFocused Int (Result Http.Error (List Task))
+    | AdjustTimeZone Zone
+    | SetZoneName ZoneName
+    | SetCurrentTime Posix
+    | CheckExpired Posix
+    | SetAsOfTime Posix
+      -- | BarRedraw Posix
+    | ReturnedHome (Result Http.Error SubModel)
 
 
 
@@ -210,22 +229,6 @@ update msg model =
         CharacterKey 'e' ->
             ( model, doneTasks model.sub )
 
-        -- ( { model
-        --     | tasks =
-        --         List.map
-        --             (\task ->
-        --                 if task.isSelected then
-        --                     { task | isDone = not task.isDone }
-        --                 else
-        --                     task
-        --             )
-        --             model.tasks
-        --   }
-        -- , Cmd.none
-        -- )
-        --
-        -- APIに送る：taskId
-        -- APIからもらう：[Task]
         CharacterKey 'f' ->
             ( model, focusTask model.sub model.indicator )
 
@@ -265,9 +268,11 @@ update msg model =
         CharacterKey '8' ->
             ( changeDpy model secPerY, Cmd.none )
 
-        CharacterKey 'a' ->
+        CharacterKey 'o' ->
             -- TODO
-            ( model, Cmd.none )
+            ( model
+            , Task.perform CheckExpired (Task.succeed model.currentTime)
+            )
 
         CharacterKey 't' ->
             -- TODO
@@ -275,7 +280,7 @@ update msg model =
 
         CharacterKey 'h' ->
             -- TODO
-            ( model, Cmd.none )
+            ( model, goHome model.sub )
 
         CharacterKey 'b' ->
             -- TODO
@@ -335,11 +340,168 @@ update msg model =
             , Cmd.none
             )
 
+        TaskFocused id (Ok newTasks) ->
+            ( taskFocused model id newTasks, Cmd.none )
+
+        TaskFocused _ (Err httpError) ->
+            ( messageEH model httpError, Cmd.none )
+
         AdjustTimeZone newZone ->
-            ( { model | zone = newZone }, Cmd.none )
+            ( { model | zone = newZone }
+            , Task.perform SetZoneName Time.getZoneName
+            )
+
+        SetZoneName newZoneName ->
+            ( setZoneName model newZoneName
+            , Task.perform SetCurrentTime Time.now
+            )
+
+        SetCurrentTime cTime ->
+            ( { model | currentTime = cTime }
+            , Task.perform CheckExpired (Task.succeed cTime)
+            )
+
+        CheckExpired currentTime ->
+            ( checkExpired model currentTime
+            , Cmd.none
+            )
+
+        SetAsOfTime aTime ->
+            ( { model | asOfTime = aTime }
+            , Cmd.none
+              -- , Task.perform BarRedraw (Task.succeed aTime)
+            )
+
+        -- BarRedraw asOfTime ->
+        --     ( barRedraw model asOfTime
+        --     , Cmd.none
+        --     )
+        ReturnedHome (Ok newSubModel) ->
+            ( returnedHome model newSubModel
+            , Task.perform SetAsOfTime (Task.succeed model.currentTime)
+            )
+
+        ReturnedHome (Err httpError) ->
+            ( messageEH model httpError, Cmd.none )
 
 
-starSwitched : Model -> Int -> Model
+
+-- HELPER FUNCTIONS
+
+
+returnedHome : Model -> SubModel -> Model
+returnedHome model m =
+    let
+        sub =
+            model.sub
+
+        newSub =
+            { sub
+                | tasks = m.tasks
+                , message = m.message
+            }
+    in
+    { model | sub = newSub }
+
+
+
+-- barRedraw : Model -> Posix -> Model
+-- barRedraw model asOfTime =
+--     let
+--         sub =
+--             model.sub
+--         newSub =
+--             { sub |  }
+--     in
+--     { model | sub = newSub }
+
+
+checkExpired : Model -> Posix -> Model
+checkExpired model now =
+    let
+        sub =
+            model.sub
+
+        checkedTasks =
+            List.map
+                (\task ->
+                    let
+                        pastDeadline =
+                            case secUntil task.deadline now of
+                                Nothing ->
+                                    False
+
+                                Just sec ->
+                                    sec < 0
+                    in
+                    if not task.isDone && pastDeadline then
+                        { task | isExpired = True }
+
+                    else
+                        { task | isExpired = False }
+                )
+                sub.tasks
+
+        checkedSub =
+            { sub | tasks = checkedTasks }
+    in
+    { model | sub = checkedSub }
+
+
+setZoneName : Model -> ZoneName -> Model
+setZoneName model zn =
+    let
+        sub =
+            model.sub
+
+        newSub =
+            case zn of
+                Name name ->
+                    { sub | zoneName = Just name }
+
+                Offset offset ->
+                    { sub | zoneOffset = Just offset }
+    in
+    { model
+        | sub = newSub
+    }
+
+
+taskFocused : Model -> Int -> List Task -> Model
+taskFocused model id tasks =
+    let
+        enumeratedTasks =
+            List.indexedMap Tuple.pair tasks
+
+        enumeratedIds =
+            List.map (Tuple.mapSecond .id) enumeratedTasks
+
+        newIndicator =
+            case List.filter ((==) id << Tuple.second) enumeratedIds of
+                [] ->
+                    0
+
+                shouldSingleton ->
+                    case List.head shouldSingleton of
+                        Nothing ->
+                            0
+
+                        Just pair ->
+                            Tuple.first pair
+
+        sub =
+            model.sub
+
+        newSub =
+            { sub | tasks = tasks }
+    in
+    { model
+        | sub = newSub
+        , indicator = newIndicator
+    }
+
+
+starSwitched : Model -> Index -> Model
 starSwitched model i =
     case Array.get i (Array.fromList model.sub.tasks) of
         Nothing ->
@@ -400,6 +562,25 @@ messageEH model httpError =
     }
 
 
+buildMessageEH : Http.Error -> String
+buildMessageEH httpError =
+    case httpError of
+        Http.BadUrl errorMessage ->
+            errorMessage
+
+        Http.Timeout ->
+            "Server is taking too long to respond. Please try again later."
+
+        Http.NetworkError ->
+            "Unable to reach server."
+
+        Http.BadStatus statusCode ->
+            "Request failed with status code: " ++ String.fromInt statusCode
+
+        Http.BadBody errorMessage ->
+            errorMessage
+
+
 changeDpy : Model -> Int -> Model
 changeDpy model dpy =
     let
@@ -412,7 +593,7 @@ changeDpy model dpy =
     { model | sub = newSub }
 
 
-switchSelect : Model -> Int -> Model
+switchSelect : Model -> Index -> Model
 switchSelect model i =
     case Array.get i (Array.fromList model.sub.tasks) of
         Nothing ->
@@ -445,6 +626,7 @@ switchSelect model i =
 --         { url = "http://localhost:8080/dev/model" ++ String.fromInt m.user.id
 --         , expect = Http.expectJson ModelReceived modelDecoder
 --         }
+-- COMMANDS
 
 
 initialize : SubModel -> Cmd Msg
@@ -458,11 +640,16 @@ initialize m =
 
 textPost : SubModel -> Cmd Msg
 textPost m =
-    Http.post
-        { url = "http://localhost:8080/tasks/post"
-        , body = Http.jsonBody (textPostEncoder m)
-        , expect = Http.expectJson TasksReceived tasksDecoder
-        }
+    case m.inputText of
+        Nothing ->
+            Cmd.none
+
+        Just content ->
+            Http.post
+                { url = "http://localhost:8080/tasks/post"
+                , body = Http.jsonBody (textPostEncoder m content)
+                , expect = Http.expectJson TasksReceived tasksDecoder
+                }
 
 
 doneTasks : SubModel -> Cmd Msg
@@ -474,41 +661,45 @@ doneTasks m =
         }
 
 
-switchStar : SubModel -> Int -> Cmd Msg
+switchStar : SubModel -> Index -> Cmd Msg
 switchStar m i =
-    Http.post
-        { url = "http://localhost:8080/tasks/star"
-        , body = Http.jsonBody (switchStarEncoder m i)
-        , expect = Http.expectWhatever (StarSwitched i)
-        }
+    case Array.get i (Array.fromList m.tasks) of
+        Nothing ->
+            Cmd.none
+
+        Just task ->
+            Http.post
+                { url = "http://localhost:8080/tasks/star"
+                , body = Http.jsonBody (switchStarEncoder task.id)
+                , expect = Http.expectWhatever (StarSwitched i)
+                }
 
 
-focusTask : SubModel -> Int -> Cmd Msg
+focusTask : SubModel -> Index -> Cmd Msg
 focusTask m i =
+    case Array.get i (Array.fromList m.tasks) of
+        Nothing ->
+            Cmd.none
+
+        Just task ->
+            Http.post
+                { url = "http://localhost:8080/tasks/focus"
+                , body = Http.jsonBody (focusTaskEncoder task.id)
+                , expect = Http.expectJson (TaskFocused task.id) tasksDecoder
+                }
+
+
+goHome : SubModel -> Cmd Msg
+goHome m =
     Http.post
-        { url = "http://localhost:8080/tasks/focus"
-        , body = Http.jsonBody (focusTaskEncoder m i)
-        , expect = Http.expectJson TasksReceived tasksDecoder
+        { url = "http://localhost:8080/tasks/home"
+        , body = Http.jsonBody (goHomeEncoder m)
+        , expect = Http.expectJson ReturnedHome subModelDecoder
         }
 
 
-buildMessageEH : Http.Error -> String
-buildMessageEH httpError =
-    case httpError of
-        Http.BadUrl errorMessage ->
-            errorMessage
 
-        Http.Timeout ->
-            "Server is taking too long to respond. Please try again later."
-
-        Http.NetworkError ->
-            "Unable to reach server."
-
-        Http.BadStatus statusCode ->
-            "Request failed with status code: " ++ String.fromInt statusCode
-
-        Http.BadBody errorMessage ->
-            errorMessage
+-- ENCODER
 
 
 initialEncoder : SubModel -> Encode.Value
@@ -518,20 +709,30 @@ initialEncoder m =
         ]
 
 
-textPostEncoder : SubModel -> Encode.Value
-textPostEncoder m =
+textPostEncoder : SubModel -> String -> Encode.Value
+textPostEncoder m content =
     let
-        content =
-            case m.inputText of
+        zoneName =
+            case m.zoneName of
                 Nothing ->
-                    ""
+                    Encode.null
 
-                Just c ->
-                    c
+                Just name ->
+                    Encode.string name
+
+        zoneOffset =
+            case m.zoneOffset of
+                Nothing ->
+                    Encode.null
+
+                Just offset ->
+                    Encode.int offset
     in
     Encode.object
         [ ( "textPostUser", Encode.int m.user.id )
         , ( "textPostContent", Encode.string content )
+        , ( "textPostZoneName", zoneName )
+        , ( "textPostZoneOffset", zoneOffset )
         ]
 
 
@@ -547,36 +748,29 @@ doneTasksEncoder m =
         ]
 
 
-switchStarEncoder : SubModel -> Int -> Encode.Value
-switchStarEncoder m i =
-    let
-        taskId =
-            case Array.get i (Array.fromList m.tasks) of
-                Nothing ->
-                    0
-
-                Just task ->
-                    .id task
-    in
+switchStarEncoder : Int -> Encode.Value
+switchStarEncoder i =
     Encode.object
-        [ ( "switchStarId", Encode.int taskId )
+        [ ( "switchStarId", Encode.int i )
         ]
 
 
-focusTaskEncoder : SubModel -> Int -> Encode.Value
-focusTaskEncoder m i =
-    let
-        taskId =
-            case Array.get i (Array.fromList m.tasks) of
-                Nothing ->
-                    0
-
-                Just task ->
-                    .id task
-    in
+focusTaskEncoder : Int -> Encode.Value
+focusTaskEncoder i =
     Encode.object
-        [ ( "focusTaskId", Encode.int taskId )
+        [ ( "focusTaskId", Encode.int i )
         ]
+
+
+goHomeEncoder : SubModel -> Encode.Value
+goHomeEncoder m =
+    Encode.object
+        [ ( "goHomeUser", Encode.int m.user.id )
+        ]
+
+
+
+-- DECODER
 
 
 subModelDecoder : Decoder SubModel
@@ -584,6 +778,8 @@ subModelDecoder =
     Decode.succeed SubModel
         |> required "elmSubModelUser" userDecoder
         |> required "elmSubModelTasks" (list taskDecoder)
+        |> optional "elmSubModelZoneName" (nullable string) Nothing
+        |> optional "elmSubModelZoneOffset" (nullable int) Nothing
         |> optional "elmSubModelInputText" (nullable string) Nothing
         |> optional "elmSubModelDpy" (nullable int) Nothing
         |> optional "elmSubModelMessage" (nullable string) Nothing
@@ -623,6 +819,7 @@ taskDecoder =
         -- |> optional "elmTaskSecUntilStart" (nullable int) Nothing
         -- |> optional "elmTaskSecUntilDeadline" (nullable int) Nothing
         |> optional "elmTaskIsSelected" bool False
+        |> optional "elmTaskIsExpired" bool False
 
 
 
@@ -704,9 +901,13 @@ viewMessage m =
 viewTaskHeader : Model -> Html Msg
 viewTaskHeader m =
     div [ id "taskHeader" ]
-        [ div [ class "selection" ] []
+        [ div [ class "indicator" ] []
+        , div [ class "selection" ] []
         , div [ class "star" ] []
-        , div [ class "title" ] []
+        , div [ class "title" ]
+            [ div [ class "dev" ]
+                [ text (strFromPosix m.zone m.currentTime) ]
+            ]
         , div [ class "start" ] []
         , div [ class "bar" ]
             [ text
@@ -729,24 +930,20 @@ viewTaskHeader m =
         ]
 
 
-viewTask : Model -> ( Int, Task ) -> Html Msg
-viewTask m ( idx, task ) =
+viewTask : Model -> ( Index, Task ) -> Html Msg
+viewTask m ( i, task ) =
     div
-        [ class "task"
-        , style "background-color"
-            (if idx == m.indicator then
-                "#C2DBFF"
-
-             else if task.isSelected then
-                "#FFF1BC"
-
-             else
-                "#EEF4F2"
-            )
+        [ classList
+            [ ( "task", True )
+            , ( "focused ", i == m.indicator )
+            , ( "selected", task.isSelected )
+            , ( "expired", task.isExpired )
+            ]
         ]
-        [ div
+        [ div [ class "indicator" ] []
+        , div
             [ class "selection"
-            , onClick (SwitchSelect idx)
+            , onClick (SwitchSelect i)
             ]
             [ if task.isSelected then
                 text "SEL"
@@ -756,7 +953,7 @@ viewTask m ( idx, task ) =
             ]
         , div
             [ class "star"
-            , onClick (SwitchStar idx)
+            , onClick (SwitchStar i)
             ]
             [ if task.isStarred then
                 text "★"
@@ -877,10 +1074,10 @@ barString : Model -> Task -> String
 barString model task =
     let
         secUS =
-            secUntil (.asOfTime model) (.start task)
+            secUntil task.start model.asOfTime
 
         secUD =
-            secUntil (.asOfTime model) (.deadline task)
+            secUntil task.deadline model.asOfTime
     in
     barString_ model.sub.dpy task.weight secUS secUD
 
@@ -942,13 +1139,13 @@ secFromWeight w =
     floor (60 * 60 * w)
 
 
-secUntil : Posix -> Maybe Int -> Maybe Int
-secUntil now target =
+secUntil : Maybe Int -> Posix -> Maybe Int
+secUntil target now =
     let
         nowSec =
-            now |> posixToMillis |> (//) (10 ^ 3)
+            (now |> posixToMillis) // (10 ^ 3)
     in
-    Maybe.map ((-) nowSec) target
+    Maybe.map (\t -> t - nowSec) target
 
 
 strFromPosix : Zone -> Posix -> String

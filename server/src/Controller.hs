@@ -69,7 +69,7 @@ import Foreign.C.Types (CTime (..))
 import Data.Time.Clock.POSIX (utcTimeToPOSIXSeconds)
 -- import Data.Time.Clock.Internal.NominalDiffTime (nominalDiffTimeToSeconds)
 import qualified Database.Esqueleto as Q (Value (..)) 
-
+-- import Data.Int                     ( Int64 )
 
 
 -- type alias
@@ -85,9 +85,13 @@ import qualified Database.Esqueleto as Q (Value (..))
 -- minPerY = 525600
 -- secPerY = 31536000
 
-defaultUser = toSqlKey 1 :: UserId
+anonymousUser = toSqlKey 1 :: UserId
 
+-- data ZoneName =
+--     Name String
+--     | Offset Int
 
+type TimeZoneHour = Int
 
 -- DATA DECLARATION
 
@@ -105,13 +109,13 @@ data ElmUser = ElmUser
 $(deriveJSON defaultOptions ''ElmUser)
 
 data ElmTask = ElmTask
-    { elmTaskId :: Integer
+    { elmTaskId :: Int
     , elmTaskIsDone :: Bool
     , elmTaskIsStarred :: Bool
     , elmTaskTitle :: Maybe Text
     , elmTaskLink :: Maybe Text
-    , elmTaskStart :: Maybe Integer
-    , elmTaskDeadline :: Maybe Integer
+    , elmTaskStart :: Maybe Int
+    , elmTaskDeadline :: Maybe Int
     , elmTaskWeight :: Maybe Double
     , elmTaskUser :: Text
     -- , elmTaskSecUntilStart :: Maybe Integer
@@ -139,28 +143,36 @@ $(deriveJSON defaultOptions ''Initial)
 data TextPost = TextPost
     { textPostUser :: Int
     , textPostContent :: Text
+    , textPostZoneName :: Maybe Text
+    , textPostZoneOffset :: Maybe Int
     } deriving (Eq, Show)
 
 $(deriveJSON defaultOptions ''TextPost)
 
 data DoneTasks = DoneTasks
     { doneTasksUser :: Int
-    , doneTasksIds :: [Integer]
+    , doneTasksIds :: [Int]
     } deriving (Eq, Show)
 
 $(deriveJSON defaultOptions ''DoneTasks)
 
 data SwitchStar = SwitchStar
-    { switchStarId :: Integer
+    { switchStarId :: Int
     } deriving (Eq, Show)
 
 $(deriveJSON defaultOptions ''SwitchStar)
 
 data FocusTask = FocusTask
-    { focusTaskId :: Integer
+    { focusTaskId :: Int
     } deriving (Eq, Show)
 
 $(deriveJSON defaultOptions ''FocusTask)
+
+data GoHome = GoHome
+    { goHomeUser :: Int
+    } deriving (Eq, Show)
+
+$(deriveJSON defaultOptions ''GoHome)
 
 
 
@@ -174,6 +186,7 @@ type API =  "dev"   :> "sModel" :> Capture "userId" Int         :> Get  '[JSON] 
     :<|>    "tasks" :> "done"   :> ReqBody '[JSON] DoneTasks    :> Post '[JSON] [ElmTask]
     :<|>    "tasks" :> "star"   :> ReqBody '[JSON] SwitchStar   :> Post '[JSON] ()
     :<|>    "tasks" :> "focus"  :> ReqBody '[JSON] FocusTask    :> Post '[JSON] [ElmTask]
+    :<|>    "tasks" :> "home"   :> ReqBody '[JSON] GoHome       :> Post '[JSON] ElmSubModel
 
 startApp :: IO ()
 startApp = run 8080 app
@@ -200,6 +213,7 @@ server = devSubModel
     :<|> doneTasksReload
     :<|> switchStar
     :<|> focusTask
+    :<|> goHome
     where
         devSubModel :: Int -> Handler ElmSubModel
         devSubModel = liftIO . devSubModel'
@@ -213,6 +227,8 @@ server = devSubModel
         switchStar = liftIO . switchStar'
         focusTask :: FocusTask -> Handler [ElmTask]
         focusTask = liftIO . focusTask'
+        goHome :: GoHome -> Handler ElmSubModel
+        goHome = liftIO . goHome'
 
 devSubModel' :: Int -> IO ElmSubModel
 devSubModel' uid = do
@@ -242,13 +258,14 @@ getUndoneElmTasks user = do
     return $ map toElmTask taskAssigns 
 
 textPostReload' :: TextPost -> IO [ElmTask]
-textPostReload' (TextPost u text) = do
-    mk <- maybeMaxTaskIdKey
-    let max = case mk of
+textPostReload' (TextPost u text mzn mzo) = do
+    let tzh = timeZoneHour mzn mzo
+    mn <- getMaxNode
+    let maxNode = case mn of
             Nothing -> 0
-            Just k  -> idFromKey k
-    let shift = max + 2  -- TODO 
-    insTasks . (shiftTaskNodes shift) . tasksFromText $ text
+            Just n  -> n
+    let shift = maxNode + 2  -- TODO 
+    insTasks . (shiftTaskNodes shift) . (tasksFromText tzh) $ text 
     getUndoneElmTasks u
 
 doneTasksReload' :: DoneTasks -> IO [ElmTask]
@@ -270,6 +287,18 @@ focusTask' (FocusTask id) = do
     afterMe     <- getAfterMe   pool id
     return . map toElmTask $ Prelude.concat [beforeMe, me, afterMe]
 
+goHome' :: GoHome -> IO ElmSubModel
+goHome' (GoHome uid) = do
+    pool <- pgPool
+    eUs <- getUserById pool uid
+    taskAssigns <- getUndoneTaskAssigns pool uid
+    let elmUser = toElmUser . Prelude.head $ eUs
+    let elmTasks = map toElmTask taskAssigns 
+    let mDpy =  userDefaultDpy . entityVal . Prelude.head $ eUs
+    return $ ElmSubModel elmUser elmTasks Nothing mDpy Nothing
+
+
+
 
 
 -- INTERNAL OPERATIONS
@@ -279,7 +308,8 @@ focusTask' (FocusTask id) = do
 type Graph = [Edge]
 type Edge = ((Node, Node), [Attr])
 type Node  = Int
-data Attr  = AttrTaskId { attrTaskId :: Integer }
+data Attr  = 
+      AttrTaskId { attrTaskId :: Int }
     | IsDone       { isDone      :: Char }
     | IsStarred    { isStarred   :: Char }
     | Link         { link        :: Text }
@@ -293,15 +323,15 @@ data Attr  = AttrTaskId { attrTaskId :: Integer }
     | Title        { title       :: Text }
     deriving (Eq, Show)
 
-tasksFromText :: Text -> [Task]
-tasksFromText = tasksFromGraph . graphFromText
+tasksFromText :: TimeZoneHour -> Text -> [Task]
+tasksFromText tzh = (universalTime tzh) . tasksFromGraph . graphFromText
 
 tasksFromGraph :: Graph -> [Task]
 tasksFromGraph = map taskFromEdge
 
 taskFromEdge :: Edge -> Task
 taskFromEdge ((t,i),as) =
-    taskFromEdge' as (Task t i False False Nothing Nothing Nothing Nothing Nothing defaultUser)
+    taskFromEdge' as (Task t i False False Nothing Nothing Nothing Nothing Nothing anonymousUser)
 
 taskFromEdge' :: [Attr] -> Task -> Task
 taskFromEdge' [] task = 
@@ -329,7 +359,7 @@ taskFromEdge' (a:as) (Task t i d s ml ms md mw mt u) =
                         taskFromEdge' as (Task t i d s ml (Just (UTCTime nd 0)) md mw mt u)
         StartTime hh mm ss ->
             let
-                nt = secondsToDiffTime $ fromIntegral $ ss + 60 * (mm + 60 * hh)
+                nt = secondsToDiffTime . fromIntegral $ ss + 60 * (mm + 60 * hh)
             in
                 case ms of
                     Just (UTCTime od ot) ->
@@ -343,16 +373,16 @@ taskFromEdge' (a:as) (Task t i d s ml ms md mw mt u) =
             let
                 nd = fromGregorian (fromIntegral yyyy) mm dd
             in
-                case ms of
+                case md of
                     Just (UTCTime od ot) ->
                         taskFromEdge' as (Task t i d s ml ms (Just (UTCTime nd ot)) mw mt u)
                     Nothing ->
                         taskFromEdge' as (Task t i d s ml ms (Just (UTCTime nd 0)) mw mt u)
         DeadlineTime hh mm ss ->
             let
-                nt = secondsToDiffTime $ fromIntegral $ ss + 60 * (mm + 60 * hh)
+                nt = secondsToDiffTime . fromIntegral $ ss + 60 * (mm + 60 * hh)
             in
-                case ms of
+                case md of
                     Just (UTCTime od ot) ->
                         taskFromEdge' as (Task t i d s ml ms (Just (UTCTime od nt)) mw mt u)
                     Nothing ->
@@ -482,6 +512,25 @@ keyMatch (a:as) (b:bs) ah = case a of
 spanLink'' :: (Node, Node) -> (Node, Node) -> Graph -> Graph
 spanLink'' (_,t) (i,_) g = ((t,i), [AttrTaskId 0, IsDone '%', Title "LINKER"]) : g
 
+
+
+
+universalTime :: TimeZoneHour -> [Task] -> [Task]
+universalTime tzh = 
+    map (\(Task t i d s l ms md mw tt u) -> 
+        let
+            mus = universal tzh ms
+            mud = universal tzh md
+        in
+            Task t i d s l mus mud mw tt u
+        )
+
+universal :: TimeZoneHour -> Maybe UTCTime -> Maybe UTCTime
+universal tzh mut = addUTCTime <$> Just tzsMinus <*> mut
+    where
+        tzsMinus :: NominalDiffTime
+        tzsMinus = 60*60*(-1)*(fromIntegral tzh)
+
     --     headLs = map (\(, ) g
     --         map
     -- in
@@ -584,11 +633,11 @@ toElmUser :: Entity User -> ElmUser
 toElmUser e =
     let
         i  = idFromEntity e
-        User n a _ _ _ _ = entityVal e
+        User n a _ _ _ _ _ = entityVal e
     in
         ElmUser i n a
 
-toElmTime :: Maybe UTCTime -> Maybe Integer
+toElmTime :: Maybe UTCTime -> Maybe Int
 toElmTime Nothing = 
     Nothing
 toElmTime (Just t) =
@@ -627,16 +676,31 @@ toElmTime (Just t) =
 -- SecFromWeight w = floor (60 * 60 * w)
 
 
-shiftTaskNodes :: Integer -> [Task] -> [Task]
+shiftTaskNodes :: Int -> [Task] -> [Task]
 shiftTaskNodes sh ts =
     map (
         \(Task t i d s l ss dd w tt u) -> 
             let 
-                (t',i') = both ((+) $ fromIntegral sh) (t,i)
+                (t',i') = both ((+) sh) (t,i)
             in
                 Task t' i' d s l ss dd w tt u
         ) ts
 
-uToE :: UTCTime -> EpochTime
-uToE = CTime . truncate . utcTimeToPOSIXSeconds
+-- uToE :: UTCTime -> EpochTime
+-- uToE = CTime . truncate . utcTimeToPOSIXSeconds
 
+
+timeZoneHour :: Maybe Text -> Maybe Int -> TimeZoneHour
+timeZoneHour mzn mzo = 9  -- TODO
+
+
+getMaxNode :: IO (Maybe Int)
+getMaxNode = do
+    pool <- pgPool
+    pairs <- getMaxNode' pool
+    let pair = case pairs of
+            []      -> (Q.Value Nothing, Q.Value Nothing)
+            (p:_)   -> p
+    let mt = Q.unValue $ fst pair
+    let mi = Q.unValue $ snd pair
+    return $ max <$> mt <*> mi

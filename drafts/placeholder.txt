@@ -17,11 +17,11 @@ trunk
         bud
         bud
 
-jump
+]hey jump
     step
         hop2 dependent on hop1 [key
     step
-        ]key hop1
+        ]key hop1 [hey
 
 % A task to register as completed
 * A task to register as starred

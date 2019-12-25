@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <title>Main</title>
-  <link rel="stylesheet" type="text/css" href="css/style.css"></head>
+  <link rel="stylesheet" type="text/css" href="css/style.css">
 </head>
 
 <body>
@@ -5446,11 +5446,14 @@ var $author$project$Main$init = function (_v0) {
 		inputText: $elm$core$Maybe$Nothing,
 		message: $elm$core$Maybe$Nothing,
 		tasks: _List_Nil,
-		user: A3($author$project$Main$User, 1, 'no_one', false)
+		user: A3($author$project$Main$User, 1, 'ANONYMOUS', false),
+		zoneName: $elm$core$Maybe$Nothing,
+		zoneOffset: $elm$core$Maybe$Nothing
 	};
 	return _Utils_Tuple2(
 		{
 			asOfTime: $elm$time$Time$millisToPosix(0),
+			currentTime: $elm$time$Time$millisToPosix(0),
 			indicator: 0,
 			sub: initSub,
 			zone: $elm$time$Time$utc
@@ -5888,6 +5891,18 @@ var $author$project$Main$subscriptions = function (_v0) {
 				$elm$browser$Browser$Events$onKeyPress($author$project$Main$keyDecoder)
 			]));
 };
+var $author$project$Main$CheckExpired = function (a) {
+	return {$: 'CheckExpired', a: a};
+};
+var $author$project$Main$SetAsOfTime = function (a) {
+	return {$: 'SetAsOfTime', a: a};
+};
+var $author$project$Main$SetCurrentTime = function (a) {
+	return {$: 'SetCurrentTime', a: a};
+};
+var $author$project$Main$SetZoneName = function (a) {
+	return {$: 'SetZoneName', a: a};
+};
 var $author$project$Main$changeDpy = F2(
 	function (model, dpy) {
 		var sub = model.sub;
@@ -5899,6 +5914,61 @@ var $author$project$Main$changeDpy = F2(
 		return _Utils_update(
 			model,
 			{sub: newSub});
+	});
+var $elm$core$Basics$not = _Basics_not;
+var $elm$core$Maybe$map = F2(
+	function (f, maybe) {
+		if (maybe.$ === 'Just') {
+			var value = maybe.a;
+			return $elm$core$Maybe$Just(
+				f(value));
+		} else {
+			return $elm$core$Maybe$Nothing;
+		}
+	});
+var $elm$time$Time$posixToMillis = function (_v0) {
+	var millis = _v0.a;
+	return millis;
+};
+var $elm$core$Basics$pow = _Basics_pow;
+var $author$project$Main$secUntil = F2(
+	function (target, now) {
+		var nowSec = ($elm$time$Time$posixToMillis(now) / A2($elm$core$Basics$pow, 10, 3)) | 0;
+		return A2(
+			$elm$core$Maybe$map,
+			function (t) {
+				return t - nowSec;
+			},
+			target);
+	});
+var $author$project$Main$checkExpired = F2(
+	function (model, now) {
+		var sub = model.sub;
+		var checkedTasks = A2(
+			$elm$core$List$map,
+			function (task) {
+				var pastDeadline = function () {
+					var _v0 = A2($author$project$Main$secUntil, task.deadline, now);
+					if (_v0.$ === 'Nothing') {
+						return false;
+					} else {
+						var sec = _v0.a;
+						return sec < 0;
+					}
+				}();
+				return ((!task.isDone) && pastDeadline) ? _Utils_update(
+					task,
+					{isExpired: true}) : _Utils_update(
+					task,
+					{isExpired: false});
+			},
+			sub.tasks);
+		var checkedSub = _Utils_update(
+			sub,
+			{tasks: checkedTasks});
+		return _Utils_update(
+			model,
+			{sub: checkedSub});
 	});
 var $author$project$Main$dayPerY = 365;
 var $author$project$Main$TasksReceived = function (a) {
@@ -6633,7 +6703,9 @@ var $author$project$Main$Task = function (id) {
 							return function (weight) {
 								return function (user) {
 									return function (isSelected) {
-										return {deadline: deadline, id: id, isDone: isDone, isSelected: isSelected, isStarred: isStarred, link: link, start: start, title: title, user: user, weight: weight};
+										return function (isExpired) {
+											return {deadline: deadline, id: id, isDone: isDone, isExpired: isExpired, isSelected: isSelected, isStarred: isStarred, link: link, start: start, title: title, user: user, weight: weight};
+										};
 									};
 								};
 							};
@@ -6714,51 +6786,56 @@ var $NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required = F3(
 	});
 var $author$project$Main$taskDecoder = A4(
 	$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$optional,
-	'elmTaskIsSelected',
+	'elmTaskIsExpired',
 	$elm$json$Json$Decode$bool,
 	false,
-	A3(
-		$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
-		'elmTaskUser',
-		$elm$json$Json$Decode$string,
-		A4(
-			$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$optional,
-			'elmTaskWeight',
-			$elm$json$Json$Decode$nullable($elm$json$Json$Decode$float),
-			$elm$core$Maybe$Nothing,
+	A4(
+		$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$optional,
+		'elmTaskIsSelected',
+		$elm$json$Json$Decode$bool,
+		false,
+		A3(
+			$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
+			'elmTaskUser',
+			$elm$json$Json$Decode$string,
 			A4(
 				$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$optional,
-				'elmTaskDeadline',
-				$elm$json$Json$Decode$nullable($elm$json$Json$Decode$int),
+				'elmTaskWeight',
+				$elm$json$Json$Decode$nullable($elm$json$Json$Decode$float),
 				$elm$core$Maybe$Nothing,
 				A4(
 					$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$optional,
-					'elmTaskStart',
+					'elmTaskDeadline',
 					$elm$json$Json$Decode$nullable($elm$json$Json$Decode$int),
 					$elm$core$Maybe$Nothing,
 					A4(
 						$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$optional,
-						'elmTaskLink',
-						$elm$json$Json$Decode$nullable($elm$json$Json$Decode$string),
+						'elmTaskStart',
+						$elm$json$Json$Decode$nullable($elm$json$Json$Decode$int),
 						$elm$core$Maybe$Nothing,
 						A4(
 							$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$optional,
-							'elmTaskTitle',
+							'elmTaskLink',
 							$elm$json$Json$Decode$nullable($elm$json$Json$Decode$string),
 							$elm$core$Maybe$Nothing,
-							A3(
-								$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
-								'elmTaskIsStarred',
-								$elm$json$Json$Decode$bool,
+							A4(
+								$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$optional,
+								'elmTaskTitle',
+								$elm$json$Json$Decode$nullable($elm$json$Json$Decode$string),
+								$elm$core$Maybe$Nothing,
 								A3(
 									$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
-									'elmTaskIsDone',
+									'elmTaskIsStarred',
 									$elm$json$Json$Decode$bool,
 									A3(
 										$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
-										'elmTaskId',
-										$elm$json$Json$Decode$int,
-										$elm$json$Json$Decode$succeed($author$project$Main$Task)))))))))));
+										'elmTaskIsDone',
+										$elm$json$Json$Decode$bool,
+										A3(
+											$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
+											'elmTaskId',
+											$elm$json$Json$Decode$int,
+											$elm$json$Json$Decode$succeed($author$project$Main$Task))))))))))));
 var $author$project$Main$tasksDecoder = $elm$json$Json$Decode$list($author$project$Main$taskDecoder);
 var $author$project$Main$doneTasks = function (m) {
 	return $elm$http$Http$post(
@@ -6768,6 +6845,19 @@ var $author$project$Main$doneTasks = function (m) {
 			expect: A2($elm$http$Http$expectJson, $author$project$Main$TasksReceived, $author$project$Main$tasksDecoder),
 			url: 'http://localhost:8080/tasks/done'
 		});
+};
+var $author$project$Main$TaskFocused = F2(
+	function (a, b) {
+		return {$: 'TaskFocused', a: a, b: b};
+	});
+var $author$project$Main$focusTaskEncoder = function (i) {
+	return $elm$json$Json$Encode$object(
+		_List_fromArray(
+			[
+				_Utils_Tuple2(
+				'focusTaskId',
+				$elm$json$Json$Encode$int(i))
+			]));
 };
 var $elm$core$Array$fromListHelp = F3(
 	function (list, nodeList, nodeListSize) {
@@ -6846,56 +6936,46 @@ var $elm$core$Array$get = F2(
 			A2($elm$core$Elm$JsArray$unsafeGet, $elm$core$Array$bitMask & index, tail)) : $elm$core$Maybe$Just(
 			A3($elm$core$Array$getHelp, startShift, index, tree)));
 	});
-var $author$project$Main$focusTaskEncoder = F2(
-	function (m, i) {
-		var taskId = function () {
-			var _v0 = A2(
-				$elm$core$Array$get,
-				i,
-				$elm$core$Array$fromList(m.tasks));
-			if (_v0.$ === 'Nothing') {
-				return 0;
-			} else {
-				var task = _v0.a;
-				return function ($) {
-					return $.id;
-				}(task);
-			}
-		}();
-		return $elm$json$Json$Encode$object(
-			_List_fromArray(
-				[
-					_Utils_Tuple2(
-					'focusTaskId',
-					$elm$json$Json$Encode$int(taskId))
-				]));
-	});
+var $elm$core$Platform$Cmd$batch = _Platform_batch;
+var $elm$core$Platform$Cmd$none = $elm$core$Platform$Cmd$batch(_List_Nil);
 var $author$project$Main$focusTask = F2(
 	function (m, i) {
-		return $elm$http$Http$post(
-			{
-				body: $elm$http$Http$jsonBody(
-					A2($author$project$Main$focusTaskEncoder, m, i)),
-				expect: A2($elm$http$Http$expectJson, $author$project$Main$TasksReceived, $author$project$Main$tasksDecoder),
-				url: 'http://localhost:8080/tasks/focus'
-			});
+		var _v0 = A2(
+			$elm$core$Array$get,
+			i,
+			$elm$core$Array$fromList(m.tasks));
+		if (_v0.$ === 'Nothing') {
+			return $elm$core$Platform$Cmd$none;
+		} else {
+			var task = _v0.a;
+			return $elm$http$Http$post(
+				{
+					body: $elm$http$Http$jsonBody(
+						$author$project$Main$focusTaskEncoder(task.id)),
+					expect: A2(
+						$elm$http$Http$expectJson,
+						$author$project$Main$TaskFocused(task.id),
+						$author$project$Main$tasksDecoder),
+					url: 'http://localhost:8080/tasks/focus'
+				});
+		}
 	});
-var $author$project$Main$houPerY = 8760;
-var $author$project$Main$SubModelReceived = function (a) {
-	return {$: 'SubModelReceived', a: a};
+var $elm$time$Time$getZoneName = _Time_getZoneName(_Utils_Tuple0);
+var $author$project$Main$ReturnedHome = function (a) {
+	return {$: 'ReturnedHome', a: a};
 };
-var $author$project$Main$initialEncoder = function (m) {
+var $author$project$Main$goHomeEncoder = function (m) {
 	return $elm$json$Json$Encode$object(
 		_List_fromArray(
 			[
 				_Utils_Tuple2(
-				'initialUser',
+				'goHomeUser',
 				$elm$json$Json$Encode$int(m.user.id))
 			]));
 };
-var $author$project$Main$SubModel = F5(
-	function (user, tasks, inputText, dpy, message) {
-		return {dpy: dpy, inputText: inputText, message: message, tasks: tasks, user: user};
+var $author$project$Main$SubModel = F7(
+	function (user, tasks, zoneName, zoneOffset, inputText, dpy, message) {
+		return {dpy: dpy, inputText: inputText, message: message, tasks: tasks, user: user, zoneName: zoneName, zoneOffset: zoneOffset};
 	});
 var $author$project$Main$userDecoder = A3(
 	$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
@@ -6925,15 +7005,47 @@ var $author$project$Main$subModelDecoder = A4(
 			'elmSubModelInputText',
 			$elm$json$Json$Decode$nullable($elm$json$Json$Decode$string),
 			$elm$core$Maybe$Nothing,
-			A3(
-				$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
-				'elmSubModelTasks',
-				$elm$json$Json$Decode$list($author$project$Main$taskDecoder),
-				A3(
-					$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
-					'elmSubModelUser',
-					$author$project$Main$userDecoder,
-					$elm$json$Json$Decode$succeed($author$project$Main$SubModel))))));
+			A4(
+				$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$optional,
+				'elmSubModelZoneOffset',
+				$elm$json$Json$Decode$nullable($elm$json$Json$Decode$int),
+				$elm$core$Maybe$Nothing,
+				A4(
+					$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$optional,
+					'elmSubModelZoneName',
+					$elm$json$Json$Decode$nullable($elm$json$Json$Decode$string),
+					$elm$core$Maybe$Nothing,
+					A3(
+						$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
+						'elmSubModelTasks',
+						$elm$json$Json$Decode$list($author$project$Main$taskDecoder),
+						A3(
+							$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
+							'elmSubModelUser',
+							$author$project$Main$userDecoder,
+							$elm$json$Json$Decode$succeed($author$project$Main$SubModel))))))));
+var $author$project$Main$goHome = function (m) {
+	return $elm$http$Http$post(
+		{
+			body: $elm$http$Http$jsonBody(
+				$author$project$Main$goHomeEncoder(m)),
+			expect: A2($elm$http$Http$expectJson, $author$project$Main$ReturnedHome, $author$project$Main$subModelDecoder),
+			url: 'http://localhost:8080/tasks/home'
+		});
+};
+var $author$project$Main$houPerY = 8760;
+var $author$project$Main$SubModelReceived = function (a) {
+	return {$: 'SubModelReceived', a: a};
+};
+var $author$project$Main$initialEncoder = function (m) {
+	return $elm$json$Json$Encode$object(
+		_List_fromArray(
+			[
+				_Utils_Tuple2(
+				'initialUser',
+				$elm$json$Json$Encode$int(m.user.id))
+			]));
+};
 var $author$project$Main$initialize = function (m) {
 	return $elm$http$Http$post(
 		{
@@ -6943,7 +7055,6 @@ var $author$project$Main$initialize = function (m) {
 			url: 'http://localhost:8080/tasks/init'
 		});
 };
-var $elm$core$Basics$not = _Basics_not;
 var $author$project$Main$inverseSelect = function (model) {
 	var sub = model.sub;
 	var newSub = _Utils_update(
@@ -6994,10 +7105,43 @@ var $author$project$Main$messageEH = F2(
 	});
 var $author$project$Main$minPerY = 525600;
 var $author$project$Main$monPerY = 12;
-var $elm$core$Platform$Cmd$batch = _Platform_batch;
-var $elm$core$Platform$Cmd$none = $elm$core$Platform$Cmd$batch(_List_Nil);
+var $elm$time$Time$now = _Time_now($elm$time$Time$millisToPosix);
 var $author$project$Main$quaPerY = 4;
+var $author$project$Main$returnedHome = F2(
+	function (model, m) {
+		var sub = model.sub;
+		var newSub = _Utils_update(
+			sub,
+			{message: m.message, tasks: m.tasks});
+		return _Utils_update(
+			model,
+			{sub: newSub});
+	});
 var $author$project$Main$secPerY = 31536000;
+var $author$project$Main$setZoneName = F2(
+	function (model, zn) {
+		var sub = model.sub;
+		var newSub = function () {
+			if (zn.$ === 'Name') {
+				var name = zn.a;
+				return _Utils_update(
+					sub,
+					{
+						zoneName: $elm$core$Maybe$Just(name)
+					});
+			} else {
+				var offset = zn.a;
+				return _Utils_update(
+					sub,
+					{
+						zoneOffset: $elm$core$Maybe$Just(offset)
+					});
+			}
+		}();
+		return _Utils_update(
+			model,
+			{sub: newSub});
+	});
 var $elm$core$Elm$JsArray$unsafeSet = _JsArray_unsafeSet;
 var $elm$core$Array$setHelp = F4(
 	function (shift, index, value, tree) {
@@ -7120,71 +7264,153 @@ var $elm$http$Http$expectWhatever = function (toMsg) {
 				return $elm$core$Result$Ok(_Utils_Tuple0);
 			}));
 };
-var $author$project$Main$switchStarEncoder = F2(
+var $author$project$Main$switchStarEncoder = function (i) {
+	return $elm$json$Json$Encode$object(
+		_List_fromArray(
+			[
+				_Utils_Tuple2(
+				'switchStarId',
+				$elm$json$Json$Encode$int(i))
+			]));
+};
+var $author$project$Main$switchStar = F2(
 	function (m, i) {
-		var taskId = function () {
+		var _v0 = A2(
+			$elm$core$Array$get,
+			i,
+			$elm$core$Array$fromList(m.tasks));
+		if (_v0.$ === 'Nothing') {
+			return $elm$core$Platform$Cmd$none;
+		} else {
+			var task = _v0.a;
+			return $elm$http$Http$post(
+				{
+					body: $elm$http$Http$jsonBody(
+						$author$project$Main$switchStarEncoder(task.id)),
+					expect: $elm$http$Http$expectWhatever(
+						$author$project$Main$StarSwitched(i)),
+					url: 'http://localhost:8080/tasks/star'
+				});
+		}
+	});
+var $elm$core$Basics$composeL = F3(
+	function (g, f, x) {
+		return g(
+			f(x));
+	});
+var $elm$core$List$head = function (list) {
+	if (list.b) {
+		var x = list.a;
+		var xs = list.b;
+		return $elm$core$Maybe$Just(x);
+	} else {
+		return $elm$core$Maybe$Nothing;
+	}
+};
+var $elm$core$Tuple$mapSecond = F2(
+	function (func, _v0) {
+		var x = _v0.a;
+		var y = _v0.b;
+		return _Utils_Tuple2(
+			x,
+			func(y));
+	});
+var $elm$core$Tuple$pair = F2(
+	function (a, b) {
+		return _Utils_Tuple2(a, b);
+	});
+var $elm$core$Tuple$second = function (_v0) {
+	var y = _v0.b;
+	return y;
+};
+var $author$project$Main$taskFocused = F3(
+	function (model, id, tasks) {
+		var sub = model.sub;
+		var newSub = _Utils_update(
+			sub,
+			{tasks: tasks});
+		var enumeratedTasks = A2($elm$core$List$indexedMap, $elm$core$Tuple$pair, tasks);
+		var enumeratedIds = A2(
+			$elm$core$List$map,
+			$elm$core$Tuple$mapSecond(
+				function ($) {
+					return $.id;
+				}),
+			enumeratedTasks);
+		var newIndicator = function () {
 			var _v0 = A2(
-				$elm$core$Array$get,
-				i,
-				$elm$core$Array$fromList(m.tasks));
-			if (_v0.$ === 'Nothing') {
+				$elm$core$List$filter,
+				A2(
+					$elm$core$Basics$composeL,
+					$elm$core$Basics$eq(id),
+					$elm$core$Tuple$second),
+				enumeratedIds);
+			if (!_v0.b) {
 				return 0;
 			} else {
-				var task = _v0.a;
-				return function ($) {
-					return $.id;
-				}(task);
+				var shouldSingleton = _v0;
+				var _v1 = $elm$core$List$head(shouldSingleton);
+				if (_v1.$ === 'Nothing') {
+					return 0;
+				} else {
+					var pair = _v1.a;
+					return pair.a;
+				}
+			}
+		}();
+		return _Utils_update(
+			model,
+			{indicator: newIndicator, sub: newSub});
+	});
+var $elm$json$Json$Encode$null = _Json_encodeNull;
+var $elm$json$Json$Encode$string = _Json_wrap;
+var $author$project$Main$textPostEncoder = F2(
+	function (m, content) {
+		var zoneOffset = function () {
+			var _v1 = m.zoneOffset;
+			if (_v1.$ === 'Nothing') {
+				return $elm$json$Json$Encode$null;
+			} else {
+				var offset = _v1.a;
+				return $elm$json$Json$Encode$int(offset);
+			}
+		}();
+		var zoneName = function () {
+			var _v0 = m.zoneName;
+			if (_v0.$ === 'Nothing') {
+				return $elm$json$Json$Encode$null;
+			} else {
+				var name = _v0.a;
+				return $elm$json$Json$Encode$string(name);
 			}
 		}();
 		return $elm$json$Json$Encode$object(
 			_List_fromArray(
 				[
 					_Utils_Tuple2(
-					'switchStarId',
-					$elm$json$Json$Encode$int(taskId))
+					'textPostUser',
+					$elm$json$Json$Encode$int(m.user.id)),
+					_Utils_Tuple2(
+					'textPostContent',
+					$elm$json$Json$Encode$string(content)),
+					_Utils_Tuple2('textPostZoneName', zoneName),
+					_Utils_Tuple2('textPostZoneOffset', zoneOffset)
 				]));
 	});
-var $author$project$Main$switchStar = F2(
-	function (m, i) {
+var $author$project$Main$textPost = function (m) {
+	var _v0 = m.inputText;
+	if (_v0.$ === 'Nothing') {
+		return $elm$core$Platform$Cmd$none;
+	} else {
+		var content = _v0.a;
 		return $elm$http$Http$post(
 			{
 				body: $elm$http$Http$jsonBody(
-					A2($author$project$Main$switchStarEncoder, m, i)),
-				expect: $elm$http$Http$expectWhatever(
-					$author$project$Main$StarSwitched(i)),
-				url: 'http://localhost:8080/tasks/star'
+					A2($author$project$Main$textPostEncoder, m, content)),
+				expect: A2($elm$http$Http$expectJson, $author$project$Main$TasksReceived, $author$project$Main$tasksDecoder),
+				url: 'http://localhost:8080/tasks/post'
 			});
-	});
-var $elm$json$Json$Encode$string = _Json_wrap;
-var $author$project$Main$textPostEncoder = function (m) {
-	var content = function () {
-		var _v0 = m.inputText;
-		if (_v0.$ === 'Nothing') {
-			return '';
-		} else {
-			var c = _v0.a;
-			return c;
-		}
-	}();
-	return $elm$json$Json$Encode$object(
-		_List_fromArray(
-			[
-				_Utils_Tuple2(
-				'textPostUser',
-				$elm$json$Json$Encode$int(m.user.id)),
-				_Utils_Tuple2(
-				'textPostContent',
-				$elm$json$Json$Encode$string(content))
-			]));
-};
-var $author$project$Main$textPost = function (m) {
-	return $elm$http$Http$post(
-		{
-			body: $elm$http$Http$jsonBody(
-				$author$project$Main$textPostEncoder(m)),
-			expect: A2($elm$http$Http$expectJson, $author$project$Main$TasksReceived, $author$project$Main$tasksDecoder),
-			url: 'http://localhost:8080/tasks/post'
-		});
+	}
 };
 var $author$project$Main$weePerY = 52;
 var $author$project$Main$yeaPerY = 1;
@@ -7295,12 +7521,19 @@ var $author$project$Main$update = F2(
 						return _Utils_Tuple2(
 							A2($author$project$Main$changeDpy, model, $author$project$Main$secPerY),
 							$elm$core$Platform$Cmd$none);
-					case 'a':
-						return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
+					case 'o':
+						return _Utils_Tuple2(
+							model,
+							A2(
+								$elm$core$Task$perform,
+								$author$project$Main$CheckExpired,
+								$elm$core$Task$succeed(model.currentTime)));
 					case 't':
 						return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
 					case 'h':
-						return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
+						return _Utils_Tuple2(
+							model,
+							$author$project$Main$goHome(model.sub));
 					case 'b':
 						return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
 					case 'p':
@@ -7363,13 +7596,68 @@ var $author$project$Main$update = F2(
 							{sub: newSub});
 					}(),
 					$elm$core$Platform$Cmd$none);
-			default:
+			case 'TaskFocused':
+				if (msg.b.$ === 'Ok') {
+					var id = msg.a;
+					var newTasks = msg.b.a;
+					return _Utils_Tuple2(
+						A3($author$project$Main$taskFocused, model, id, newTasks),
+						$elm$core$Platform$Cmd$none);
+				} else {
+					var httpError = msg.b.a;
+					return _Utils_Tuple2(
+						A2($author$project$Main$messageEH, model, httpError),
+						$elm$core$Platform$Cmd$none);
+				}
+			case 'AdjustTimeZone':
 				var newZone = msg.a;
 				return _Utils_Tuple2(
 					_Utils_update(
 						model,
 						{zone: newZone}),
+					A2($elm$core$Task$perform, $author$project$Main$SetZoneName, $elm$time$Time$getZoneName));
+			case 'SetZoneName':
+				var newZoneName = msg.a;
+				return _Utils_Tuple2(
+					A2($author$project$Main$setZoneName, model, newZoneName),
+					A2($elm$core$Task$perform, $author$project$Main$SetCurrentTime, $elm$time$Time$now));
+			case 'SetCurrentTime':
+				var cTime = msg.a;
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{currentTime: cTime}),
+					A2(
+						$elm$core$Task$perform,
+						$author$project$Main$CheckExpired,
+						$elm$core$Task$succeed(cTime)));
+			case 'CheckExpired':
+				var currentTime = msg.a;
+				return _Utils_Tuple2(
+					A2($author$project$Main$checkExpired, model, currentTime),
 					$elm$core$Platform$Cmd$none);
+			case 'SetAsOfTime':
+				var aTime = msg.a;
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{asOfTime: aTime}),
+					$elm$core$Platform$Cmd$none);
+			default:
+				if (msg.a.$ === 'Ok') {
+					var newSubModel = msg.a.a;
+					return _Utils_Tuple2(
+						A2($author$project$Main$returnedHome, model, newSubModel),
+						A2(
+							$elm$core$Task$perform,
+							$author$project$Main$SetAsOfTime,
+							$elm$core$Task$succeed(model.currentTime)));
+				} else {
+					var httpError = msg.a.a;
+					return _Utils_Tuple2(
+						A2($author$project$Main$messageEH, model, httpError),
+						$elm$core$Platform$Cmd$none);
+				}
 		}
 	});
 var $author$project$Main$Input = function (a) {
@@ -7434,10 +7722,6 @@ var $elm$html$Html$Events$onInput = function (tagger) {
 			$elm$html$Html$Events$alwaysStop,
 			A2($elm$json$Json$Decode$map, tagger, $elm$html$Html$Events$targetValue)));
 };
-var $elm$core$Tuple$pair = F2(
-	function (a, b) {
-		return _Utils_Tuple2(a, b);
-	});
 var $elm$html$Html$Attributes$placeholder = $elm$html$Html$Attributes$stringProperty('placeholder');
 var $elm$virtual_dom$VirtualDom$text = _VirtualDom_text;
 var $elm$html$Html$text = $elm$virtual_dom$VirtualDom$text;
@@ -7549,57 +7833,28 @@ var $author$project$Main$barString_ = F4(
 										A2($elm$core$String$repeat, sha, '#'))))))));
 		}
 	});
-var $elm$core$Maybe$map = F2(
-	function (f, maybe) {
-		if (maybe.$ === 'Just') {
-			var value = maybe.a;
-			return $elm$core$Maybe$Just(
-				f(value));
-		} else {
-			return $elm$core$Maybe$Nothing;
-		}
-	});
-var $elm$time$Time$posixToMillis = function (_v0) {
-	var millis = _v0.a;
-	return millis;
-};
-var $elm$core$Basics$pow = _Basics_pow;
-var $author$project$Main$secUntil = F2(
-	function (now, target) {
-		var nowSec = (A2($elm$core$Basics$pow, 10, 3) / $elm$time$Time$posixToMillis(now)) | 0;
-		return A2(
-			$elm$core$Maybe$map,
-			$elm$core$Basics$sub(nowSec),
-			target);
-	});
 var $author$project$Main$barString = F2(
 	function (model, task) {
-		var secUS = A2(
-			$author$project$Main$secUntil,
-			function ($) {
-				return $.asOfTime;
-			}(model),
-			function ($) {
-				return $.start;
-			}(task));
-		var secUD = A2(
-			$author$project$Main$secUntil,
-			function ($) {
-				return $.asOfTime;
-			}(model),
-			function ($) {
-				return $.deadline;
-			}(task));
+		var secUS = A2($author$project$Main$secUntil, task.start, model.asOfTime);
+		var secUD = A2($author$project$Main$secUntil, task.deadline, model.asOfTime);
 		return A4($author$project$Main$barString_, model.sub.dpy, task.weight, secUS, secUD);
 	});
+var $elm$html$Html$Attributes$classList = function (classes) {
+	return $elm$html$Html$Attributes$class(
+		A2(
+			$elm$core$String$join,
+			' ',
+			A2(
+				$elm$core$List$map,
+				$elm$core$Tuple$first,
+				A2($elm$core$List$filter, $elm$core$Tuple$second, classes))));
+};
 var $elm$html$Html$Attributes$href = function (url) {
 	return A2(
 		$elm$html$Html$Attributes$stringProperty,
 		'href',
 		_VirtualDom_noJavaScriptUri(url));
 };
-var $elm$virtual_dom$VirtualDom$style = _VirtualDom_style;
-var $elm$html$Html$Attributes$style = $elm$virtual_dom$VirtualDom$style;
 var $author$project$Main$viewAssign = F2(
 	function (u, t) {
 		return _Utils_eq(u.name, t.user) ? 'me' : t.user;
@@ -7820,17 +8075,22 @@ var $author$project$Main$viewWeight = function (task) {
 };
 var $author$project$Main$viewTask = F2(
 	function (m, _v0) {
-		var idx = _v0.a;
+		var i = _v0.a;
 		var task = _v0.b;
 		return A2(
 			$elm$html$Html$div,
 			_List_fromArray(
 				[
-					$elm$html$Html$Attributes$class('task'),
-					A2(
-					$elm$html$Html$Attributes$style,
-					'background-color',
-					_Utils_eq(idx, m.indicator) ? '#C2DBFF' : (task.isSelected ? '#FFF1BC' : '#EEF4F2'))
+					$elm$html$Html$Attributes$classList(
+					_List_fromArray(
+						[
+							_Utils_Tuple2('task', true),
+							_Utils_Tuple2(
+							'focused ',
+							_Utils_eq(i, m.indicator)),
+							_Utils_Tuple2('selected', task.isSelected),
+							_Utils_Tuple2('expired', task.isExpired)
+						]))
 				]),
 			_List_fromArray(
 				[
@@ -7838,9 +8098,16 @@ var $author$project$Main$viewTask = F2(
 					$elm$html$Html$div,
 					_List_fromArray(
 						[
+							$elm$html$Html$Attributes$class('indicator')
+						]),
+					_List_Nil),
+					A2(
+					$elm$html$Html$div,
+					_List_fromArray(
+						[
 							$elm$html$Html$Attributes$class('selection'),
 							$elm$html$Html$Events$onClick(
-							$author$project$Main$SwitchSelect(idx))
+							$author$project$Main$SwitchSelect(i))
 						]),
 					_List_fromArray(
 						[
@@ -7852,7 +8119,7 @@ var $author$project$Main$viewTask = F2(
 						[
 							$elm$html$Html$Attributes$class('star'),
 							$elm$html$Html$Events$onClick(
-							$author$project$Main$SwitchStar(idx))
+							$author$project$Main$SwitchStar(i))
 						]),
 					_List_fromArray(
 						[
@@ -8058,6 +8325,13 @@ var $author$project$Main$viewTaskHeader = function (m) {
 				$elm$html$Html$div,
 				_List_fromArray(
 					[
+						$elm$html$Html$Attributes$class('indicator')
+					]),
+				_List_Nil),
+				A2(
+				$elm$html$Html$div,
+				_List_fromArray(
+					[
 						$elm$html$Html$Attributes$class('selection')
 					]),
 				_List_Nil),
@@ -8074,7 +8348,20 @@ var $author$project$Main$viewTaskHeader = function (m) {
 					[
 						$elm$html$Html$Attributes$class('title')
 					]),
-				_List_Nil),
+				_List_fromArray(
+					[
+						A2(
+						$elm$html$Html$div,
+						_List_fromArray(
+							[
+								$elm$html$Html$Attributes$class('dev')
+							]),
+						_List_fromArray(
+							[
+								$elm$html$Html$text(
+								A2($author$project$Main$strFromPosix, m.zone, m.currentTime))
+							]))
+					])),
 				A2(
 				$elm$html$Html$div,
 				_List_fromArray(
