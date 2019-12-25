@@ -5909,7 +5909,9 @@ var $author$project$Main$changeDpy = F2(
 		var newSub = _Utils_update(
 			sub,
 			{
-				dpy: $elm$core$Maybe$Just(dpy)
+				dpy: $elm$core$Maybe$Just(dpy),
+				message: $elm$core$Maybe$Just(
+					$elm$core$String$fromInt(dpy) + ' dpy')
 			});
 		return _Utils_update(
 			model,
@@ -7293,6 +7295,7 @@ var $author$project$Main$switchStar = F2(
 				});
 		}
 	});
+var $author$project$Main$sxhPerY = 1460;
 var $elm$core$Basics$composeL = F3(
 	function (g, f, x) {
 		return g(
@@ -7511,13 +7514,17 @@ var $author$project$Main$update = F2(
 							$elm$core$Platform$Cmd$none);
 					case '6':
 						return _Utils_Tuple2(
-							A2($author$project$Main$changeDpy, model, $author$project$Main$houPerY),
+							A2($author$project$Main$changeDpy, model, $author$project$Main$sxhPerY),
 							$elm$core$Platform$Cmd$none);
 					case '7':
 						return _Utils_Tuple2(
-							A2($author$project$Main$changeDpy, model, $author$project$Main$minPerY),
+							A2($author$project$Main$changeDpy, model, $author$project$Main$houPerY),
 							$elm$core$Platform$Cmd$none);
 					case '8':
+						return _Utils_Tuple2(
+							A2($author$project$Main$changeDpy, model, $author$project$Main$minPerY),
+							$elm$core$Platform$Cmd$none);
+					case '9':
 						return _Utils_Tuple2(
 							A2($author$project$Main$changeDpy, model, $author$project$Main$secPerY),
 							$elm$core$Platform$Cmd$none);
@@ -8312,6 +8319,22 @@ var $author$project$Main$strFromPosix = F2(
 			_List_fromArray(
 				[date, wed, time]));
 	});
+var $author$project$Main$viewDateTimeGuide = function (mdpy) {
+	if (mdpy.$ === 'Nothing') {
+		return '-';
+	} else {
+		var dpy = mdpy.a;
+		return (_Utils_cmp(dpy, $author$project$Main$yeaPerY) < 1) ? 'Y' : ((_Utils_cmp(dpy, $author$project$Main$monPerY) < 1) ? 'Y/M' : ((_Utils_cmp(dpy, $author$project$Main$dayPerY) < 1) ? 'M/D' : ((_Utils_cmp(dpy, $author$project$Main$houPerY) < 1) ? '/D h:' : ((_Utils_cmp(dpy, $author$project$Main$minPerY) < 1) ? 'h:m' : 'm\'s'))));
+	}
+};
+var $author$project$Main$viewDateTimeUnit = function (mdpy) {
+	if (mdpy.$ === 'Nothing') {
+		return '-';
+	} else {
+		var dpy = mdpy.a;
+		return _Utils_eq(dpy, $author$project$Main$yeaPerY) ? 'Y' : (_Utils_eq(dpy, $author$project$Main$quaPerY) ? 'Q' : (_Utils_eq(dpy, $author$project$Main$monPerY) ? 'M' : (_Utils_eq(dpy, $author$project$Main$weePerY) ? 'W' : (_Utils_eq(dpy, $author$project$Main$dayPerY) ? 'D' : (_Utils_eq(dpy, $author$project$Main$sxhPerY) ? '6h' : (_Utils_eq(dpy, $author$project$Main$houPerY) ? 'h' : (_Utils_eq(dpy, $author$project$Main$minPerY) ? 'm' : (_Utils_eq(dpy, $author$project$Main$secPerY) ? 's' : 'CSTM'))))))));
+	}
+};
 var $author$project$Main$viewTaskHeader = function (m) {
 	return A2(
 		$elm$html$Html$div,
@@ -8368,7 +8391,11 @@ var $author$project$Main$viewTaskHeader = function (m) {
 					[
 						$elm$html$Html$Attributes$class('start')
 					]),
-				_List_Nil),
+				_List_fromArray(
+					[
+						$elm$html$Html$text(
+						$author$project$Main$viewDateTimeUnit(m.sub.dpy))
+					])),
 				A2(
 				$elm$html$Html$div,
 				_List_fromArray(
@@ -8378,15 +8405,7 @@ var $author$project$Main$viewTaskHeader = function (m) {
 				_List_fromArray(
 					[
 						$elm$html$Html$text(
-						'As of ' + (A2($author$project$Main$strFromPosix, m.zone, m.asOfTime) + (', ' + (function () {
-							var _v0 = m.sub.dpy;
-							if (_v0.$ === 'Nothing') {
-								return '-';
-							} else {
-								var d = _v0.a;
-								return $elm$core$String$fromInt(d);
-							}
-						}() + ' dpy'))))
+						'As of ' + A2($author$project$Main$strFromPosix, m.zone, m.asOfTime))
 					])),
 				A2(
 				$elm$html$Html$div,
@@ -8394,7 +8413,11 @@ var $author$project$Main$viewTaskHeader = function (m) {
 					[
 						$elm$html$Html$Attributes$class('deadline')
 					]),
-				_List_Nil),
+				_List_fromArray(
+					[
+						$elm$html$Html$text(
+						$author$project$Main$viewDateTimeGuide(m.sub.dpy))
+					])),
 				A2(
 				$elm$html$Html$div,
 				_List_fromArray(
@@ -8406,7 +8429,7 @@ var $author$project$Main$viewTaskHeader = function (m) {
 				$elm$html$Html$div,
 				_List_fromArray(
 					[
-						$elm$html$Html$Attributes$class('done')
+						$elm$html$Html$Attributes$class('assign')
 					]),
 				_List_Nil)
 			]));

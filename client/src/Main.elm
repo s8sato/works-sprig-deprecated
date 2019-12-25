@@ -124,6 +124,11 @@ dayPerY =
     365
 
 
+sxhPerY : Int
+sxhPerY =
+    1460
+
+
 houPerY : Int
 houPerY =
     8760
@@ -260,12 +265,15 @@ update msg model =
             ( changeDpy model dayPerY, Cmd.none )
 
         CharacterKey '6' ->
-            ( changeDpy model houPerY, Cmd.none )
+            ( changeDpy model sxhPerY, Cmd.none )
 
         CharacterKey '7' ->
-            ( changeDpy model minPerY, Cmd.none )
+            ( changeDpy model houPerY, Cmd.none )
 
         CharacterKey '8' ->
+            ( changeDpy model minPerY, Cmd.none )
+
+        CharacterKey '9' ->
             ( changeDpy model secPerY, Cmd.none )
 
         CharacterKey 'o' ->
@@ -588,7 +596,10 @@ changeDpy model dpy =
             model.sub
 
         newSub =
-            { sub | dpy = Just dpy }
+            { sub
+                | dpy = Just dpy
+                , message = Just (String.fromInt dpy ++ " dpy")
+            }
     in
     { model | sub = newSub }
 
@@ -888,6 +899,70 @@ view model =
         ]
 
 
+viewDateTimeUnit : Maybe Int -> String
+viewDateTimeUnit mdpy =
+    case mdpy of
+        Nothing ->
+            "-"
+
+        Just dpy ->
+            if dpy == yeaPerY then
+                "Y"
+
+            else if dpy == quaPerY then
+                "Q"
+
+            else if dpy == monPerY then
+                "M"
+
+            else if dpy == weePerY then
+                "W"
+
+            else if dpy == dayPerY then
+                "D"
+
+            else if dpy == sxhPerY then
+                "6h"
+
+            else if dpy == houPerY then
+                "h"
+
+            else if dpy == minPerY then
+                "m"
+
+            else if dpy == secPerY then
+                "s"
+
+            else
+                "CSTM"
+
+
+viewDateTimeGuide : Maybe Int -> String
+viewDateTimeGuide mdpy =
+    case mdpy of
+        Nothing ->
+            "-"
+
+        Just dpy ->
+            if dpy <= yeaPerY then
+                "Y"
+
+            else if dpy <= monPerY then
+                "Y/M"
+
+            else if dpy <= dayPerY then
+                "M/D"
+
+            else if dpy <= houPerY then
+                "/D h:"
+
+            else if dpy <= minPerY then
+                "h:m"
+
+            else
+                "m's"
+
+
 viewMessage : SubModel -> String
 viewMessage m =
     case m.message of
@@ -908,25 +983,18 @@ viewTaskHeader m =
             [ div [ class "dev" ]
                 [ text (strFromPosix m.zone m.currentTime) ]
             ]
-        , div [ class "start" ] []
+        , div [ class "start" ]
+            [ text (viewDateTimeUnit m.sub.dpy) ]
         , div [ class "bar" ]
             [ text
                 ("As of "
                     ++ strFromPosix m.zone m.asOfTime
-                    ++ ", "
-                    ++ (case m.sub.dpy of
-                            Nothing ->
-                                "-"
-
-                            Just d ->
-                                String.fromInt d
-                       )
-                    ++ " dpy"
                 )
             ]
-        , div [ class "deadline" ] []
+        , div [ class "deadline" ]
+            [ text (viewDateTimeGuide m.sub.dpy) ]
         , div [ class "weight" ] []
-        , div [ class "done" ] []
+        , div [ class "assign" ] []
         ]
 
 
