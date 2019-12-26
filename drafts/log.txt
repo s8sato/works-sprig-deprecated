@@ -110,3 +110,5 @@ Task json
 
 Eliminated integers.
 Added getMaxNode, many Elm Task.performs.
+
+vertical stripe as guide
