@@ -17,11 +17,11 @@ trunk
         bud
         bud
 
-]hey jump
+jump
     step
         hop2 dependent on hop1 [key
     step
-        ]key hop1 [hey
+        ]key hop1
 
 % A task to register as completed
 * A task to register as starred
@@ -44,7 +44,13 @@ YOU CAN ALSO ENTER ONE OF THE FOLLOWING SLASH COMMANDS:
 Set default dpy (dots per year) to 1, that is, a dot represents a year.
 
 /asof 2020/01/01_12:0:0
-Set the time corresponding to the left edge of the bar to noon on January 1, 2020.
+Set the time corresponding to the left edge of dots to noon on January 1, 2020.
+
+/pause
+Fix the chart.
+
+/tick
+Update the chart every second.
 
 /sel -t word
 Select tasks whose title contains 'word'.

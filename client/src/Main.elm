@@ -42,6 +42,7 @@ type alias Model =
     , indicator : Index
     , underTyping : Bool
     , underControl : Bool
+    , asOfCurrentTime : Bool
     }
 
 
@@ -98,6 +99,7 @@ init _ =
       , indicator = 0
       , underTyping = False
       , underControl = False
+      , asOfCurrentTime = True
       }
       -- , Cmd.none
     , Task.perform AdjustTimeZone Time.here
@@ -167,7 +169,6 @@ type Msg
     | TaskFocused Int (Result Http.Error (List Task))
     | AdjustTimeZone Zone
     | SetZoneName ZoneName
-    | SetCurrentTime Posix
     | CheckExpired Posix
     | SetAsOfTime Posix
     | ReturnedHome (Result Http.Error SubModel)
@@ -177,6 +178,7 @@ type Msg
     | ControlKeyUT String
     | CharacterKeyUTRelease Char
     | ControlKeyUTRelease String
+    | Tick Time.Posix
 
 
 
@@ -380,17 +382,21 @@ update msg model =
 
         SetZoneName newZoneName ->
             ( setZoneName model newZoneName
-            , Task.perform SetCurrentTime Time.now
+            , Cmd.none
             )
 
-        SetCurrentTime cTime ->
-            ( { model | currentTime = cTime }
-            , Task.perform CheckExpired (Task.succeed cTime)
+        Tick newTime ->
+            ( { model | currentTime = newTime }
+            , Task.perform CheckExpired (Task.succeed newTime)
             )
 
         CheckExpired currentTime ->
             ( checkExpired model currentTime
-            , Cmd.none
+            , if model.asOfCurrentTime then
+                Task.perform SetAsOfTime (Task.succeed model.currentTime)
+
+              else
+                Cmd.none
             )
 
         SetAsOfTime aTime ->
@@ -1196,9 +1202,14 @@ viewTimeByDpy mdpy z mt =
                         min ++ "'" ++ sec
 
 
-fill : Int -> String -> String -> String
-fill n putty target =
+fillR : Int -> String -> String -> String
+fillR n putty target =
     String.left n <| target ++ String.repeat n putty
+
+
+fillL : Int -> String -> String -> String
+fillL n putty target =
+    String.right n <| String.repeat n putty ++ target
 
 
 barString : Model -> Task -> String
@@ -1252,7 +1263,7 @@ barString_ mdpy weight secUS secUD =
             in
             String.repeat dot "."
                 ++ String.repeat sha "#"
-                |> fill 48 "."
+                |> fillR 48 "."
                 |> String.toList
                 |> Array.fromList
                 |> Array.set exc '!'
@@ -1286,22 +1297,22 @@ strFromPosix z p =
             String.fromInt <| Time.toYear z p
 
         mon =
-            strFromMonth <| Time.toMonth z p
+            fillL 2 "0" <| strFromMonth <| Time.toMonth z p
 
         day =
-            String.fromInt <| Time.toDay z p
+            fillL 2 "0" <| String.fromInt <| Time.toDay z p
 
         wed =
             strFromWeekday <| Time.toWeekday z p
 
         hou =
-            String.fromInt <| Time.toHour z p
+            fillL 2 "0" <| String.fromInt <| Time.toHour z p
 
         min =
-            String.fromInt <| Time.toMinute z p
+            fillL 2 "0" <| String.fromInt <| Time.toMinute z p
 
         sec =
-            String.fromInt <| Time.toSecond z p
+            fillL 2 "0" <| String.fromInt <| Time.toSecond z p
 
         date =
             String.join "/" [ yea, mon, day ]
@@ -1379,7 +1390,7 @@ strFromWeekday weekday =
 
 textPlaceholder : String
 textPlaceholder =
-    "ENTER TASKS OR A COMMAND:\n\njump\n    step\n        hop\n\nA task to complete by the end of 2020 -2020/12/31\n    A task expected to take 300 hours $300\n        A task you can start in the beginning of 2020 2020/1/1-\n\nA time-critical task 2020/01/1- 23:59:59- $0.001 -0:0:3 -2020/1/02\n\ntrunk\n    branch Alice\n        bud \n    branch Bob\n        bud\n        bud\n\njump\n    step\n        hop2 dependent on hop1 [key\n    step\n        ]key hop1\n\n% A task to register as completed\n* A task to register as starred\n\nA linked task e.g. slack permalink &https://\n\n#777 The task with ID 777 whose weight will be updated to 30 $30\n\n#777 The complex task\n    A simpler task\n    A simpler task\n\nA new emerging task dependent on existing #777 and #888\n    #777\n    #888\n\nYOU CAN ALSO ENTER ONE OF THE FOLLOWING SLASH COMMANDS:\n\n/dpy 1\nSet default dpy (dots per year) to 1, that is, a dot represents a year.\n\n/asof 2020/01/01_12:0:0\nSet the time corresponding to the left edge of the bar to noon on January 1, 2020.\n\n/sel -t word\nSelect tasks whose title contains 'word'.\n\n/sel -s 2020/1/1_12:0:0< <2020/1/2\nSelect tasks whose start is in the afternoon of January 1, 2020.\n\n/sel -d <23:59:59\nSelect tasks whose deadline is today's end.\n\n/sel -w 30< <300\nSelect tasks whose weight is between 30 and 300 hours.\n\n/sel -arc\nSelect archived tasks.\n\n/sel -star\nSelect starred tasks.\n\n/sel -trunk\nSelect trunk, namely, tasks with no successor.\n\n/sel -buds\nSelect buds, namely, tasks with no predecessor.\n\n/sel -t word -s 2020/1/1< -d <23:59:59 -w 30< <300 -arc -star\nSpecify multiple conditions.\n\n/care 1 2\nCare from parents to grandchildren, namely, watch their tasks too,\nprovided you have permission for each.\n\nCOMMANDS FOR ADMINISTRATORS:\n\n/allow albert edit sci_team\nAllow Albert to edit sci_team tasks; create, update, and perform.\nAutomatically allow to view.\n\n/ban pisces_dep view albert\nBan pisces_dep from viewing Albert tasks.\nAutomatically ban from editing.\n\n/connect zodiac_inc pisces_dep\nGive zodiac_inc and pisces_dep a parent-child relationship.\nYou can, by default,\nview direct parents and all descendants and\nedit direct children.\n\nTHANK YOU FOR READING!\n"
+    "ENTER TASKS OR A COMMAND:\n\njump\n    step\n        hop\n\nA task to complete by the end of 2020 -2020/12/31\n    A task expected to take 300 hours $300\n        A task you can start in the beginning of 2020 2020/1/1-\n\nA time-critical task 2020/01/1- 23:59:59- $0.001 -0:0:3 -2020/1/02\n\ntrunk\n    branch Alice\n        bud \n    branch Bob\n        bud\n        bud\n\njump\n    step\n        hop2 dependent on hop1 [key\n    step\n        ]key hop1\n\n% A task to register as completed\n* A task to register as starred\n\nA linked task e.g. slack permalink &https://\n\n#777 The task with ID 777 whose weight will be updated to 30 $30\n\n#777 The complex task\n    A simpler task\n    A simpler task\n\nA new emerging task dependent on existing #777 and #888\n    #777\n    #888\n\nYOU CAN ALSO ENTER ONE OF THE FOLLOWING SLASH COMMANDS:\n\n/dpy 1\nSet default dpy (dots per year) to 1, that is, a dot represents a year.\n\n/asof 2020/01/01_12:0:0\nSet the time corresponding to the left edge of dots to noon on January 1, 2020.\n\n/pause\nFix the chart.\n\n/tick\nUpdate the chart every second.\n\n/sel -t word\nSelect tasks whose title contains 'word'.\n\n/sel -s 2020/1/1_12:0:0< <2020/1/2\nSelect tasks whose start is in the afternoon of January 1, 2020.\n\n/sel -d <23:59:59\nSelect tasks whose deadline is today's end.\n\n/sel -w 30< <300\nSelect tasks whose weight is between 30 and 300 hours.\n\n/sel -arc\nSelect archived tasks.\n\n/sel -star\nSelect starred tasks.\n\n/sel -trunk\nSelect trunk, namely, tasks with no successor.\n\n/sel -buds\nSelect buds, namely, tasks with no predecessor.\n\n/sel -t word -s 2020/1/1< -d <23:59:59 -w 30< <300 -arc -star\nSpecify multiple conditions.\n\n/care 1 2\nCare from parents to grandchildren, namely, watch their tasks too,\nprovided you have permission for each.\n\nCOMMANDS FOR ADMINISTRATORS:\n\n/allow albert edit sci_team\nAllow Albert to edit sci_team tasks; create, update, and perform.\nAutomatically allow to view.\n\n/ban pisces_dep view albert\nBan pisces_dep from viewing Albert tasks.\nAutomatically ban from editing.\n\n/connect zodiac_inc pisces_dep\nGive zodiac_inc and pisces_dep a parent-child relationship.\nYou can, by default,\nview direct parents and all descendants and\nedit direct children.\n\nTHANK YOU FOR READING!\n"
 
 
 
@@ -1390,13 +1401,15 @@ subscriptions : Model -> Sub Msg
 subscriptions model =
     if model.underTyping then
         Sub.batch
-            [ onKeyDown keyDecoderUT
+            [ Time.every 1000 Tick
+            , onKeyDown keyDecoderUT
             , onKeyUp keyDecoderUTRelease
             ]
 
     else
         Sub.batch
-            [ onKeyPress keyDecoder
+            [ Time.every 1000 Tick
+            , onKeyPress keyDecoder
 
             -- , onClick (Decode.succeed MouseClick)
             ]

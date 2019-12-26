@@ -5452,6 +5452,7 @@ var $author$project$Main$init = function (_v0) {
 	};
 	return _Utils_Tuple2(
 		{
+			asOfCurrentTime: true,
 			asOfTime: $elm$time$Time$millisToPosix(0),
 			currentTime: $elm$time$Time$millisToPosix(0),
 			indicator: 0,
@@ -5462,98 +5463,54 @@ var $author$project$Main$init = function (_v0) {
 		},
 		A2($elm$core$Task$perform, $author$project$Main$AdjustTimeZone, $elm$time$Time$here));
 };
+var $author$project$Main$Tick = function (a) {
+	return {$: 'Tick', a: a};
+};
 var $elm$core$Platform$Sub$batch = _Platform_batch;
-var $elm$json$Json$Decode$field = _Json_decodeField;
-var $elm$json$Json$Decode$string = _Json_decodeString;
-var $author$project$Main$CharacterKey = function (a) {
-	return {$: 'CharacterKey', a: a};
-};
-var $author$project$Main$ControlKey = function (a) {
-	return {$: 'ControlKey', a: a};
-};
-var $author$project$Main$toMsg = function (keyValue) {
-	var _v0 = $elm$core$String$uncons(keyValue);
-	if ((_v0.$ === 'Just') && (_v0.a.b === '')) {
-		var _v1 = _v0.a;
-		var _char = _v1.a;
-		return $author$project$Main$CharacterKey(_char);
-	} else {
-		return $author$project$Main$ControlKey(keyValue);
-	}
-};
-var $author$project$Main$keyDecoder = A2(
-	$elm$json$Json$Decode$map,
-	$author$project$Main$toMsg,
-	A2($elm$json$Json$Decode$field, 'key', $elm$json$Json$Decode$string));
-var $author$project$Main$CharacterKeyUT = function (a) {
-	return {$: 'CharacterKeyUT', a: a};
-};
-var $author$project$Main$ControlKeyUT = function (a) {
-	return {$: 'ControlKeyUT', a: a};
-};
-var $author$project$Main$toMsgUT = function (keyValue) {
-	var _v0 = $elm$core$String$uncons(keyValue);
-	if ((_v0.$ === 'Just') && (_v0.a.b === '')) {
-		var _v1 = _v0.a;
-		var _char = _v1.a;
-		return $author$project$Main$CharacterKeyUT(_char);
-	} else {
-		return $author$project$Main$ControlKeyUT(keyValue);
-	}
-};
-var $author$project$Main$keyDecoderUT = A2(
-	$elm$json$Json$Decode$map,
-	$author$project$Main$toMsgUT,
-	A2($elm$json$Json$Decode$field, 'key', $elm$json$Json$Decode$string));
-var $author$project$Main$CharacterKeyUTRelease = function (a) {
-	return {$: 'CharacterKeyUTRelease', a: a};
-};
-var $author$project$Main$ControlKeyUTRelease = function (a) {
-	return {$: 'ControlKeyUTRelease', a: a};
-};
-var $author$project$Main$toMsgUTRelease = function (keyValue) {
-	var _v0 = $elm$core$String$uncons(keyValue);
-	if ((_v0.$ === 'Just') && (_v0.a.b === '')) {
-		var _v1 = _v0.a;
-		var _char = _v1.a;
-		return $author$project$Main$CharacterKeyUTRelease(_char);
-	} else {
-		return $author$project$Main$ControlKeyUTRelease(keyValue);
-	}
-};
-var $author$project$Main$keyDecoderUTRelease = A2(
-	$elm$json$Json$Decode$map,
-	$author$project$Main$toMsgUTRelease,
-	A2($elm$json$Json$Decode$field, 'key', $elm$json$Json$Decode$string));
-var $elm$browser$Browser$Events$Document = {$: 'Document'};
-var $elm$browser$Browser$Events$MySub = F3(
-	function (a, b, c) {
-		return {$: 'MySub', a: a, b: b, c: c};
+var $elm$time$Time$Every = F2(
+	function (a, b) {
+		return {$: 'Every', a: a, b: b};
 	});
-var $elm$browser$Browser$Events$State = F2(
-	function (subs, pids) {
-		return {pids: pids, subs: subs};
+var $elm$time$Time$State = F2(
+	function (taggers, processes) {
+		return {processes: processes, taggers: taggers};
 	});
 var $elm$core$Dict$RBEmpty_elm_builtin = {$: 'RBEmpty_elm_builtin'};
 var $elm$core$Dict$empty = $elm$core$Dict$RBEmpty_elm_builtin;
-var $elm$browser$Browser$Events$init = $elm$core$Task$succeed(
-	A2($elm$browser$Browser$Events$State, _List_Nil, $elm$core$Dict$empty));
-var $elm$browser$Browser$Events$nodeToKey = function (node) {
-	if (node.$ === 'Document') {
-		return 'd_';
-	} else {
-		return 'w_';
-	}
-};
-var $elm$browser$Browser$Events$addKey = function (sub) {
-	var node = sub.a;
-	var name = sub.b;
-	return _Utils_Tuple2(
-		_Utils_ap(
-			$elm$browser$Browser$Events$nodeToKey(node),
-			name),
-		sub);
-};
+var $elm$time$Time$init = $elm$core$Task$succeed(
+	A2($elm$time$Time$State, $elm$core$Dict$empty, $elm$core$Dict$empty));
+var $elm$core$Basics$compare = _Utils_compare;
+var $elm$core$Dict$get = F2(
+	function (targetKey, dict) {
+		get:
+		while (true) {
+			if (dict.$ === 'RBEmpty_elm_builtin') {
+				return $elm$core$Maybe$Nothing;
+			} else {
+				var key = dict.b;
+				var value = dict.c;
+				var left = dict.d;
+				var right = dict.e;
+				var _v1 = A2($elm$core$Basics$compare, targetKey, key);
+				switch (_v1.$) {
+					case 'LT':
+						var $temp$targetKey = targetKey,
+							$temp$dict = left;
+						targetKey = $temp$targetKey;
+						dict = $temp$dict;
+						continue get;
+					case 'EQ':
+						return $elm$core$Maybe$Just(value);
+					default:
+						var $temp$targetKey = targetKey,
+							$temp$dict = right;
+						targetKey = $temp$targetKey;
+						dict = $temp$dict;
+						continue get;
+				}
+			}
+		}
+	});
 var $elm$core$Dict$Black = {$: 'Black'};
 var $elm$core$Dict$RBNode_elm_builtin = F5(
 	function (a, b, c, d, e) {
@@ -5614,7 +5571,6 @@ var $elm$core$Dict$balance = F5(
 			}
 		}
 	});
-var $elm$core$Basics$compare = _Utils_compare;
 var $elm$core$Dict$insertHelp = F3(
 	function (key, value, dict) {
 		if (dict.$ === 'RBEmpty_elm_builtin') {
@@ -5663,18 +5619,27 @@ var $elm$core$Dict$insert = F3(
 			return x;
 		}
 	});
-var $elm$core$Dict$fromList = function (assocs) {
-	return A3(
-		$elm$core$List$foldl,
-		F2(
-			function (_v0, dict) {
-				var key = _v0.a;
-				var value = _v0.b;
-				return A3($elm$core$Dict$insert, key, value, dict);
-			}),
-		$elm$core$Dict$empty,
-		assocs);
-};
+var $elm$time$Time$addMySub = F2(
+	function (_v0, state) {
+		var interval = _v0.a;
+		var tagger = _v0.b;
+		var _v1 = A2($elm$core$Dict$get, interval, state);
+		if (_v1.$ === 'Nothing') {
+			return A3(
+				$elm$core$Dict$insert,
+				interval,
+				_List_fromArray(
+					[tagger]),
+				state);
+		} else {
+			var taggers = _v1.a;
+			return A3(
+				$elm$core$Dict$insert,
+				interval,
+				A2($elm$core$List$cons, tagger, taggers),
+				state);
+		}
+	});
 var $elm$core$Process$kill = _Scheduler_kill;
 var $elm$core$Dict$foldl = F3(
 	function (func, acc, dict) {
@@ -5762,11 +5727,251 @@ var $elm$core$Dict$merge = F6(
 			intermediateResult,
 			leftovers);
 	});
+var $elm$core$Platform$sendToSelf = _Platform_sendToSelf;
+var $elm$time$Time$setInterval = _Time_setInterval;
+var $elm$core$Process$spawn = _Scheduler_spawn;
+var $elm$time$Time$spawnHelp = F3(
+	function (router, intervals, processes) {
+		if (!intervals.b) {
+			return $elm$core$Task$succeed(processes);
+		} else {
+			var interval = intervals.a;
+			var rest = intervals.b;
+			var spawnTimer = $elm$core$Process$spawn(
+				A2(
+					$elm$time$Time$setInterval,
+					interval,
+					A2($elm$core$Platform$sendToSelf, router, interval)));
+			var spawnRest = function (id) {
+				return A3(
+					$elm$time$Time$spawnHelp,
+					router,
+					rest,
+					A3($elm$core$Dict$insert, interval, id, processes));
+			};
+			return A2($elm$core$Task$andThen, spawnRest, spawnTimer);
+		}
+	});
+var $elm$time$Time$onEffects = F3(
+	function (router, subs, _v0) {
+		var processes = _v0.processes;
+		var rightStep = F3(
+			function (_v6, id, _v7) {
+				var spawns = _v7.a;
+				var existing = _v7.b;
+				var kills = _v7.c;
+				return _Utils_Tuple3(
+					spawns,
+					existing,
+					A2(
+						$elm$core$Task$andThen,
+						function (_v5) {
+							return kills;
+						},
+						$elm$core$Process$kill(id)));
+			});
+		var newTaggers = A3($elm$core$List$foldl, $elm$time$Time$addMySub, $elm$core$Dict$empty, subs);
+		var leftStep = F3(
+			function (interval, taggers, _v4) {
+				var spawns = _v4.a;
+				var existing = _v4.b;
+				var kills = _v4.c;
+				return _Utils_Tuple3(
+					A2($elm$core$List$cons, interval, spawns),
+					existing,
+					kills);
+			});
+		var bothStep = F4(
+			function (interval, taggers, id, _v3) {
+				var spawns = _v3.a;
+				var existing = _v3.b;
+				var kills = _v3.c;
+				return _Utils_Tuple3(
+					spawns,
+					A3($elm$core$Dict$insert, interval, id, existing),
+					kills);
+			});
+		var _v1 = A6(
+			$elm$core$Dict$merge,
+			leftStep,
+			bothStep,
+			rightStep,
+			newTaggers,
+			processes,
+			_Utils_Tuple3(
+				_List_Nil,
+				$elm$core$Dict$empty,
+				$elm$core$Task$succeed(_Utils_Tuple0)));
+		var spawnList = _v1.a;
+		var existingDict = _v1.b;
+		var killTask = _v1.c;
+		return A2(
+			$elm$core$Task$andThen,
+			function (newProcesses) {
+				return $elm$core$Task$succeed(
+					A2($elm$time$Time$State, newTaggers, newProcesses));
+			},
+			A2(
+				$elm$core$Task$andThen,
+				function (_v2) {
+					return A3($elm$time$Time$spawnHelp, router, spawnList, existingDict);
+				},
+				killTask));
+	});
+var $elm$time$Time$now = _Time_now($elm$time$Time$millisToPosix);
+var $elm$time$Time$onSelfMsg = F3(
+	function (router, interval, state) {
+		var _v0 = A2($elm$core$Dict$get, interval, state.taggers);
+		if (_v0.$ === 'Nothing') {
+			return $elm$core$Task$succeed(state);
+		} else {
+			var taggers = _v0.a;
+			var tellTaggers = function (time) {
+				return $elm$core$Task$sequence(
+					A2(
+						$elm$core$List$map,
+						function (tagger) {
+							return A2(
+								$elm$core$Platform$sendToApp,
+								router,
+								tagger(time));
+						},
+						taggers));
+			};
+			return A2(
+				$elm$core$Task$andThen,
+				function (_v1) {
+					return $elm$core$Task$succeed(state);
+				},
+				A2($elm$core$Task$andThen, tellTaggers, $elm$time$Time$now));
+		}
+	});
+var $elm$core$Basics$composeL = F3(
+	function (g, f, x) {
+		return g(
+			f(x));
+	});
+var $elm$time$Time$subMap = F2(
+	function (f, _v0) {
+		var interval = _v0.a;
+		var tagger = _v0.b;
+		return A2(
+			$elm$time$Time$Every,
+			interval,
+			A2($elm$core$Basics$composeL, f, tagger));
+	});
+_Platform_effectManagers['Time'] = _Platform_createManager($elm$time$Time$init, $elm$time$Time$onEffects, $elm$time$Time$onSelfMsg, 0, $elm$time$Time$subMap);
+var $elm$time$Time$subscription = _Platform_leaf('Time');
+var $elm$time$Time$every = F2(
+	function (interval, tagger) {
+		return $elm$time$Time$subscription(
+			A2($elm$time$Time$Every, interval, tagger));
+	});
+var $elm$json$Json$Decode$field = _Json_decodeField;
+var $elm$json$Json$Decode$string = _Json_decodeString;
+var $author$project$Main$CharacterKey = function (a) {
+	return {$: 'CharacterKey', a: a};
+};
+var $author$project$Main$ControlKey = function (a) {
+	return {$: 'ControlKey', a: a};
+};
+var $author$project$Main$toMsg = function (keyValue) {
+	var _v0 = $elm$core$String$uncons(keyValue);
+	if ((_v0.$ === 'Just') && (_v0.a.b === '')) {
+		var _v1 = _v0.a;
+		var _char = _v1.a;
+		return $author$project$Main$CharacterKey(_char);
+	} else {
+		return $author$project$Main$ControlKey(keyValue);
+	}
+};
+var $author$project$Main$keyDecoder = A2(
+	$elm$json$Json$Decode$map,
+	$author$project$Main$toMsg,
+	A2($elm$json$Json$Decode$field, 'key', $elm$json$Json$Decode$string));
+var $author$project$Main$CharacterKeyUT = function (a) {
+	return {$: 'CharacterKeyUT', a: a};
+};
+var $author$project$Main$ControlKeyUT = function (a) {
+	return {$: 'ControlKeyUT', a: a};
+};
+var $author$project$Main$toMsgUT = function (keyValue) {
+	var _v0 = $elm$core$String$uncons(keyValue);
+	if ((_v0.$ === 'Just') && (_v0.a.b === '')) {
+		var _v1 = _v0.a;
+		var _char = _v1.a;
+		return $author$project$Main$CharacterKeyUT(_char);
+	} else {
+		return $author$project$Main$ControlKeyUT(keyValue);
+	}
+};
+var $author$project$Main$keyDecoderUT = A2(
+	$elm$json$Json$Decode$map,
+	$author$project$Main$toMsgUT,
+	A2($elm$json$Json$Decode$field, 'key', $elm$json$Json$Decode$string));
+var $author$project$Main$CharacterKeyUTRelease = function (a) {
+	return {$: 'CharacterKeyUTRelease', a: a};
+};
+var $author$project$Main$ControlKeyUTRelease = function (a) {
+	return {$: 'ControlKeyUTRelease', a: a};
+};
+var $author$project$Main$toMsgUTRelease = function (keyValue) {
+	var _v0 = $elm$core$String$uncons(keyValue);
+	if ((_v0.$ === 'Just') && (_v0.a.b === '')) {
+		var _v1 = _v0.a;
+		var _char = _v1.a;
+		return $author$project$Main$CharacterKeyUTRelease(_char);
+	} else {
+		return $author$project$Main$ControlKeyUTRelease(keyValue);
+	}
+};
+var $author$project$Main$keyDecoderUTRelease = A2(
+	$elm$json$Json$Decode$map,
+	$author$project$Main$toMsgUTRelease,
+	A2($elm$json$Json$Decode$field, 'key', $elm$json$Json$Decode$string));
+var $elm$browser$Browser$Events$Document = {$: 'Document'};
+var $elm$browser$Browser$Events$MySub = F3(
+	function (a, b, c) {
+		return {$: 'MySub', a: a, b: b, c: c};
+	});
+var $elm$browser$Browser$Events$State = F2(
+	function (subs, pids) {
+		return {pids: pids, subs: subs};
+	});
+var $elm$browser$Browser$Events$init = $elm$core$Task$succeed(
+	A2($elm$browser$Browser$Events$State, _List_Nil, $elm$core$Dict$empty));
+var $elm$browser$Browser$Events$nodeToKey = function (node) {
+	if (node.$ === 'Document') {
+		return 'd_';
+	} else {
+		return 'w_';
+	}
+};
+var $elm$browser$Browser$Events$addKey = function (sub) {
+	var node = sub.a;
+	var name = sub.b;
+	return _Utils_Tuple2(
+		_Utils_ap(
+			$elm$browser$Browser$Events$nodeToKey(node),
+			name),
+		sub);
+};
+var $elm$core$Dict$fromList = function (assocs) {
+	return A3(
+		$elm$core$List$foldl,
+		F2(
+			function (_v0, dict) {
+				var key = _v0.a;
+				var value = _v0.b;
+				return A3($elm$core$Dict$insert, key, value, dict);
+			}),
+		$elm$core$Dict$empty,
+		assocs);
+};
 var $elm$browser$Browser$Events$Event = F2(
 	function (key, event) {
 		return {event: event, key: key};
 	});
-var $elm$core$Platform$sendToSelf = _Platform_sendToSelf;
 var $elm$browser$Browser$Events$spawn = F3(
 	function (router, key, _v0) {
 		var node = _v0.a;
@@ -5932,11 +6137,13 @@ var $author$project$Main$subscriptions = function (model) {
 	return model.underTyping ? $elm$core$Platform$Sub$batch(
 		_List_fromArray(
 			[
+				A2($elm$time$Time$every, 1000, $author$project$Main$Tick),
 				$elm$browser$Browser$Events$onKeyDown($author$project$Main$keyDecoderUT),
 				$elm$browser$Browser$Events$onKeyUp($author$project$Main$keyDecoderUTRelease)
 			])) : $elm$core$Platform$Sub$batch(
 		_List_fromArray(
 			[
+				A2($elm$time$Time$every, 1000, $author$project$Main$Tick),
 				$elm$browser$Browser$Events$onKeyPress($author$project$Main$keyDecoder)
 			]));
 };
@@ -5947,17 +6154,9 @@ var $author$project$Main$NoOp = {$: 'NoOp'};
 var $author$project$Main$SetAsOfTime = function (a) {
 	return {$: 'SetAsOfTime', a: a};
 };
-var $author$project$Main$SetCurrentTime = function (a) {
-	return {$: 'SetCurrentTime', a: a};
-};
 var $author$project$Main$SetZoneName = function (a) {
 	return {$: 'SetZoneName', a: a};
 };
-var $elm$core$Basics$composeL = F3(
-	function (g, f, x) {
-		return g(
-			f(x));
-	});
 var $elm$core$Task$onError = _Scheduler_onError;
 var $elm$core$Task$attempt = F2(
 	function (resultToMessage, task) {
@@ -6135,37 +6334,6 @@ var $elm$core$Maybe$isJust = function (maybe) {
 		return false;
 	}
 };
-var $elm$core$Dict$get = F2(
-	function (targetKey, dict) {
-		get:
-		while (true) {
-			if (dict.$ === 'RBEmpty_elm_builtin') {
-				return $elm$core$Maybe$Nothing;
-			} else {
-				var key = dict.b;
-				var value = dict.c;
-				var left = dict.d;
-				var right = dict.e;
-				var _v1 = A2($elm$core$Basics$compare, targetKey, key);
-				switch (_v1.$) {
-					case 'LT':
-						var $temp$targetKey = targetKey,
-							$temp$dict = left;
-						targetKey = $temp$targetKey;
-						dict = $temp$dict;
-						continue get;
-					case 'EQ':
-						return $elm$core$Maybe$Just(value);
-					default:
-						var $temp$targetKey = targetKey,
-							$temp$dict = right;
-						targetKey = $temp$targetKey;
-						dict = $temp$dict;
-						continue get;
-				}
-			}
-		}
-	});
 var $elm$core$Dict$getMin = function (dict) {
 	getMin:
 	while (true) {
@@ -6625,7 +6793,6 @@ var $elm$http$Http$State = F2(
 	});
 var $elm$http$Http$init = $elm$core$Task$succeed(
 	A2($elm$http$Http$State, $elm$core$Dict$empty, _List_Nil));
-var $elm$core$Process$spawn = _Scheduler_spawn;
 var $elm$http$Http$updateReqs = F3(
 	function (router, cmds, reqs) {
 		updateReqs:
@@ -7183,7 +7350,6 @@ var $author$project$Main$messageEH = F2(
 	});
 var $author$project$Main$minPerY = 525600;
 var $author$project$Main$monPerY = 12;
-var $elm$time$Time$now = _Time_now($elm$time$Time$millisToPosix);
 var $author$project$Main$quaPerY = 4;
 var $author$project$Main$returnedHome = F2(
 	function (model, m) {
@@ -7714,22 +7880,25 @@ var $author$project$Main$update = F2(
 				var newZoneName = msg.a;
 				return _Utils_Tuple2(
 					A2($author$project$Main$setZoneName, model, newZoneName),
-					A2($elm$core$Task$perform, $author$project$Main$SetCurrentTime, $elm$time$Time$now));
-			case 'SetCurrentTime':
-				var cTime = msg.a;
+					$elm$core$Platform$Cmd$none);
+			case 'Tick':
+				var newTime = msg.a;
 				return _Utils_Tuple2(
 					_Utils_update(
 						model,
-						{currentTime: cTime}),
+						{currentTime: newTime}),
 					A2(
 						$elm$core$Task$perform,
 						$author$project$Main$CheckExpired,
-						$elm$core$Task$succeed(cTime)));
+						$elm$core$Task$succeed(newTime)));
 			case 'CheckExpired':
 				var currentTime = msg.a;
 				return _Utils_Tuple2(
 					A2($author$project$Main$checkExpired, model, currentTime),
-					$elm$core$Platform$Cmd$none);
+					model.asOfCurrentTime ? A2(
+						$elm$core$Task$perform,
+						$author$project$Main$SetAsOfTime,
+						$elm$core$Task$succeed(model.currentTime)) : $elm$core$Platform$Cmd$none);
 			case 'SetAsOfTime':
 				var aTime = msg.a;
 				return _Utils_Tuple2(
@@ -7883,7 +8052,7 @@ var $elm$html$Html$Events$onInput = function (tagger) {
 var $elm$html$Html$Attributes$placeholder = $elm$html$Html$Attributes$stringProperty('placeholder');
 var $elm$virtual_dom$VirtualDom$text = _VirtualDom_text;
 var $elm$html$Html$text = $elm$virtual_dom$VirtualDom$text;
-var $author$project$Main$textPlaceholder = 'ENTER TASKS OR A COMMAND:\n\njump\n    step\n        hop\n\nA task to complete by the end of 2020 -2020/12/31\n    A task expected to take 300 hours $300\n        A task you can start in the beginning of 2020 2020/1/1-\n\nA time-critical task 2020/01/1- 23:59:59- $0.001 -0:0:3 -2020/1/02\n\ntrunk\n    branch Alice\n        bud \n    branch Bob\n        bud\n        bud\n\njump\n    step\n        hop2 dependent on hop1 [key\n    step\n        ]key hop1\n\n% A task to register as completed\n* A task to register as starred\n\nA linked task e.g. slack permalink &https://\n\n#777 The task with ID 777 whose weight will be updated to 30 $30\n\n#777 The complex task\n    A simpler task\n    A simpler task\n\nA new emerging task dependent on existing #777 and #888\n    #777\n    #888\n\nYOU CAN ALSO ENTER ONE OF THE FOLLOWING SLASH COMMANDS:\n\n/dpy 1\nSet default dpy (dots per year) to 1, that is, a dot represents a year.\n\n/asof 2020/01/01_12:0:0\nSet the time corresponding to the left edge of the bar to noon on January 1, 2020.\n\n/sel -t word\nSelect tasks whose title contains \'word\'.\n\n/sel -s 2020/1/1_12:0:0< <2020/1/2\nSelect tasks whose start is in the afternoon of January 1, 2020.\n\n/sel -d <23:59:59\nSelect tasks whose deadline is today\'s end.\n\n/sel -w 30< <300\nSelect tasks whose weight is between 30 and 300 hours.\n\n/sel -arc\nSelect archived tasks.\n\n/sel -star\nSelect starred tasks.\n\n/sel -trunk\nSelect trunk, namely, tasks with no successor.\n\n/sel -buds\nSelect buds, namely, tasks with no predecessor.\n\n/sel -t word -s 2020/1/1< -d <23:59:59 -w 30< <300 -arc -star\nSpecify multiple conditions.\n\n/care 1 2\nCare from parents to grandchildren, namely, watch their tasks too,\nprovided you have permission for each.\n\nCOMMANDS FOR ADMINISTRATORS:\n\n/allow albert edit sci_team\nAllow Albert to edit sci_team tasks; create, update, and perform.\nAutomatically allow to view.\n\n/ban pisces_dep view albert\nBan pisces_dep from viewing Albert tasks.\nAutomatically ban from editing.\n\n/connect zodiac_inc pisces_dep\nGive zodiac_inc and pisces_dep a parent-child relationship.\nYou can, by default,\nview direct parents and all descendants and\nedit direct children.\n\nTHANK YOU FOR READING!\n';
+var $author$project$Main$textPlaceholder = 'ENTER TASKS OR A COMMAND:\n\njump\n    step\n        hop\n\nA task to complete by the end of 2020 -2020/12/31\n    A task expected to take 300 hours $300\n        A task you can start in the beginning of 2020 2020/1/1-\n\nA time-critical task 2020/01/1- 23:59:59- $0.001 -0:0:3 -2020/1/02\n\ntrunk\n    branch Alice\n        bud \n    branch Bob\n        bud\n        bud\n\njump\n    step\n        hop2 dependent on hop1 [key\n    step\n        ]key hop1\n\n% A task to register as completed\n* A task to register as starred\n\nA linked task e.g. slack permalink &https://\n\n#777 The task with ID 777 whose weight will be updated to 30 $30\n\n#777 The complex task\n    A simpler task\n    A simpler task\n\nA new emerging task dependent on existing #777 and #888\n    #777\n    #888\n\nYOU CAN ALSO ENTER ONE OF THE FOLLOWING SLASH COMMANDS:\n\n/dpy 1\nSet default dpy (dots per year) to 1, that is, a dot represents a year.\n\n/asof 2020/01/01_12:0:0\nSet the time corresponding to the left edge of dots to noon on January 1, 2020.\n\n/pause\nFix the chart.\n\n/tick\nUpdate the chart every second.\n\n/sel -t word\nSelect tasks whose title contains \'word\'.\n\n/sel -s 2020/1/1_12:0:0< <2020/1/2\nSelect tasks whose start is in the afternoon of January 1, 2020.\n\n/sel -d <23:59:59\nSelect tasks whose deadline is today\'s end.\n\n/sel -w 30< <300\nSelect tasks whose weight is between 30 and 300 hours.\n\n/sel -arc\nSelect archived tasks.\n\n/sel -star\nSelect starred tasks.\n\n/sel -trunk\nSelect trunk, namely, tasks with no successor.\n\n/sel -buds\nSelect buds, namely, tasks with no predecessor.\n\n/sel -t word -s 2020/1/1< -d <23:59:59 -w 30< <300 -arc -star\nSpecify multiple conditions.\n\n/care 1 2\nCare from parents to grandchildren, namely, watch their tasks too,\nprovided you have permission for each.\n\nCOMMANDS FOR ADMINISTRATORS:\n\n/allow albert edit sci_team\nAllow Albert to edit sci_team tasks; create, update, and perform.\nAutomatically allow to view.\n\n/ban pisces_dep view albert\nBan pisces_dep from viewing Albert tasks.\nAutomatically ban from editing.\n\n/connect zodiac_inc pisces_dep\nGive zodiac_inc and pisces_dep a parent-child relationship.\nYou can, by default,\nview direct parents and all descendants and\nedit direct children.\n\nTHANK YOU FOR READING!\n';
 var $elm$html$Html$textarea = _VirtualDom_node('textarea');
 var $elm$html$Html$Attributes$value = $elm$html$Html$Attributes$stringProperty('value');
 var $author$project$Main$viewInputValue = function (model) {
@@ -7928,7 +8097,7 @@ var $elm$core$String$repeat = F2(
 	function (n, chunk) {
 		return A3($elm$core$String$repeatHelp, n, chunk, '');
 	});
-var $author$project$Main$fill = F3(
+var $author$project$Main$fillR = F3(
 	function (n, putty, target) {
 		return A2(
 			$elm$core$String$left,
@@ -7993,7 +8162,7 @@ var $author$project$Main$barString_ = F4(
 						$elm$core$Array$fromList(
 							$elm$core$String$toList(
 								A3(
-									$author$project$Main$fill,
+									$author$project$Main$fillR,
 									48,
 									'.',
 									_Utils_ap(
@@ -8401,6 +8570,15 @@ var $author$project$Main$viewTask = F2(
 						]))
 				]));
 	});
+var $author$project$Main$fillL = F3(
+	function (n, putty, target) {
+		return A2(
+			$elm$core$String$right,
+			n,
+			_Utils_ap(
+				A2($elm$core$String$repeat, n, putty),
+				target));
+	});
 var $author$project$Main$strFromWeekday = function (weekday) {
 	switch (weekday.$) {
 		case 'Mon':
@@ -8458,17 +8636,37 @@ var $author$project$Main$strFromPosix = F2(
 			A2($elm$time$Time$toYear, z, p));
 		var wed = $author$project$Main$strFromWeekday(
 			A2($elm$time$Time$toWeekday, z, p));
-		var sec = $elm$core$String$fromInt(
-			A2($elm$time$Time$toSecond, z, p));
-		var mon = $author$project$Main$strFromMonth(
-			A2($elm$time$Time$toMonth, z, p));
-		var min = $elm$core$String$fromInt(
-			A2($elm$time$Time$toMinute, z, p));
-		var hou = $elm$core$String$fromInt(
-			A2($elm$time$Time$toHour, z, p));
+		var sec = A3(
+			$author$project$Main$fillL,
+			2,
+			'0',
+			$elm$core$String$fromInt(
+				A2($elm$time$Time$toSecond, z, p)));
+		var mon = A3(
+			$author$project$Main$fillL,
+			2,
+			'0',
+			$author$project$Main$strFromMonth(
+				A2($elm$time$Time$toMonth, z, p)));
+		var min = A3(
+			$author$project$Main$fillL,
+			2,
+			'0',
+			$elm$core$String$fromInt(
+				A2($elm$time$Time$toMinute, z, p)));
+		var hou = A3(
+			$author$project$Main$fillL,
+			2,
+			'0',
+			$elm$core$String$fromInt(
+				A2($elm$time$Time$toHour, z, p)));
 		var time = hou + (':' + (min + ('\'' + sec)));
-		var day = $elm$core$String$fromInt(
-			A2($elm$time$Time$toDay, z, p));
+		var day = A3(
+			$author$project$Main$fillL,
+			2,
+			'0',
+			$elm$core$String$fromInt(
+				A2($elm$time$Time$toDay, z, p)));
 		var date = A2(
 			$elm$core$String$join,
 			'/',
