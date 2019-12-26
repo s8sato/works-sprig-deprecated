@@ -2,10 +2,11 @@ module Main exposing (main)
 
 import Array exposing (fromList, get, set, toList)
 import Browser
-import Browser.Events exposing (onKeyPress)
+import Browser.Dom exposing (blur, focus)
+import Browser.Events exposing (onKeyDown, onKeyPress, onKeyUp)
 import Html exposing (Html, a, div, text, textarea)
-import Html.Attributes exposing (class, classList, href, id, placeholder, style)
-import Html.Events exposing (onClick, onInput)
+import Html.Attributes exposing (class, classList, href, id, placeholder, value)
+import Html.Events exposing (onBlur, onClick, onFocus, onInput)
 import Http
 import Json.Decode as Decode exposing (Decoder, bool, float, int, list, nullable, string)
 import Json.Decode.Pipeline exposing (optional, required)
@@ -39,6 +40,8 @@ type alias Model =
     , currentTime : Posix
     , asOfTime : Posix
     , indicator : Index
+    , underTyping : Bool
+    , underControl : Bool
     }
 
 
@@ -93,6 +96,8 @@ init _ =
       , currentTime = Time.millisToPosix 0
       , asOfTime = Time.millisToPosix 0
       , indicator = 0
+      , underTyping = False
+      , underControl = False
       }
       -- , Cmd.none
     , Task.perform AdjustTimeZone Time.here
@@ -149,7 +154,8 @@ secPerY =
 
 
 type Msg
-    = SubModelReceived (Result Http.Error SubModel)
+    = NoOp
+    | SubModelReceived (Result Http.Error SubModel)
     | TasksReceived (Result Http.Error (List Task))
     | CharacterKey Char
     | ControlKey String
@@ -164,8 +170,13 @@ type Msg
     | SetCurrentTime Posix
     | CheckExpired Posix
     | SetAsOfTime Posix
-      -- | BarRedraw Posix
     | ReturnedHome (Result Http.Error SubModel)
+    | ReadyTyping
+    | ReleaseTyping
+    | CharacterKeyUT Char
+    | ControlKeyUT String
+    | CharacterKeyUTRelease Char
+    | ControlKeyUTRelease String
 
 
 
@@ -180,6 +191,9 @@ type Msg
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
+        NoOp ->
+            ( model, Cmd.none )
+
         SubModelReceived (Ok newSubModel) ->
             ( { model
                 | sub = newSubModel
@@ -196,7 +210,11 @@ update msg model =
                     model.sub
 
                 newSub =
-                    { sub | tasks = newTasks }
+                    { sub
+                        | tasks = newTasks
+                        , inputText = Nothing
+                        , message = Nothing
+                    }
               in
               { model
                 | sub = newSub
@@ -241,7 +259,14 @@ update msg model =
         -- APIからもらう：String
         CharacterKey 'c' ->
             -- TODO
-            ( model, Cmd.none )
+            ( model
+            , Task.attempt (\_ -> NoOp) (focus "inputArea")
+            )
+
+        CharacterKey '/' ->
+            ( model
+            , Task.attempt (\_ -> NoOp) (focus "inputArea")
+            )
 
         CharacterKey 's' ->
             ( model, switchStar model.sub model.indicator )
@@ -276,7 +301,7 @@ update msg model =
         CharacterKey '9' ->
             ( changeDpy model secPerY, Cmd.none )
 
-        CharacterKey 'o' ->
+        CharacterKey '0' ->
             -- TODO
             ( model
             , Task.perform CheckExpired (Task.succeed model.currentTime)
@@ -309,16 +334,10 @@ update msg model =
             -- TODO
             ( model, Cmd.none )
 
-        CharacterKey '#' ->
-            -- Delete selected tasks?  -- TODO
-            ( model, Cmd.none )
-
         CharacterKey _ ->
-            -- TODO
             ( model, initialize model.sub )
 
         ControlKey _ ->
-            -- TODO
             ( model, Cmd.none )
 
         TextPost ->
@@ -375,15 +394,8 @@ update msg model =
             )
 
         SetAsOfTime aTime ->
-            ( { model | asOfTime = aTime }
-            , Cmd.none
-              -- , Task.perform BarRedraw (Task.succeed aTime)
-            )
+            ( { model | asOfTime = aTime }, Cmd.none )
 
-        -- BarRedraw asOfTime ->
-        --     ( barRedraw model asOfTime
-        --     , Cmd.none
-        --     )
         ReturnedHome (Ok newSubModel) ->
             ( returnedHome model newSubModel
             , Task.perform SetAsOfTime (Task.succeed model.currentTime)
@@ -391,6 +403,44 @@ update msg model =
 
         ReturnedHome (Err httpError) ->
             ( messageEH model httpError, Cmd.none )
+
+        ReadyTyping ->
+            ( { model | underTyping = True }, Cmd.none )
+
+        ReleaseTyping ->
+            ( { model | underTyping = False }, Cmd.none )
+
+        CharacterKeyUT _ ->
+            ( model, Cmd.none )
+
+        ControlKeyUT "Control" ->
+            ( { model | underControl = True }, Cmd.none )
+
+        ControlKeyUT "Enter" ->
+            ( model
+            , if model.underControl then
+                textPost model.sub
+
+              else
+                Cmd.none
+            )
+
+        ControlKeyUT "Escape" ->
+            ( model
+            , Task.attempt (\_ -> NoOp) (blur "inputArea")
+            )
+
+        ControlKeyUT _ ->
+            ( model, Cmd.none )
+
+        CharacterKeyUTRelease _ ->
+            ( model, Cmd.none )
+
+        ControlKeyUTRelease "Control" ->
+            ( { model | underControl = False }, Cmd.none )
+
+        ControlKeyUTRelease _ ->
+            ( model, Cmd.none )
 
 
 
@@ -845,8 +895,11 @@ view model =
             , div [ id "inputBox" ]
                 [ textarea
                     [ id "inputArea"
-                    , placeholder textPlaceholder
+                    , value (viewInputValue model)
                     , onInput Input
+                    , placeholder textPlaceholder
+                    , onFocus ReadyTyping
+                    , onBlur ReleaseTyping
                     ]
                     []
                 ]
@@ -897,6 +950,16 @@ view model =
             ]
         , div [ id "fotter" ] []
         ]
+
+
+viewInputValue : Model -> String
+viewInputValue model =
+    case model.sub.inputText of
+        Nothing ->
+            ""
+
+        Just str ->
+            str
 
 
 viewDateTimeUnit : Maybe Int -> String
@@ -1324,24 +1387,61 @@ textPlaceholder =
 
 
 subscriptions : Model -> Sub Msg
-subscriptions _ =
-    Sub.batch
-        [ onKeyPress keyDecoder
+subscriptions model =
+    if model.underTyping then
+        Sub.batch
+            [ onKeyDown keyDecoderUT
+            , onKeyUp keyDecoderUTRelease
+            ]
 
-        -- , onClick (Decode.succeed MouseClick)
-        ]
+    else
+        Sub.batch
+            [ onKeyPress keyDecoder
+
+            -- , onClick (Decode.succeed MouseClick)
+            ]
 
 
 keyDecoder : Decode.Decoder Msg
 keyDecoder =
-    Decode.map toKey (Decode.field "key" Decode.string)
+    Decode.map toMsg (Decode.field "key" Decode.string)
 
 
-toKey : String -> Msg
-toKey keyValue =
+keyDecoderUT : Decode.Decoder Msg
+keyDecoderUT =
+    Decode.map toMsgUT (Decode.field "key" Decode.string)
+
+
+keyDecoderUTRelease : Decode.Decoder Msg
+keyDecoderUTRelease =
+    Decode.map toMsgUTRelease (Decode.field "key" Decode.string)
+
+
+toMsg : String -> Msg
+toMsg keyValue =
     case String.uncons keyValue of
         Just ( char, "" ) ->
             CharacterKey char
 
         _ ->
             ControlKey keyValue
+
+
+toMsgUT : String -> Msg
+toMsgUT keyValue =
+    case String.uncons keyValue of
+        Just ( char, "" ) ->
+            CharacterKeyUT char
+
+        _ ->
+            ControlKeyUT keyValue
+
+
+toMsgUTRelease : String -> Msg
+toMsgUTRelease keyValue =
+    case String.uncons keyValue of
+        Just ( char, "" ) ->
+            CharacterKeyUTRelease char
+
+        _ ->
+            ControlKeyUTRelease keyValue

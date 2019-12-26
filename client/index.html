@@ -5456,6 +5456,8 @@ var $author$project$Main$init = function (_v0) {
 			currentTime: $elm$time$Time$millisToPosix(0),
 			indicator: 0,
 			sub: initSub,
+			underControl: false,
+			underTyping: false,
 			zone: $elm$time$Time$utc
 		},
 		A2($elm$core$Task$perform, $author$project$Main$AdjustTimeZone, $elm$time$Time$here));
@@ -5469,7 +5471,7 @@ var $author$project$Main$CharacterKey = function (a) {
 var $author$project$Main$ControlKey = function (a) {
 	return {$: 'ControlKey', a: a};
 };
-var $author$project$Main$toKey = function (keyValue) {
+var $author$project$Main$toMsg = function (keyValue) {
 	var _v0 = $elm$core$String$uncons(keyValue);
 	if ((_v0.$ === 'Just') && (_v0.a.b === '')) {
 		var _v1 = _v0.a;
@@ -5481,7 +5483,47 @@ var $author$project$Main$toKey = function (keyValue) {
 };
 var $author$project$Main$keyDecoder = A2(
 	$elm$json$Json$Decode$map,
-	$author$project$Main$toKey,
+	$author$project$Main$toMsg,
+	A2($elm$json$Json$Decode$field, 'key', $elm$json$Json$Decode$string));
+var $author$project$Main$CharacterKeyUT = function (a) {
+	return {$: 'CharacterKeyUT', a: a};
+};
+var $author$project$Main$ControlKeyUT = function (a) {
+	return {$: 'ControlKeyUT', a: a};
+};
+var $author$project$Main$toMsgUT = function (keyValue) {
+	var _v0 = $elm$core$String$uncons(keyValue);
+	if ((_v0.$ === 'Just') && (_v0.a.b === '')) {
+		var _v1 = _v0.a;
+		var _char = _v1.a;
+		return $author$project$Main$CharacterKeyUT(_char);
+	} else {
+		return $author$project$Main$ControlKeyUT(keyValue);
+	}
+};
+var $author$project$Main$keyDecoderUT = A2(
+	$elm$json$Json$Decode$map,
+	$author$project$Main$toMsgUT,
+	A2($elm$json$Json$Decode$field, 'key', $elm$json$Json$Decode$string));
+var $author$project$Main$CharacterKeyUTRelease = function (a) {
+	return {$: 'CharacterKeyUTRelease', a: a};
+};
+var $author$project$Main$ControlKeyUTRelease = function (a) {
+	return {$: 'ControlKeyUTRelease', a: a};
+};
+var $author$project$Main$toMsgUTRelease = function (keyValue) {
+	var _v0 = $elm$core$String$uncons(keyValue);
+	if ((_v0.$ === 'Just') && (_v0.a.b === '')) {
+		var _v1 = _v0.a;
+		var _char = _v1.a;
+		return $author$project$Main$CharacterKeyUTRelease(_char);
+	} else {
+		return $author$project$Main$ControlKeyUTRelease(keyValue);
+	}
+};
+var $author$project$Main$keyDecoderUTRelease = A2(
+	$elm$json$Json$Decode$map,
+	$author$project$Main$toMsgUTRelease,
 	A2($elm$json$Json$Decode$field, 'key', $elm$json$Json$Decode$string));
 var $elm$browser$Browser$Events$Document = {$: 'Document'};
 var $elm$browser$Browser$Events$MySub = F3(
@@ -5883,9 +5925,16 @@ var $elm$browser$Browser$Events$on = F3(
 		return $elm$browser$Browser$Events$subscription(
 			A3($elm$browser$Browser$Events$MySub, node, name, decoder));
 	});
+var $elm$browser$Browser$Events$onKeyDown = A2($elm$browser$Browser$Events$on, $elm$browser$Browser$Events$Document, 'keydown');
 var $elm$browser$Browser$Events$onKeyPress = A2($elm$browser$Browser$Events$on, $elm$browser$Browser$Events$Document, 'keypress');
-var $author$project$Main$subscriptions = function (_v0) {
-	return $elm$core$Platform$Sub$batch(
+var $elm$browser$Browser$Events$onKeyUp = A2($elm$browser$Browser$Events$on, $elm$browser$Browser$Events$Document, 'keyup');
+var $author$project$Main$subscriptions = function (model) {
+	return model.underTyping ? $elm$core$Platform$Sub$batch(
+		_List_fromArray(
+			[
+				$elm$browser$Browser$Events$onKeyDown($author$project$Main$keyDecoderUT),
+				$elm$browser$Browser$Events$onKeyUp($author$project$Main$keyDecoderUTRelease)
+			])) : $elm$core$Platform$Sub$batch(
 		_List_fromArray(
 			[
 				$elm$browser$Browser$Events$onKeyPress($author$project$Main$keyDecoder)
@@ -5894,6 +5943,7 @@ var $author$project$Main$subscriptions = function (_v0) {
 var $author$project$Main$CheckExpired = function (a) {
 	return {$: 'CheckExpired', a: a};
 };
+var $author$project$Main$NoOp = {$: 'NoOp'};
 var $author$project$Main$SetAsOfTime = function (a) {
 	return {$: 'SetAsOfTime', a: a};
 };
@@ -5903,6 +5953,31 @@ var $author$project$Main$SetCurrentTime = function (a) {
 var $author$project$Main$SetZoneName = function (a) {
 	return {$: 'SetZoneName', a: a};
 };
+var $elm$core$Basics$composeL = F3(
+	function (g, f, x) {
+		return g(
+			f(x));
+	});
+var $elm$core$Task$onError = _Scheduler_onError;
+var $elm$core$Task$attempt = F2(
+	function (resultToMessage, task) {
+		return $elm$core$Task$command(
+			$elm$core$Task$Perform(
+				A2(
+					$elm$core$Task$onError,
+					A2(
+						$elm$core$Basics$composeL,
+						A2($elm$core$Basics$composeL, $elm$core$Task$succeed, resultToMessage),
+						$elm$core$Result$Err),
+					A2(
+						$elm$core$Task$andThen,
+						A2(
+							$elm$core$Basics$composeL,
+							A2($elm$core$Basics$composeL, $elm$core$Task$succeed, resultToMessage),
+							$elm$core$Result$Ok),
+						task))));
+	});
+var $elm$browser$Browser$Dom$blur = _Browser_call('blur');
 var $author$project$Main$changeDpy = F2(
 	function (model, dpy) {
 		var sub = model.sub;
@@ -6848,6 +6923,7 @@ var $author$project$Main$doneTasks = function (m) {
 			url: 'http://localhost:8080/tasks/done'
 		});
 };
+var $elm$browser$Browser$Dom$focus = _Browser_call('focus');
 var $author$project$Main$TaskFocused = F2(
 	function (a, b) {
 		return {$: 'TaskFocused', a: a, b: b};
@@ -7296,11 +7372,6 @@ var $author$project$Main$switchStar = F2(
 		}
 	});
 var $author$project$Main$sxhPerY = 1460;
-var $elm$core$Basics$composeL = F3(
-	function (g, f, x) {
-		return g(
-			f(x));
-	});
 var $elm$core$List$head = function (list) {
 	if (list.b) {
 		var x = list.a;
@@ -7420,6 +7491,8 @@ var $author$project$Main$yeaPerY = 1;
 var $author$project$Main$update = F2(
 	function (msg, model) {
 		switch (msg.$) {
+			case 'NoOp':
+				return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
 			case 'SubModelReceived':
 				if (msg.a.$ === 'Ok') {
 					var newSubModel = msg.a.a;
@@ -7442,7 +7515,7 @@ var $author$project$Main$update = F2(
 							var sub = model.sub;
 							var newSub = _Utils_update(
 								sub,
-								{tasks: newTasks});
+								{inputText: $elm$core$Maybe$Nothing, message: $elm$core$Maybe$Nothing, tasks: newTasks});
 							return _Utils_update(
 								model,
 								{sub: newSub});
@@ -7483,7 +7556,23 @@ var $author$project$Main$update = F2(
 							model,
 							A2($author$project$Main$focusTask, model.sub, model.indicator));
 					case 'c':
-						return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
+						return _Utils_Tuple2(
+							model,
+							A2(
+								$elm$core$Task$attempt,
+								function (_v1) {
+									return $author$project$Main$NoOp;
+								},
+								$elm$browser$Browser$Dom$focus('inputArea')));
+					case '/':
+						return _Utils_Tuple2(
+							model,
+							A2(
+								$elm$core$Task$attempt,
+								function (_v2) {
+									return $author$project$Main$NoOp;
+								},
+								$elm$browser$Browser$Dom$focus('inputArea')));
 					case 's':
 						return _Utils_Tuple2(
 							model,
@@ -7528,7 +7617,7 @@ var $author$project$Main$update = F2(
 						return _Utils_Tuple2(
 							A2($author$project$Main$changeDpy, model, $author$project$Main$secPerY),
 							$elm$core$Platform$Cmd$none);
-					case 'o':
+					case '0':
 						return _Utils_Tuple2(
 							model,
 							A2(
@@ -7552,8 +7641,6 @@ var $author$project$Main$update = F2(
 							$author$project$Main$inverseSelect(model),
 							$elm$core$Platform$Cmd$none);
 					case 'l':
-						return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
-					case '#':
 						return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
 					default:
 						return _Utils_Tuple2(
@@ -7650,7 +7737,7 @@ var $author$project$Main$update = F2(
 						model,
 						{asOfTime: aTime}),
 					$elm$core$Platform$Cmd$none);
-			default:
+			case 'ReturnedHome':
 				if (msg.a.$ === 'Ok') {
 					var newSubModel = msg.a.a;
 					return _Utils_Tuple2(
@@ -7665,11 +7752,63 @@ var $author$project$Main$update = F2(
 						A2($author$project$Main$messageEH, model, httpError),
 						$elm$core$Platform$Cmd$none);
 				}
+			case 'ReadyTyping':
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{underTyping: true}),
+					$elm$core$Platform$Cmd$none);
+			case 'ReleaseTyping':
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{underTyping: false}),
+					$elm$core$Platform$Cmd$none);
+			case 'CharacterKeyUT':
+				return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
+			case 'ControlKeyUT':
+				switch (msg.a) {
+					case 'Control':
+						return _Utils_Tuple2(
+							_Utils_update(
+								model,
+								{underControl: true}),
+							$elm$core$Platform$Cmd$none);
+					case 'Enter':
+						return _Utils_Tuple2(
+							model,
+							model.underControl ? $author$project$Main$textPost(model.sub) : $elm$core$Platform$Cmd$none);
+					case 'Escape':
+						return _Utils_Tuple2(
+							model,
+							A2(
+								$elm$core$Task$attempt,
+								function (_v3) {
+									return $author$project$Main$NoOp;
+								},
+								$elm$browser$Browser$Dom$blur('inputArea')));
+					default:
+						return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
+				}
+			case 'CharacterKeyUTRelease':
+				return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
+			default:
+				if (msg.a === 'Control') {
+					return _Utils_Tuple2(
+						_Utils_update(
+							model,
+							{underControl: false}),
+						$elm$core$Platform$Cmd$none);
+				} else {
+					return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
+				}
 		}
 	});
 var $author$project$Main$Input = function (a) {
 	return {$: 'Input', a: a};
 };
+var $author$project$Main$ReadyTyping = {$: 'ReadyTyping'};
+var $author$project$Main$ReleaseTyping = {$: 'ReleaseTyping'};
 var $author$project$Main$TextPost = {$: 'TextPost'};
 var $elm$html$Html$Attributes$stringProperty = F2(
 	function (key, string) {
@@ -7692,10 +7831,22 @@ var $elm$html$Html$Events$on = F2(
 			event,
 			$elm$virtual_dom$VirtualDom$Normal(decoder));
 	});
+var $elm$html$Html$Events$onBlur = function (msg) {
+	return A2(
+		$elm$html$Html$Events$on,
+		'blur',
+		$elm$json$Json$Decode$succeed(msg));
+};
 var $elm$html$Html$Events$onClick = function (msg) {
 	return A2(
 		$elm$html$Html$Events$on,
 		'click',
+		$elm$json$Json$Decode$succeed(msg));
+};
+var $elm$html$Html$Events$onFocus = function (msg) {
+	return A2(
+		$elm$html$Html$Events$on,
+		'focus',
 		$elm$json$Json$Decode$succeed(msg));
 };
 var $elm$html$Html$Events$alwaysStop = function (x) {
@@ -7734,6 +7885,16 @@ var $elm$virtual_dom$VirtualDom$text = _VirtualDom_text;
 var $elm$html$Html$text = $elm$virtual_dom$VirtualDom$text;
 var $author$project$Main$textPlaceholder = 'ENTER TASKS OR A COMMAND:\n\njump\n    step\n        hop\n\nA task to complete by the end of 2020 -2020/12/31\n    A task expected to take 300 hours $300\n        A task you can start in the beginning of 2020 2020/1/1-\n\nA time-critical task 2020/01/1- 23:59:59- $0.001 -0:0:3 -2020/1/02\n\ntrunk\n    branch Alice\n        bud \n    branch Bob\n        bud\n        bud\n\njump\n    step\n        hop2 dependent on hop1 [key\n    step\n        ]key hop1\n\n% A task to register as completed\n* A task to register as starred\n\nA linked task e.g. slack permalink &https://\n\n#777 The task with ID 777 whose weight will be updated to 30 $30\n\n#777 The complex task\n    A simpler task\n    A simpler task\n\nA new emerging task dependent on existing #777 and #888\n    #777\n    #888\n\nYOU CAN ALSO ENTER ONE OF THE FOLLOWING SLASH COMMANDS:\n\n/dpy 1\nSet default dpy (dots per year) to 1, that is, a dot represents a year.\n\n/asof 2020/01/01_12:0:0\nSet the time corresponding to the left edge of the bar to noon on January 1, 2020.\n\n/sel -t word\nSelect tasks whose title contains \'word\'.\n\n/sel -s 2020/1/1_12:0:0< <2020/1/2\nSelect tasks whose start is in the afternoon of January 1, 2020.\n\n/sel -d <23:59:59\nSelect tasks whose deadline is today\'s end.\n\n/sel -w 30< <300\nSelect tasks whose weight is between 30 and 300 hours.\n\n/sel -arc\nSelect archived tasks.\n\n/sel -star\nSelect starred tasks.\n\n/sel -trunk\nSelect trunk, namely, tasks with no successor.\n\n/sel -buds\nSelect buds, namely, tasks with no predecessor.\n\n/sel -t word -s 2020/1/1< -d <23:59:59 -w 30< <300 -arc -star\nSpecify multiple conditions.\n\n/care 1 2\nCare from parents to grandchildren, namely, watch their tasks too,\nprovided you have permission for each.\n\nCOMMANDS FOR ADMINISTRATORS:\n\n/allow albert edit sci_team\nAllow Albert to edit sci_team tasks; create, update, and perform.\nAutomatically allow to view.\n\n/ban pisces_dep view albert\nBan pisces_dep from viewing Albert tasks.\nAutomatically ban from editing.\n\n/connect zodiac_inc pisces_dep\nGive zodiac_inc and pisces_dep a parent-child relationship.\nYou can, by default,\nview direct parents and all descendants and\nedit direct children.\n\nTHANK YOU FOR READING!\n';
 var $elm$html$Html$textarea = _VirtualDom_node('textarea');
+var $elm$html$Html$Attributes$value = $elm$html$Html$Attributes$stringProperty('value');
+var $author$project$Main$viewInputValue = function (model) {
+	var _v0 = model.sub.inputText;
+	if (_v0.$ === 'Nothing') {
+		return '';
+	} else {
+		var str = _v0.a;
+		return str;
+	}
+};
 var $author$project$Main$viewMessage = function (m) {
 	var _v0 = m.message;
 	if (_v0.$ === 'Just') {
@@ -8471,8 +8632,12 @@ var $author$project$Main$view = function (model) {
 								_List_fromArray(
 									[
 										$elm$html$Html$Attributes$id('inputArea'),
+										$elm$html$Html$Attributes$value(
+										$author$project$Main$viewInputValue(model)),
+										$elm$html$Html$Events$onInput($author$project$Main$Input),
 										$elm$html$Html$Attributes$placeholder($author$project$Main$textPlaceholder),
-										$elm$html$Html$Events$onInput($author$project$Main$Input)
+										$elm$html$Html$Events$onFocus($author$project$Main$ReadyTyping),
+										$elm$html$Html$Events$onBlur($author$project$Main$ReleaseTyping)
 									]),
 								_List_Nil)
 							])),

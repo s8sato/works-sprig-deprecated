@@ -112,3 +112,6 @@ Eliminated integers.
 Added getMaxNode, many Elm Task.performs.
 
 vertical stripe as guide
+disabled key-event during typing, added / and Escape navigation
+2019-12-27 04:02:22
+
