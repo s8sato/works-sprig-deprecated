@@ -66,11 +66,14 @@ type alias User =
 
 type alias Task =
     { id : Int
+    , isDummy : Bool
     , isDone : Bool
     , isStarred : Bool
     , title : Maybe String
     , link : Maybe String
-    , start : Maybe Int -- POSIX seconds
+    , startable : Maybe Int -- POSIX seconds
+    , begin : Maybe Int
+    , end : Maybe Int
     , deadline : Maybe Int
     , weight : Maybe Float
     , user : String
@@ -305,9 +308,7 @@ update msg model =
 
         CharacterKey '0' ->
             -- TODO
-            ( model
-            , Task.perform CheckExpired (Task.succeed model.currentTime)
-            )
+            ( model, Cmd.none )
 
         CharacterKey 't' ->
             -- TODO
@@ -337,7 +338,7 @@ update msg model =
             ( model, Cmd.none )
 
         CharacterKey _ ->
-            ( model, initialize model.sub )
+            ( model, Cmd.none )
 
         ControlKey _ ->
             ( model, Cmd.none )
@@ -382,7 +383,7 @@ update msg model =
 
         SetZoneName newZoneName ->
             ( setZoneName model newZoneName
-            , Cmd.none
+            , initialize model.sub
             )
 
         Tick newTime ->
@@ -875,15 +876,18 @@ taskDecoder : Decoder Task
 taskDecoder =
     Decode.succeed Task
         |> required "elmTaskId" int
+        |> required "elmTaskIsDummy" bool
         |> required "elmTaskIsDone" bool
         |> required "elmTaskIsStarred" bool
         |> optional "elmTaskTitle" (nullable string) Nothing
         |> optional "elmTaskLink" (nullable string) Nothing
-        |> optional "elmTaskStart" (nullable int) Nothing
+        |> optional "elmTaskStartable" (nullable int) Nothing
+        |> optional "elmTaskBegin" (nullable int) Nothing
+        |> optional "elmTaskEnd" (nullable int) Nothing
         |> optional "elmTaskDeadline" (nullable int) Nothing
         |> optional "elmTaskWeight" (nullable float) Nothing
         |> required "elmTaskUser" string
-        -- |> optional "elmTaskSecUntilStart" (nullable int) Nothing
+        -- |> optional "elmTaskSecUntilStartable" (nullable int) Nothing
         -- |> optional "elmTaskSecUntilDeadline" (nullable int) Nothing
         |> optional "elmTaskIsSelected" bool False
         |> optional "elmTaskIsExpired" bool False
@@ -1052,7 +1056,7 @@ viewTaskHeader m =
             [ div [ class "dev" ]
                 [ text (strFromPosix m.zone m.currentTime) ]
             ]
-        , div [ class "start" ]
+        , div [ class "startable" ]
             [ text (viewDateTimeUnit m.sub.dpy) ]
         , div [ class "bar" ]
             [ text
@@ -1112,8 +1116,8 @@ viewTask m ( i, task ) =
                 ( Nothing, Nothing ) ->
                     div [] []
             ]
-        , div [ class "start" ]
-            [ text (viewTimeByDpy m.sub.dpy m.zone task.start) ]
+        , div [ class "startable" ]
+            [ text (viewTimeByDpy m.sub.dpy m.zone task.startable) ]
         , div [ class "bar" ]
             [ text (barString m task) ]
         , div [ class "deadline" ]
@@ -1216,7 +1220,7 @@ barString : Model -> Task -> String
 barString model task =
     let
         secUS =
-            secUntil task.start model.asOfTime
+            secUntil task.startable model.asOfTime
 
         secUD =
             secUntil task.deadline model.asOfTime

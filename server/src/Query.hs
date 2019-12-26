@@ -86,7 +86,7 @@ getUndoneTasks pool user = flip runSqlPool pool $ do
         orderBy
             [ desc (task ^. TaskIsStarred)
             , asc (task ^. TaskDeadline)
-            , asc (task ^. TaskStart)
+            , asc (task ^. TaskStartable)
             , asc (task ^. TaskTitle)
             ]
         return (task)
@@ -148,7 +148,7 @@ setStarSwitched pool id = flip runSqlPool pool $ do
 --             )
 --         orderBy
 --             [ asc (task ^. TaskDeadline)
---             , asc (task ^. TaskStart)
+--             , asc (task ^. TaskStartable)
 --             , desc (task ^. TaskIsStarred)
 --             , asc (task ^. TaskTitle)
 --             ]
@@ -178,7 +178,7 @@ getBeforeMe pool me = flip runSqlPool pool $ do
         orderBy
             [ desc (task ^. TaskIsStarred)
             , asc (task ^. TaskDeadline)
-            , asc (task ^. TaskStart)
+            , asc (task ^. TaskStartable)
             , asc (task ^. TaskTitle)
             ]
         return (task, user ^. UserName)
@@ -198,7 +198,7 @@ getAfterMe pool me = flip runSqlPool pool $ do
         orderBy
             [ desc (task ^. TaskIsStarred)
             , asc (task ^. TaskDeadline)
-            , asc (task ^. TaskStart)
+            , asc (task ^. TaskStartable)
             , asc (task ^. TaskTitle)
             ]
         return (task, user ^. UserName)
@@ -249,7 +249,7 @@ getUndoneTaskAssigns pool uid = flip runSqlPool pool $ do
         orderBy
             [ desc (task ^. TaskIsStarred)
             , asc (task ^. TaskDeadline)
-            , asc (task ^. TaskStart)
+            , asc (task ^. TaskStartable)
             , asc (task ^. TaskTitle)
             ]
         return (task, user ^. UserName)

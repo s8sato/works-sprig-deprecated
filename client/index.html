@@ -6938,17 +6938,23 @@ var $elm$http$Http$post = function (r) {
 };
 var $elm$json$Json$Decode$list = _Json_decodeList;
 var $author$project$Main$Task = function (id) {
-	return function (isDone) {
-		return function (isStarred) {
-			return function (title) {
-				return function (link) {
-					return function (start) {
-						return function (deadline) {
-							return function (weight) {
-								return function (user) {
-									return function (isSelected) {
-										return function (isExpired) {
-											return {deadline: deadline, id: id, isDone: isDone, isExpired: isExpired, isSelected: isSelected, isStarred: isStarred, link: link, start: start, title: title, user: user, weight: weight};
+	return function (isDummy) {
+		return function (isDone) {
+			return function (isStarred) {
+				return function (title) {
+					return function (link) {
+						return function (startable) {
+							return function (begin) {
+								return function (end) {
+									return function (deadline) {
+										return function (weight) {
+											return function (user) {
+												return function (isSelected) {
+													return function (isExpired) {
+														return {begin: begin, deadline: deadline, end: end, id: id, isDone: isDone, isDummy: isDummy, isExpired: isExpired, isSelected: isSelected, isStarred: isStarred, link: link, startable: startable, title: title, user: user, weight: weight};
+													};
+												};
+											};
 										};
 									};
 								};
@@ -7054,32 +7060,46 @@ var $author$project$Main$taskDecoder = A4(
 					$elm$core$Maybe$Nothing,
 					A4(
 						$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$optional,
-						'elmTaskStart',
+						'elmTaskEnd',
 						$elm$json$Json$Decode$nullable($elm$json$Json$Decode$int),
 						$elm$core$Maybe$Nothing,
 						A4(
 							$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$optional,
-							'elmTaskLink',
-							$elm$json$Json$Decode$nullable($elm$json$Json$Decode$string),
+							'elmTaskBegin',
+							$elm$json$Json$Decode$nullable($elm$json$Json$Decode$int),
 							$elm$core$Maybe$Nothing,
 							A4(
 								$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$optional,
-								'elmTaskTitle',
-								$elm$json$Json$Decode$nullable($elm$json$Json$Decode$string),
+								'elmTaskStartable',
+								$elm$json$Json$Decode$nullable($elm$json$Json$Decode$int),
 								$elm$core$Maybe$Nothing,
-								A3(
-									$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
-									'elmTaskIsStarred',
-									$elm$json$Json$Decode$bool,
-									A3(
-										$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
-										'elmTaskIsDone',
-										$elm$json$Json$Decode$bool,
+								A4(
+									$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$optional,
+									'elmTaskLink',
+									$elm$json$Json$Decode$nullable($elm$json$Json$Decode$string),
+									$elm$core$Maybe$Nothing,
+									A4(
+										$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$optional,
+										'elmTaskTitle',
+										$elm$json$Json$Decode$nullable($elm$json$Json$Decode$string),
+										$elm$core$Maybe$Nothing,
 										A3(
 											$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
-											'elmTaskId',
-											$elm$json$Json$Decode$int,
-											$elm$json$Json$Decode$succeed($author$project$Main$Task))))))))))));
+											'elmTaskIsStarred',
+											$elm$json$Json$Decode$bool,
+											A3(
+												$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
+												'elmTaskIsDone',
+												$elm$json$Json$Decode$bool,
+												A3(
+													$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
+													'elmTaskIsDummy',
+													$elm$json$Json$Decode$bool,
+													A3(
+														$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
+														'elmTaskId',
+														$elm$json$Json$Decode$int,
+														$elm$json$Json$Decode$succeed($author$project$Main$Task)))))))))))))));
 var $author$project$Main$tasksDecoder = $elm$json$Json$Decode$list($author$project$Main$taskDecoder);
 var $author$project$Main$doneTasks = function (m) {
 	return $elm$http$Http$post(
@@ -7784,12 +7804,7 @@ var $author$project$Main$update = F2(
 							A2($author$project$Main$changeDpy, model, $author$project$Main$secPerY),
 							$elm$core$Platform$Cmd$none);
 					case '0':
-						return _Utils_Tuple2(
-							model,
-							A2(
-								$elm$core$Task$perform,
-								$author$project$Main$CheckExpired,
-								$elm$core$Task$succeed(model.currentTime)));
+						return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
 					case 't':
 						return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
 					case 'h':
@@ -7809,9 +7824,7 @@ var $author$project$Main$update = F2(
 					case 'l':
 						return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
 					default:
-						return _Utils_Tuple2(
-							model,
-							$author$project$Main$initialize(model.sub));
+						return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
 				}
 			case 'ControlKey':
 				return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
@@ -7880,7 +7893,7 @@ var $author$project$Main$update = F2(
 				var newZoneName = msg.a;
 				return _Utils_Tuple2(
 					A2($author$project$Main$setZoneName, model, newZoneName),
-					$elm$core$Platform$Cmd$none);
+					$author$project$Main$initialize(model.sub));
 			case 'Tick':
 				var newTime = msg.a;
 				return _Utils_Tuple2(
@@ -8172,7 +8185,7 @@ var $author$project$Main$barString_ = F4(
 	});
 var $author$project$Main$barString = F2(
 	function (model, task) {
-		var secUS = A2($author$project$Main$secUntil, task.start, model.asOfTime);
+		var secUS = A2($author$project$Main$secUntil, task.startable, model.asOfTime);
 		var secUD = A2($author$project$Main$secUntil, task.deadline, model.asOfTime);
 		return A4($author$project$Main$barString_, model.sub.dpy, task.weight, secUS, secUD);
 	});
@@ -8517,12 +8530,12 @@ var $author$project$Main$viewTask = F2(
 					$elm$html$Html$div,
 					_List_fromArray(
 						[
-							$elm$html$Html$Attributes$class('start')
+							$elm$html$Html$Attributes$class('startable')
 						]),
 					_List_fromArray(
 						[
 							$elm$html$Html$text(
-							A3($author$project$Main$viewTimeByDpy, m.sub.dpy, m.zone, task.start))
+							A3($author$project$Main$viewTimeByDpy, m.sub.dpy, m.zone, task.startable))
 						])),
 					A2(
 					$elm$html$Html$div,
@@ -8748,7 +8761,7 @@ var $author$project$Main$viewTaskHeader = function (m) {
 				$elm$html$Html$div,
 				_List_fromArray(
 					[
-						$elm$html$Html$Attributes$class('start')
+						$elm$html$Html$Attributes$class('startable')
 					]),
 				_List_fromArray(
 					[

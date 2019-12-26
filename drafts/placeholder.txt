@@ -56,7 +56,7 @@ Update the chart every second.
 Select tasks whose title contains 'word'.
 
 /sel -s 2020/1/1_12:0:0< <2020/1/2
-Select tasks whose start is in the afternoon of January 1, 2020.
+Select tasks whose startable is in the afternoon of January 1, 2020.
 
 /sel -d <23:59:59
 Select tasks whose deadline is today's end.

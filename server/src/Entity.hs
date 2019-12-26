@@ -59,11 +59,13 @@ User
 Task json
     terminal            Int
     initial             Int
-    -- isDummy             Bool
+    isDummy             Bool
     isDone              Bool
     isStarred           Bool
     link                Text Maybe
-    start               UTCTime Maybe
+    startable           UTCTime Maybe
+    begin               UTCTime Maybe
+    end                 UTCTime Maybe
     deadline            UTCTime Maybe
     weight              Double Maybe
     title               Text Maybe

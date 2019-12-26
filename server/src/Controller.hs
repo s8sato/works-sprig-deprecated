@@ -110,15 +110,18 @@ $(deriveJSON defaultOptions ''ElmUser)
 
 data ElmTask = ElmTask
     { elmTaskId :: Int
+    , elmTaskIsDummy :: Bool
     , elmTaskIsDone :: Bool
     , elmTaskIsStarred :: Bool
     , elmTaskTitle :: Maybe Text
     , elmTaskLink :: Maybe Text
-    , elmTaskStart :: Maybe Int
+    , elmTaskStartable :: Maybe Int
+    , elmTaskBegin :: Maybe Int
+    , elmTaskEnd :: Maybe Int
     , elmTaskDeadline :: Maybe Int
     , elmTaskWeight :: Maybe Double
     , elmTaskUser :: Text
-    -- , elmTaskSecUntilStart :: Maybe Integer
+    -- , elmTaskSecUntilStartable :: Maybe Integer
     -- , elmTaskSecUntilDeadline :: Maybe Integer
     } deriving (Eq, Show)
 
@@ -309,18 +312,19 @@ type Graph = [Edge]
 type Edge = ((Node, Node), [Attr])
 type Node  = Int
 data Attr  = 
-      AttrTaskId { attrTaskId :: Int }
-    | IsDone       { isDone      :: Char }
-    | IsStarred    { isStarred   :: Char }
-    | Link         { link        :: Text }
-    | StartDate    { startYea    :: Int, startMon    :: Int, startDay    :: Int }
-    | StartTime    { startHou    :: Int, startMin    :: Int, startSec    :: Int }
-    | DeadlineDate { deadlineYea :: Int, deadlineMon :: Int, deadlineDay :: Int }
-    | DeadlineTime { deadlineHou :: Int, deadlineMin :: Int, deadlineSec :: Int }
-    | Weight       { weight      :: Double }
-    | HeadLink     { headLink    :: Text }
-    | TailLink     { tailLink    :: Text }
-    | Title        { title       :: Text }
+      AttrTaskId    { attrTaskId    :: Int  }
+    | IsDummy       { isDummy       :: Bool }
+    | IsDone        { isDone        :: Char }
+    | IsStarred     { isStarred     :: Char }
+    | Link          { link          :: Text }
+    | StartableDate { startableYea  :: Int, startableMon    :: Int, startableDay    :: Int }
+    | StartableTime { startableHou  :: Int, startableMin    :: Int, startableSec    :: Int }
+    | DeadlineDate  { deadlineYea   :: Int, deadlineMon     :: Int, deadlineDay     :: Int }
+    | DeadlineTime  { deadlineHou   :: Int, deadlineMin     :: Int, deadlineSec     :: Int }
+    | Weight        { weight        :: Double }
+    | HeadLink      { headLink      :: Text }
+    | TailLink      { tailLink      :: Text }
+    | Title         { title         :: Text }
     deriving (Eq, Show)
 
 tasksFromText :: TimeZoneHour -> Text -> [Task]
@@ -331,75 +335,75 @@ tasksFromGraph = map taskFromEdge
 
 taskFromEdge :: Edge -> Task
 taskFromEdge ((t,i),as) =
-    taskFromEdge' as (Task t i False False Nothing Nothing Nothing Nothing Nothing anonymousUser)
+    taskFromEdge' as (Task t i False False False Nothing Nothing Nothing Nothing Nothing Nothing Nothing anonymousUser)
 
 taskFromEdge' :: [Attr] -> Task -> Task
 taskFromEdge' [] task = 
     task
-taskFromEdge' (a:as) (Task t i d s ml ms md mw mt u) =
+taskFromEdge' (a:as) (Task t i y d s ml ms mb me md mw mt u) =
     case a of
         AttrTaskId 0 ->
-            taskFromEdge' as (Task t i d s ml ms md mw mt u)
+            taskFromEdge' as (Task t i y d s ml ms mb me md mw mt u)
         AttrTaskId n ->  -- TODO
-            taskFromEdge' as (Task t i d s ml ms md mw mt u)
+            taskFromEdge' as (Task t i y d s ml ms mb me md mw mt u)
         IsDone _ ->
-            taskFromEdge' as (Task t i True s ml ms md mw mt u)
+            taskFromEdge' as (Task t i y True s ml ms mb me md mw mt u)
         IsStarred _ ->
-            taskFromEdge' as (Task t i d True ml ms md mw mt u)
+            taskFromEdge' as (Task t i y d True ml ms mb me md mw mt u)
         Link l ->
-            taskFromEdge' as (Task t i d s (Just l) ms md mw mt u)
-        StartDate yyyy mm dd ->
+            taskFromEdge' as (Task t i y d s (Just l) ms mb me md mw mt u)
+        StartableDate yyyy mm dd ->
             let
                 nd = fromGregorian (fromIntegral yyyy) mm dd
             in
                 case ms of
                     Just (UTCTime od ot) ->
-                        taskFromEdge' as (Task t i d s ml (Just (UTCTime nd ot)) md mw mt u)
+                        taskFromEdge' as (Task t i y d s ml (Just (UTCTime nd ot)) mb me md mw mt u)
                     Nothing ->
-                        taskFromEdge' as (Task t i d s ml (Just (UTCTime nd 0)) md mw mt u)
-        StartTime hh mm ss ->
+                        taskFromEdge' as (Task t i y d s ml (Just (UTCTime nd 0)) mb me md mw mt u)
+        StartableTime hh mm ss ->
             let
                 nt = secondsToDiffTime . fromIntegral $ ss + 60 * (mm + 60 * hh)
             in
                 case ms of
                     Just (UTCTime od ot) ->
-                        taskFromEdge' as (Task t i d s ml (Just (UTCTime od nt)) md mw mt u)
+                        taskFromEdge' as (Task t i y d s ml (Just (UTCTime od nt)) mb me md mw mt u)
                     Nothing ->
                         let
                             nd = fromGregorian 3000 0 0
                         in
-                            taskFromEdge' as (Task t i d s ml (Just (UTCTime nd nt)) md mw mt u)
+                            taskFromEdge' as (Task t i y d s ml (Just (UTCTime nd nt)) mb me md mw mt u)
         DeadlineDate yyyy mm dd ->
             let
                 nd = fromGregorian (fromIntegral yyyy) mm dd
             in
                 case md of
                     Just (UTCTime od ot) ->
-                        taskFromEdge' as (Task t i d s ml ms (Just (UTCTime nd ot)) mw mt u)
+                        taskFromEdge' as (Task t i y d s ml ms mb me (Just (UTCTime nd ot)) mw mt u)
                     Nothing ->
-                        taskFromEdge' as (Task t i d s ml ms (Just (UTCTime nd 0)) mw mt u)
+                        taskFromEdge' as (Task t i y d s ml ms mb me (Just (UTCTime nd 0)) mw mt u)
         DeadlineTime hh mm ss ->
             let
                 nt = secondsToDiffTime . fromIntegral $ ss + 60 * (mm + 60 * hh)
             in
                 case md of
                     Just (UTCTime od ot) ->
-                        taskFromEdge' as (Task t i d s ml ms (Just (UTCTime od nt)) mw mt u)
+                        taskFromEdge' as (Task t i y d s ml ms mb me (Just (UTCTime od nt)) mw mt u)
                     Nothing ->
                         let
                             nd = fromGregorian 3000 0 0
                         in
-                            taskFromEdge' as (Task t i d s ml ms (Just (UTCTime nd nt)) mw mt u)
+                            taskFromEdge' as (Task t i y d s ml ms mb me (Just (UTCTime nd nt)) mw mt u)
         Weight w ->
-            taskFromEdge' as (Task t i d s ml ms md (Just w) mt u)
+            taskFromEdge' as (Task t i y d s ml ms mb me md (Just w) mt u)
         Title tt' ->
             case mt of
                 Just tt ->
-                    taskFromEdge' as (Task t i d s ml ms md mw (Just $ Data.Text.intercalate " " [tt', tt]) u)
+                    taskFromEdge' as (Task t i y d s ml ms mb me md mw (Just $ Data.Text.intercalate " " [tt', tt]) u)
                 Nothing ->
-                    taskFromEdge' as (Task t i d s ml ms md mw (Just tt') u)
+                    taskFromEdge' as (Task t i y d s ml ms mb me md mw (Just tt') u)
         _ -> 
-            taskFromEdge' as (Task t i d s ml ms md mw mt u)
+            taskFromEdge' as (Task t i y d s ml ms mb me md mw mt u)
 
 graphFromText :: Text -> Graph
 graphFromText = spanLink . assemble . markUp . chopLines
@@ -464,8 +468,8 @@ aAttr = AttrTaskId    <$  char '#'  <*> decimal
     <|> IsDone        <$> char '%'
     <|> IsStarred     <$> char '*'
     <|> Link          <$  char '&'  <*> takeText
-    <|> StartDate     <$> decimal   <*  char '/' <*> decimal <* char '/' <*> decimal <* char '-'
-    <|> StartTime     <$> decimal   <*  char ':' <*> decimal <* char ':' <*> decimal <* char '-'
+    <|> StartableDate     <$> decimal   <*  char '/' <*> decimal <* char '/' <*> decimal <* char '-'
+    <|> StartableTime     <$> decimal   <*  char ':' <*> decimal <* char ':' <*> decimal <* char '-'
     <|> DeadlineDate  <$  char '-'  <*> decimal <* char '/' <*> decimal <* char '/' <*> decimal
     <|> DeadlineTime  <$  char '-'  <*> decimal <* char ':' <*> decimal <* char ':' <*> decimal
     <|> Weight        <$  char '$'  <*> double
@@ -517,12 +521,12 @@ spanLink'' (_,t) (i,_) g = ((t,i), [AttrTaskId 0, IsDone '%', Title "LINKER"]) :
 
 universalTime :: TimeZoneHour -> [Task] -> [Task]
 universalTime tzh = 
-    map (\(Task t i d s l ms md mw tt u) -> 
+    map (\(Task t i y d s l ms mb me md mw tt u) -> 
         let
             mus = universal tzh ms
             mud = universal tzh md
         in
-            Task t i d s l mus mud mw tt u
+            Task t i y d s l mus mb me mud mw tt u
         )
 
 universal :: TimeZoneHour -> Maybe UTCTime -> Maybe UTCTime
@@ -593,8 +597,8 @@ universal tzh mut = addUTCTime <$> Just tzsMinus <*> mut
                 --         <
                 -- IsStarred     <
                 -- Link          <
-                -- StartDate     <
-                -- StartTime     <
+                -- StartableDate     <
+                -- StartableTime     <
                 -- DeadlineDate  <
                 -- DeadlineTime  <
                 -- Weight        <
@@ -622,12 +626,14 @@ toElmTask :: (Entity Task, Q.Value Text) -> ElmTask
 toElmTask (e, u) =
     let
         i  = idFromEntity e
-        Task _ _ d s ml ms md mw mt _ = entityVal e
+        Task _ _ y d s ml ms mb me md mw mt _ = entityVal e
         ems = toElmTime ms
+        emb = toElmTime mb
+        eme = toElmTime me
         emd = toElmTime md
         eu  = Q.unValue u
     in
-        ElmTask i d s mt ml ems emd mw eu
+        ElmTask i y d s mt ml ems emb eme emd mw eu
 
 toElmUser :: Entity User -> ElmUser
 toElmUser e =
@@ -679,11 +685,11 @@ toElmTime (Just t) =
 shiftTaskNodes :: Int -> [Task] -> [Task]
 shiftTaskNodes sh ts =
     map (
-        \(Task t i d s l ss dd w tt u) -> 
+        \(Task t i y d s l ms mb me md w tt u) -> 
             let 
                 (t',i') = both ((+) sh) (t,i)
             in
-                Task t' i' d s l ss dd w tt u
+                Task t' i' y d s l ms mb me md w tt u
         ) ts
 
 -- uToE :: UTCTime -> EpochTime
