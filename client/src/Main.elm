@@ -43,17 +43,25 @@ type alias Model =
     , underTyping : Bool
     , underControl : Bool
     , asOfCurrentTime : Bool
+    , dpy : Int
     }
 
 
 type alias SubModel =
     { user : User
     , tasks : List Task
-    , zoneName : Maybe String
-    , zoneOffset : Maybe Int
     , inputText : Maybe String
-    , dpy : Maybe Int
     , message : Maybe String
+    }
+
+
+type alias Millis =
+    Int
+
+
+type alias Duration =
+    { left : Millis
+    , right : Millis
     }
 
 
@@ -61,6 +69,10 @@ type alias User =
     { id : Int
     , name : String
     , admin : Bool
+    , durs : List Duration
+    , defaultDpy : Maybe Int
+    , zoneName : Maybe String
+    , zoneOffset : Maybe Int
     }
 
 
@@ -86,12 +98,15 @@ init : () -> ( Model, Cmd Msg )
 init _ =
     let
         initSub =
-            { user = User 1 "ANONYMOUS" False
+            let
+                saraly =
+                    [ { left = 30600000, right = 43200000 }
+                    , { left = 46800000, right = 63000000 }
+                    ]
+            in
+            { user = User 1 "ANONYMOUS" False saraly Nothing Nothing Nothing
             , tasks = []
-            , zoneName = Nothing
-            , zoneOffset = Nothing
             , inputText = Nothing
-            , dpy = Nothing
             , message = Nothing
             }
     in
@@ -103,6 +118,7 @@ init _ =
       , underTyping = False
       , underControl = False
       , asOfCurrentTime = True
+      , dpy = dayPerY
       }
       -- , Cmd.none
     , Task.perform AdjustTimeZone Time.here
@@ -200,9 +216,11 @@ update msg model =
             ( model, Cmd.none )
 
         SubModelReceived (Ok newSubModel) ->
-            ( { model
-                | sub = newSubModel
-              }
+            ( returnedHome
+                { model
+                    | sub = newSubModel
+                }
+                newSubModel
             , Cmd.none
             )
 
@@ -466,7 +484,12 @@ returnedHome model m =
                 , message = m.message
             }
     in
-    { model | sub = newSub }
+    case model.sub.user.defaultDpy of
+        Nothing ->
+            { model | sub = newSub }
+
+        Just dpy ->
+            changeDpy { model | sub = newSub } dpy
 
 
 
@@ -520,12 +543,19 @@ setZoneName model zn =
             model.sub
 
         newSub =
-            case zn of
-                Name name ->
-                    { sub | zoneName = Just name }
+            let
+                user =
+                    sub.user
 
-                Offset offset ->
-                    { sub | zoneOffset = Just offset }
+                newUser =
+                    case zn of
+                        Name name ->
+                            { user | zoneName = Just name }
+
+                        Offset offset ->
+                            { user | zoneOffset = Just offset }
+            in
+            { sub | user = newUser }
     in
     { model
         | sub = newSub
@@ -654,11 +684,13 @@ changeDpy model dpy =
 
         newSub =
             { sub
-                | dpy = Just dpy
-                , message = Just (String.fromInt dpy ++ " dpy")
+                | message = Just (String.fromInt dpy ++ " dpy")
             }
     in
-    { model | sub = newSub }
+    { model
+        | sub = newSub
+        , dpy = dpy
+    }
 
 
 switchSelect : Model -> Index -> Model
@@ -781,7 +813,7 @@ textPostEncoder : SubModel -> String -> Encode.Value
 textPostEncoder m content =
     let
         zoneName =
-            case m.zoneName of
+            case m.user.zoneName of
                 Nothing ->
                     Encode.null
 
@@ -789,7 +821,7 @@ textPostEncoder m content =
                     Encode.string name
 
         zoneOffset =
-            case m.zoneOffset of
+            case m.user.zoneOffset of
                 Nothing ->
                     Encode.null
 
@@ -846,10 +878,7 @@ subModelDecoder =
     Decode.succeed SubModel
         |> required "elmSubModelUser" userDecoder
         |> required "elmSubModelTasks" (list taskDecoder)
-        |> optional "elmSubModelZoneName" (nullable string) Nothing
-        |> optional "elmSubModelZoneOffset" (nullable int) Nothing
         |> optional "elmSubModelInputText" (nullable string) Nothing
-        |> optional "elmSubModelDpy" (nullable int) Nothing
         |> optional "elmSubModelMessage" (nullable string) Nothing
 
 
@@ -859,6 +888,10 @@ userDecoder =
         |> required "elmUserId" int
         |> required "elmUserName" string
         |> required "elmUserAdmin" bool
+        |> required "elmUserDurations" durationsDecoder
+        |> optional "elmUserDefaultDpy" (nullable int) Nothing
+        |> optional "elmUserZoneName" (nullable string) Nothing
+        |> optional "elmUserZoneOffset" (nullable int) Nothing
 
 
 
@@ -891,6 +924,18 @@ taskDecoder =
         -- |> optional "elmTaskSecUntilDeadline" (nullable int) Nothing
         |> optional "elmTaskIsSelected" bool False
         |> optional "elmTaskIsExpired" bool False
+
+
+durationsDecoder : Decoder (List Duration)
+durationsDecoder =
+    list durationDecoder
+
+
+durationDecoder : Decoder Duration
+durationDecoder =
+    Decode.succeed Duration
+        |> required "elmDurationLeft" int
+        |> required "elmDurationRight" int
 
 
 
@@ -972,68 +1017,58 @@ viewInputValue model =
             str
 
 
-viewDateTimeUnit : Maybe Int -> String
-viewDateTimeUnit mdpy =
-    case mdpy of
-        Nothing ->
-            "-"
+viewDateTimeUnit : Int -> String
+viewDateTimeUnit dpy =
+    if dpy == yeaPerY then
+        "Y"
 
-        Just dpy ->
-            if dpy == yeaPerY then
-                "Y"
+    else if dpy == quaPerY then
+        "Q"
 
-            else if dpy == quaPerY then
-                "Q"
+    else if dpy == monPerY then
+        "M"
 
-            else if dpy == monPerY then
-                "M"
+    else if dpy == weePerY then
+        "W"
 
-            else if dpy == weePerY then
-                "W"
+    else if dpy == dayPerY then
+        "D"
 
-            else if dpy == dayPerY then
-                "D"
+    else if dpy == sxhPerY then
+        "6h"
 
-            else if dpy == sxhPerY then
-                "6h"
+    else if dpy == houPerY then
+        "h"
 
-            else if dpy == houPerY then
-                "h"
+    else if dpy == minPerY then
+        "m"
 
-            else if dpy == minPerY then
-                "m"
+    else if dpy == secPerY then
+        "s"
 
-            else if dpy == secPerY then
-                "s"
-
-            else
-                "CSTM"
+    else
+        "CSTM"
 
 
-viewDateTimeGuide : Maybe Int -> String
-viewDateTimeGuide mdpy =
-    case mdpy of
-        Nothing ->
-            "-"
+viewDateTimeGuide : Int -> String
+viewDateTimeGuide dpy =
+    if dpy <= yeaPerY then
+        "Y"
 
-        Just dpy ->
-            if dpy <= yeaPerY then
-                "Y"
+    else if dpy <= monPerY then
+        "Y/M"
 
-            else if dpy <= monPerY then
-                "Y/M"
+    else if dpy <= dayPerY then
+        "M/D"
 
-            else if dpy <= dayPerY then
-                "M/D"
+    else if dpy <= houPerY then
+        "/D h:"
 
-            else if dpy <= houPerY then
-                "/D h:"
+    else if dpy <= minPerY then
+        "h:m"
 
-            else if dpy <= minPerY then
-                "h:m"
-
-            else
-                "m's"
+    else
+        "m's"
 
 
 viewMessage : SubModel -> String
@@ -1057,7 +1092,7 @@ viewTaskHeader m =
                 [ text (strFromPosix m.zone m.currentTime) ]
             ]
         , div [ class "startable" ]
-            [ text (viewDateTimeUnit m.sub.dpy) ]
+            [ text (viewDateTimeUnit m.dpy) ]
         , div [ class "bar" ]
             [ text
                 ("As of "
@@ -1065,7 +1100,7 @@ viewTaskHeader m =
                 )
             ]
         , div [ class "deadline" ]
-            [ text (viewDateTimeGuide m.sub.dpy) ]
+            [ text (viewDateTimeGuide m.dpy) ]
         , div [ class "weight" ] []
         , div [ class "assign" ] []
         ]
@@ -1117,11 +1152,11 @@ viewTask m ( i, task ) =
                     div [] []
             ]
         , div [ class "startable" ]
-            [ text (viewTimeByDpy m.sub.dpy m.zone task.startable) ]
+            [ text (viewTimeByDpy m.dpy m.zone task.startable) ]
         , div [ class "bar" ]
             [ text (barString m task) ]
         , div [ class "deadline" ]
-            [ text (viewTimeByDpy m.sub.dpy m.zone task.deadline) ]
+            [ text (viewTimeByDpy m.dpy m.zone task.deadline) ]
         , div [ class "weight" ]
             [ text (viewWeight task) ]
         , div [ class "assign" ]
@@ -1153,57 +1188,52 @@ viewWeight task =
                 String.fromFloat w
 
 
-viewTimeByDpy : Maybe Int -> Zone -> Maybe Int -> String
-viewTimeByDpy mdpy z mt =
-    case mdpy of
+viewTimeByDpy : Int -> Zone -> Maybe Int -> String
+viewTimeByDpy dpy z mt =
+    case mt of
         Nothing ->
             "-"
 
-        Just dpy ->
-            case mt of
-                Nothing ->
-                    "-"
+        Just t ->
+            let
+                p =
+                    t |> (*) (10 ^ 3) |> millisToPosix
 
-                Just t ->
-                    let
-                        p =
-                            t |> (*) (10 ^ 3) |> millisToPosix
+                yea =
+                    String.fromInt <| Time.toYear z p
 
-                        yea =
-                            String.fromInt <| Time.toYear z p
+                mon =
+                    strFromMonth <| Time.toMonth z p
 
-                        mon =
-                            strFromMonth <| Time.toMonth z p
+                day =
+                    String.fromInt <| Time.toDay z p
 
-                        day =
-                            String.fromInt <| Time.toDay z p
+                hou =
+                    String.fromInt <| Time.toHour z p
 
-                        hou =
-                            String.fromInt <| Time.toHour z p
+                min =
+                    String.fromInt <| Time.toMinute z p
 
-                        min =
-                            String.fromInt <| Time.toMinute z p
+                sec =
+                    String.fromInt <| Time.toSecond z p
+            in
+            if dpy <= yeaPerY then
+                yea
 
-                        sec =
-                            String.fromInt <| Time.toSecond z p
-                    in
-                    if dpy <= yeaPerY then
-                        yea
+            else if dpy <= monPerY then
+                String.right 2 yea ++ "/" ++ mon
 
-                    else if dpy <= monPerY then
-                        String.right 2 yea ++ "/" ++ mon
+            else if dpy <= dayPerY then
+                mon ++ "/" ++ day
 
-                    else if dpy <= dayPerY then
-                        mon ++ "/" ++ day
+            else if dpy <= houPerY then
+                "/" ++ day ++ " " ++ hou ++ ":"
 
-                    else if dpy <= houPerY then
-                        "/" ++ day ++ " " ++ hou ++ ":"
+            else if dpy <= minPerY then
+                hou ++ ":" ++ min
 
-                    else if dpy <= minPerY then
-                        hou ++ ":" ++ min
-
-                    else
-                        min ++ "'" ++ sec
+            else
+                min ++ "'" ++ sec
 
 
 fillR : Int -> String -> String -> String
@@ -1216,63 +1246,54 @@ fillL n putty target =
     String.right n <| String.repeat n putty ++ target
 
 
-barString : Model -> Task -> String
-barString model task =
-    let
-        secUS =
-            secUntil task.startable model.asOfTime
 
-        secUD =
-            secUntil task.deadline model.asOfTime
-    in
-    barString_ model.sub.dpy task.weight secUS secUD
-
-
-barString_ : Maybe Int -> Maybe Float -> Maybe Int -> Maybe Int -> String
-barString_ mdpy weight secUS secUD =
-    case mdpy of
-        Nothing ->
-            "-"
-
-        Just dpy ->
-            let
-                dot =
-                    case secUS of
-                        Nothing ->
-                            0
-
-                        Just s ->
-                            dotsFromSec dpy s
-
-                sha =
-                    case weight of
-                        Nothing ->
-                            0
-
-                        Just w ->
-                            case secFromWeight w of
-                                0 ->
-                                    0
-
-                                s ->
-                                    dotsFromSec dpy s + 1
-
-                exc =
-                    case secUD of
-                        Nothing ->
-                            -1
-
-                        Just s ->
-                            dotsFromSec dpy s
-            in
-            String.repeat dot "."
-                ++ String.repeat sha "#"
-                |> fillR 48 "."
-                |> String.toList
-                |> Array.fromList
-                |> Array.set exc '!'
-                |> Array.toList
-                |> String.fromList
+-- barString : Model -> Task -> String
+-- barString model task =
+--     let
+--         secUS =
+--             secUntil task.startable model.asOfTime
+--         secUD =
+--             secUntil task.deadline model.asOfTime
+--     in
+--     barString_ model.sub.dpy task.weight secUS secUD
+-- barString_ : Maybe Int -> Maybe Float -> Maybe Int -> Maybe Int -> String
+-- barString_ mdpy weight secUS secUD =
+--     case mdpy of
+--         Nothing ->
+--             "-"
+--         Just dpy ->
+--             let
+--                 dot =
+--                     case secUS of
+--                         Nothing ->
+--                             0
+--                         Just s ->
+--                             dotsFromSec dpy s
+--                 sha =
+--                     case weight of
+--                         Nothing ->
+--                             0
+--                         Just w ->
+--                             case secFromWeight w of
+--                                 0 ->
+--                                     0
+--                                 s ->
+--                                     dotsFromSec dpy s + 1
+--                 exc =
+--                     case secUD of
+--                         Nothing ->
+--                             -1
+--                         Just s ->
+--                             dotsFromSec dpy s
+--             in
+--             String.repeat dot "."
+--                 ++ String.repeat sha "#"
+--                 |> fillR 48 "."
+--                 |> String.toList
+--                 |> Array.fromList
+--                 |> Array.set exc '!'
+--                 |> Array.toList
+--                 |> String.fromList
 
 
 dotsFromSec : Int -> Int -> Int
@@ -1292,6 +1313,85 @@ secUntil target now =
             (now |> posixToMillis) // (10 ^ 3)
     in
     Maybe.map (\t -> t - nowSec) target
+
+
+barString : Model -> Task -> String
+barString m t =
+    let
+        s =
+            position m.dpy m.asOfTime t.startable
+
+        d =
+            position m.dpy m.asOfTime t.deadline
+    in
+    preString m.dpy m.asOfTime t m.sub.user.durs
+        |> replace s '['
+        |> replace d ']'
+        |> String.fromList
+
+
+position : Int -> Posix -> Maybe Int -> Int
+position dpy asof mt =
+    case mt of
+        Nothing ->
+            -1
+
+        Just t ->
+            let
+                millis =
+                    (-) (t * 10 ^ 3) (posixToMillis asof)
+            in
+            (dpy * millis)
+                // (secPerY * 10 ^ 3)
+
+
+replace : Int -> Char -> List Char -> List Char
+replace pos char target =
+    target
+        |> Array.fromList
+        |> Array.set pos char
+        |> Array.toList
+
+
+preString : Int -> Posix -> Task -> List Duration -> List Char
+preString dpy asof task durs =
+    case ( task.begin, task.end ) of
+        ( Just b, Just e ) ->
+            preString_ 0 dpy (posixToMillis asof) (b * 10 ^ 3) (e * 10 ^ 3) durs []
+
+        _ ->
+            List.repeat 48 '.'
+
+
+preString_ : Int -> Int -> Millis -> Millis -> Millis -> List Duration -> List Char -> List Char
+preString_ count dpy asof begin end durs store =
+    if count >= 48 then
+        store
+
+    else
+        let
+            char =
+                if isInDur asof durs then
+                    if begin < asof && asof < end then
+                        '#'
+
+                    else
+                        '-'
+
+                else
+                    '.'
+        in
+        preString_ (count + 1) dpy (next dpy asof) begin end durs (char :: store)
+
+
+next : Int -> Int -> Int
+next dpy t =
+    t + (secPerY * 10 ^ 3 // dpy)
+
+
+isInDur : Millis -> List Duration -> Bool
+isInDur time durs =
+    List.any (\d -> d.left < time && time < d.right) durs
 
 
 strFromPosix : Zone -> Posix -> String

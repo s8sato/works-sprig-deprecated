@@ -84,6 +84,12 @@ Permission
     edit                Bool
     UniquePermission    subject object
     deriving Show
+Duration
+    left                Int
+    right               Int
+    user                UserId
+    UniqueDuration left right user
+    deriving Show
 |]
 
 migrateDb :: IO ()

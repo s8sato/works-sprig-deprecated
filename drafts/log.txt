@@ -41,9 +41,9 @@ You do not have permission to edit BOSS tasks.
 You do not have permission to view COMPANY tasks.
 2019-12-24 00:33:03
 
-insUser $ User (pack "dev") True (Just 730) Nothing Nothing Nothing
-insUser $ User (pack "satun") True (Just 1460) Nothing Nothing Nothing
-insUser $ User (pack "chiro") False (Just 2920) Nothing Nothing Nothing
+insUser $ User (pack "develop") True 9 (Just 730) Nothing Nothing Nothing
+insUser $ User (pack "satun") True 9 (Just 1460) Nothing Nothing Nothing
+insUser $ User (pack "chiro") False 0 (Just 2920) Nothing Nothing Nothing
 2019-12-24 15:23:28
 
 西暦3000年とかで日課（繰り返しのあるタスク）をシミュレートできる
@@ -115,3 +115,6 @@ vertical stripe as guide
 disabled key-event during typing, added / and Escape navigation
 2019-12-27 04:02:22
 
+added isDummy, begin, end as Task fields
+added Entity Duration, revised ElmUser and ElmSubModel
+2019-12-27 18:22:48

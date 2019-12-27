@@ -262,3 +262,26 @@ getUserById pool id = flip runSqlPool pool $ do
             (   user ^. UserId ==. val (UserKey . keyFromInt $ id)
             )
         return (user)
+
+-- getUserAndDurations :: ConnectionPool -> Int -> IO ([Entity User],[Entity Duration])
+-- getUserById pool id = flip runSqlPool pool $ do
+--     select $ from $ \user `InnerJoin` duration -> do
+--         on ( user ^. UserId ==. duration ^. DurationUser )
+--         where_
+--             (   user ^. UserId ==. val (UserKey . keyFromInt $ id)
+--             )
+--         orderBy
+--             [ asc (duration ^. DurationLeft)
+--             ]
+--         return (user, duration)
+
+getDurationsById :: ConnectionPool -> Int -> IO [Entity Duration]
+getDurationsById pool id = flip runSqlPool pool $ do
+    select $ from $ \duration -> do
+        where_
+            (   duration ^. DurationUser ==. val (UserKey . keyFromInt $ id)
+            )
+        orderBy
+            [ asc (duration ^. DurationLeft)
+            ]
+        return (duration)

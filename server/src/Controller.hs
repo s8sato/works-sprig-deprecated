@@ -93,17 +93,27 @@ anonymousUser = toSqlKey 1 :: UserId
 
 type TimeZoneHour = Int
 
+
+
 -- DATA DECLARATION
 
 
+
+data ElmDuration = ElmDuration
+    { elmDurationLeft :: Int
+    , elmDurationRight :: Int
+    } deriving (Eq, Show)
+
+$(deriveJSON defaultOptions ''ElmDuration)
 
 data ElmUser = ElmUser
     { elmUserId :: Int
     , elmUserName :: Text
     , elmUserAdmin :: Bool
-    -- , elmUserDefaultDpy :: Maybe Int
-    -- , elmUserLookUp :: Maybe Int
-    -- , elmUserLookDown :: Maybe Int
+    , elmUserDurations :: [ElmDuration]
+    , elmUserDefaultDpy :: Maybe Int
+    -- , elmUserZoneName :: Maybe Text
+    -- , elmUserZoneOffset :: Maybe Int
     } deriving (Eq, Show)
 
 $(deriveJSON defaultOptions ''ElmUser)
@@ -131,7 +141,6 @@ data ElmSubModel = ElmSubModel
     { elmSubModelUser :: ElmUser
     , elmSubModelTasks :: [ElmTask]
     , elmSubModelInputText :: Maybe Text
-    , elmSubModelDpy :: Maybe Int
     , elmSubModelMessage :: Maybe Text
     }
 
@@ -236,22 +245,16 @@ server = devSubModel
 devSubModel' :: Int -> IO ElmSubModel
 devSubModel' uid = do
     pool <- pgPool
-    eUs <- getUserById pool uid
+    user <- Prelude.head <$> getUserById pool uid
+    durations <- getDurationsById pool uid
     taskAssigns <- getUndoneTaskAssigns pool uid
-    let elmUser = toElmUser . Prelude.head $ eUs
+    let elmUser = toElmUser user durations
     let elmTasks = map toElmTask taskAssigns 
-    let mDpy =  userDefaultDpy . entityVal . Prelude.head $ eUs
-    return $ ElmSubModel elmUser elmTasks Nothing mDpy Nothing
+    return $ ElmSubModel elmUser elmTasks Nothing Nothing
 
 initialize' :: Initial -> IO ElmSubModel
-initialize' (Initial uid) = do
-    pool <- pgPool
-    eUs <- getUserById pool uid
-    taskAssigns <- getUndoneTaskAssigns pool uid
-    let elmUser = toElmUser . Prelude.head $ eUs
-    let elmTasks = map toElmTask taskAssigns 
-    let mDpy =  userDefaultDpy . entityVal . Prelude.head $ eUs
-    return $ ElmSubModel elmUser elmTasks Nothing mDpy Nothing
+initialize' (Initial uid) =
+    devSubModel' uid
 
 
 getUndoneElmTasks :: Int -> IO [ElmTask]
@@ -291,14 +294,8 @@ focusTask' (FocusTask id) = do
     return . map toElmTask $ Prelude.concat [beforeMe, me, afterMe]
 
 goHome' :: GoHome -> IO ElmSubModel
-goHome' (GoHome uid) = do
-    pool <- pgPool
-    eUs <- getUserById pool uid
-    taskAssigns <- getUndoneTaskAssigns pool uid
-    let elmUser = toElmUser . Prelude.head $ eUs
-    let elmTasks = map toElmTask taskAssigns 
-    let mDpy =  userDefaultDpy . entityVal . Prelude.head $ eUs
-    return $ ElmSubModel elmUser elmTasks Nothing mDpy Nothing
+goHome' (GoHome uid) = 
+    devSubModel' uid
 
 
 
@@ -635,19 +632,28 @@ toElmTask (e, u) =
     in
         ElmTask i y d s mt ml ems emb eme emd mw eu
 
-toElmUser :: Entity User -> ElmUser
-toElmUser e =
+toElmUser :: Entity User -> [Entity Duration] -> ElmUser
+toElmUser eu ers =
     let
-        i  = idFromEntity e
-        User n a _ _ _ _ _ = entityVal e
+        i = idFromEntity eu
+        User n a _ mdpy _ _ _ = entityVal eu
+        durs = map toElmDuration ers 
     in
-        ElmUser i n a
+        ElmUser i n a durs mdpy
 
 toElmTime :: Maybe UTCTime -> Maybe Int
 toElmTime Nothing = 
     Nothing
 toElmTime (Just t) =
     Just (floor $ utcTimeToPOSIXSeconds t)
+
+
+toElmDuration :: Entity Duration -> ElmDuration
+toElmDuration e = 
+    let
+        Duration l r _ = entityVal e
+    in
+        ElmDuration l r 
 
 -- secUntil :: UTCTime -> Maybe UTCTime -> Maybe Integer
 -- secUntil now Nothing =
