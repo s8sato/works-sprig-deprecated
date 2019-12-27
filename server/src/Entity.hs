@@ -49,6 +49,7 @@ User
     name                Text
     admin               Bool
     timeZone            Int
+    isLazy              Bool
     defaultDpy          Int Maybe
     lookUp              Int Maybe
     lookDown            Int Maybe

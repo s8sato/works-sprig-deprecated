@@ -6153,15 +6153,15 @@ var $author$project$Main$subscriptions = function (model) {
 				$elm$browser$Browser$Events$onKeyPress($author$project$Main$keyDecoder)
 			]));
 };
-var $author$project$Main$CheckExpired = function (a) {
-	return {$: 'CheckExpired', a: a};
-};
 var $author$project$Main$NoOp = {$: 'NoOp'};
 var $author$project$Main$SetAsOfTime = function (a) {
 	return {$: 'SetAsOfTime', a: a};
 };
 var $author$project$Main$SetZoneName = function (a) {
 	return {$: 'SetZoneName', a: a};
+};
+var $author$project$Main$UpdateStatus = function (a) {
+	return {$: 'UpdateStatus', a: a};
 };
 var $elm$core$Task$onError = _Scheduler_onError;
 var $elm$core$Task$attempt = F2(
@@ -6195,61 +6195,6 @@ var $author$project$Main$changeDpy = F2(
 		return _Utils_update(
 			model,
 			{dpy: dpy, sub: newSub});
-	});
-var $elm$core$Basics$not = _Basics_not;
-var $elm$core$Maybe$map = F2(
-	function (f, maybe) {
-		if (maybe.$ === 'Just') {
-			var value = maybe.a;
-			return $elm$core$Maybe$Just(
-				f(value));
-		} else {
-			return $elm$core$Maybe$Nothing;
-		}
-	});
-var $elm$time$Time$posixToMillis = function (_v0) {
-	var millis = _v0.a;
-	return millis;
-};
-var $elm$core$Basics$pow = _Basics_pow;
-var $author$project$Main$secUntil = F2(
-	function (target, now) {
-		var nowSec = ($elm$time$Time$posixToMillis(now) / A2($elm$core$Basics$pow, 10, 3)) | 0;
-		return A2(
-			$elm$core$Maybe$map,
-			function (t) {
-				return t - nowSec;
-			},
-			target);
-	});
-var $author$project$Main$checkExpired = F2(
-	function (model, now) {
-		var sub = model.sub;
-		var checkedTasks = A2(
-			$elm$core$List$map,
-			function (task) {
-				var pastDeadline = function () {
-					var _v0 = A2($author$project$Main$secUntil, task.deadline, now);
-					if (_v0.$ === 'Nothing') {
-						return false;
-					} else {
-						var sec = _v0.a;
-						return sec < 0;
-					}
-				}();
-				return ((!task.isDone) && pastDeadline) ? _Utils_update(
-					task,
-					{isExpired: true}) : _Utils_update(
-					task,
-					{isExpired: false});
-			},
-			sub.tasks);
-		var checkedSub = _Utils_update(
-			sub,
-			{tasks: checkedTasks});
-		return _Utils_update(
-			model,
-			{sub: checkedSub});
 	});
 var $author$project$Main$TasksReceived = function (a) {
 	return {$: 'TasksReceived', a: a};
@@ -7342,6 +7287,7 @@ var $author$project$Main$initialize = function (m) {
 			url: 'http://localhost:8080/tasks/init'
 		});
 };
+var $elm$core$Basics$not = _Basics_not;
 var $author$project$Main$inverseSelect = function (model) {
 	var sub = model.sub;
 	var newSub = _Utils_update(
@@ -7661,39 +7607,84 @@ var $author$project$Main$taskFocused = F3(
 			model,
 			{indicator: newIndicator, sub: newSub});
 	});
-var $elm$json$Json$Encode$null = _Json_encodeNull;
 var $elm$json$Json$Encode$string = _Json_wrap;
+var $elm$json$Json$Encode$bool = _Json_wrap;
+var $author$project$Main$durationEncoder = function (dur) {
+	return $elm$json$Json$Encode$object(
+		_List_fromArray(
+			[
+				_Utils_Tuple2(
+				'elmDurationLeft',
+				$elm$json$Json$Encode$int(dur.left)),
+				_Utils_Tuple2(
+				'elmDurationRight',
+				$elm$json$Json$Encode$int(dur.right))
+			]));
+};
+var $elm$core$Maybe$map = F2(
+	function (f, maybe) {
+		if (maybe.$ === 'Just') {
+			var value = maybe.a;
+			return $elm$core$Maybe$Just(
+				f(value));
+		} else {
+			return $elm$core$Maybe$Nothing;
+		}
+	});
+var $elm$json$Json$Encode$null = _Json_encodeNull;
+var $elm$core$Maybe$withDefault = F2(
+	function (_default, maybe) {
+		if (maybe.$ === 'Just') {
+			var value = maybe.a;
+			return value;
+		} else {
+			return _default;
+		}
+	});
+var $elm_community$json_extra$Json$Encode$Extra$maybe = function (encoder) {
+	return A2(
+		$elm$core$Basics$composeR,
+		$elm$core$Maybe$map(encoder),
+		$elm$core$Maybe$withDefault($elm$json$Json$Encode$null));
+};
+var $author$project$Main$userEncoder = function (u) {
+	return $elm$json$Json$Encode$object(
+		_List_fromArray(
+			[
+				_Utils_Tuple2(
+				'elmUserId',
+				$elm$json$Json$Encode$int(u.id)),
+				_Utils_Tuple2(
+				'elmUserName',
+				$elm$json$Json$Encode$string(u.name)),
+				_Utils_Tuple2(
+				'elmUserAdmin',
+				$elm$json$Json$Encode$bool(u.admin)),
+				_Utils_Tuple2(
+				'elmUserDurations',
+				A2($elm$json$Json$Encode$list, $author$project$Main$durationEncoder, u.durs)),
+				_Utils_Tuple2(
+				'elmUserDefaultDpy',
+				A2($elm_community$json_extra$Json$Encode$Extra$maybe, $elm$json$Json$Encode$int, u.defaultDpy)),
+				_Utils_Tuple2(
+				'elmUserZoneName',
+				A2($elm_community$json_extra$Json$Encode$Extra$maybe, $elm$json$Json$Encode$string, u.zoneName)),
+				_Utils_Tuple2(
+				'elmUserZoneOffset',
+				A2($elm_community$json_extra$Json$Encode$Extra$maybe, $elm$json$Json$Encode$int, u.zoneOffset))
+			]));
+};
 var $author$project$Main$textPostEncoder = F2(
 	function (m, content) {
-		var zoneOffset = function () {
-			var _v1 = m.user.zoneOffset;
-			if (_v1.$ === 'Nothing') {
-				return $elm$json$Json$Encode$null;
-			} else {
-				var offset = _v1.a;
-				return $elm$json$Json$Encode$int(offset);
-			}
-		}();
-		var zoneName = function () {
-			var _v0 = m.user.zoneName;
-			if (_v0.$ === 'Nothing') {
-				return $elm$json$Json$Encode$null;
-			} else {
-				var name = _v0.a;
-				return $elm$json$Json$Encode$string(name);
-			}
-		}();
 		return $elm$json$Json$Encode$object(
 			_List_fromArray(
 				[
 					_Utils_Tuple2(
 					'textPostUser',
-					$elm$json$Json$Encode$int(m.user.id)),
+					$author$project$Main$userEncoder(m.user)),
 					_Utils_Tuple2(
 					'textPostContent',
-					$elm$json$Json$Encode$string(content)),
-					_Utils_Tuple2('textPostZoneName', zoneName),
-					_Utils_Tuple2('textPostZoneOffset', zoneOffset)
+					$elm$json$Json$Encode$string(content))
 				]));
 	});
 var $author$project$Main$textPost = function (m) {
@@ -7711,6 +7702,49 @@ var $author$project$Main$textPost = function (m) {
 			});
 	}
 };
+var $elm$time$Time$posixToMillis = function (_v0) {
+	var millis = _v0.a;
+	return millis;
+};
+var $author$project$Main$millisUntil = F2(
+	function (target, now) {
+		var nowMillis = $elm$time$Time$posixToMillis(now);
+		return A2(
+			$elm$core$Maybe$map,
+			function (t) {
+				return t - nowMillis;
+			},
+			target);
+	});
+var $author$project$Main$updateStatus = F2(
+	function (model, now) {
+		var sub = model.sub;
+		var checkedTasks = A2(
+			$elm$core$List$map,
+			function (task) {
+				var pastDeadline = function () {
+					var _v0 = A2($author$project$Main$millisUntil, task.deadline, now);
+					if (_v0.$ === 'Nothing') {
+						return false;
+					} else {
+						var millis = _v0.a;
+						return millis < 0;
+					}
+				}();
+				return ((!task.isDone) && pastDeadline) ? _Utils_update(
+					task,
+					{isExpired: true}) : _Utils_update(
+					task,
+					{isExpired: false});
+			},
+			sub.tasks);
+		var checkedSub = _Utils_update(
+			sub,
+			{tasks: checkedTasks});
+		return _Utils_update(
+			model,
+			{sub: checkedSub});
+	});
 var $author$project$Main$weePerY = 52;
 var $author$project$Main$yeaPerY = 1;
 var $author$project$Main$update = F2(
@@ -7944,12 +7978,12 @@ var $author$project$Main$update = F2(
 						{currentTime: newTime}),
 					A2(
 						$elm$core$Task$perform,
-						$author$project$Main$CheckExpired,
+						$author$project$Main$UpdateStatus,
 						$elm$core$Task$succeed(newTime)));
-			case 'CheckExpired':
+			case 'UpdateStatus':
 				var currentTime = msg.a;
 				return _Utils_Tuple2(
-					A2($author$project$Main$checkExpired, model, currentTime),
+					A2($author$project$Main$updateStatus, model, currentTime),
 					model.asOfCurrentTime ? A2(
 						$elm$core$Task$perform,
 						$author$project$Main$SetAsOfTime,
@@ -8139,13 +8173,14 @@ var $elm$core$String$fromList = _String_fromList;
 var $elm$core$Basics$negate = function (n) {
 	return -n;
 };
+var $elm$core$Basics$pow = _Basics_pow;
 var $author$project$Main$position = F3(
 	function (dpy, asof, mt) {
 		if (mt.$ === 'Nothing') {
 			return -1;
 		} else {
 			var t = mt.a;
-			var millis = (t * A2($elm$core$Basics$pow, 10, 3)) - $elm$time$Time$posixToMillis(asof);
+			var millis = t - $elm$time$Time$posixToMillis(asof);
 			return ((dpy * millis) / ($author$project$Main$secPerY * A2($elm$core$Basics$pow, 10, 3))) | 0;
 		}
 	});
@@ -8241,8 +8276,8 @@ var $author$project$Main$preString = F4(
 				0,
 				dpy,
 				$elm$time$Time$posixToMillis(asof),
-				b * A2($elm$core$Basics$pow, 10, 3),
-				e * A2($elm$core$Basics$pow, 10, 3),
+				b,
+				e,
 				durs,
 				_List_Nil);
 		} else {
@@ -8474,8 +8509,7 @@ var $author$project$Main$viewTimeByDpy = F3(
 			return '-';
 		} else {
 			var t = mt.a;
-			var p = $elm$time$Time$millisToPosix(
-				A2($elm$core$Basics$pow, 10, 3) * t);
+			var p = $elm$time$Time$millisToPosix(t);
 			var sec = $elm$core$String$fromInt(
 				A2($elm$time$Time$toSecond, z, p));
 			var yea = $elm$core$String$fromInt(

@@ -1,4 +1,6 @@
-module Main exposing (main)
+module Main exposing (..)
+
+-- module Main exposing (main)
 
 import Array exposing (fromList, get, set, toList)
 import Browser
@@ -11,6 +13,7 @@ import Http
 import Json.Decode as Decode exposing (Decoder, bool, float, int, list, nullable, string)
 import Json.Decode.Pipeline exposing (optional, required)
 import Json.Encode as Encode
+import Json.Encode.Extra exposing (maybe)
 import Maybe
 import Task
 import Time exposing (Month(..), Posix, Weekday(..), Zone, ZoneName(..), millisToPosix, posixToMillis)
@@ -83,10 +86,10 @@ type alias Task =
     , isStarred : Bool
     , title : Maybe String
     , link : Maybe String
-    , startable : Maybe Int -- POSIX seconds
-    , begin : Maybe Int
-    , end : Maybe Int
-    , deadline : Maybe Int
+    , startable : Maybe Millis -- POSIX milliseconds
+    , begin : Maybe Millis
+    , end : Maybe Millis
+    , deadline : Maybe Millis
     , weight : Maybe Float
     , user : String
     , isSelected : Bool
@@ -188,7 +191,7 @@ type Msg
     | TaskFocused Int (Result Http.Error (List Task))
     | AdjustTimeZone Zone
     | SetZoneName ZoneName
-    | CheckExpired Posix
+    | UpdateStatus Posix
     | SetAsOfTime Posix
     | ReturnedHome (Result Http.Error SubModel)
     | ReadyTyping
@@ -406,11 +409,11 @@ update msg model =
 
         Tick newTime ->
             ( { model | currentTime = newTime }
-            , Task.perform CheckExpired (Task.succeed newTime)
+            , Task.perform UpdateStatus (Task.succeed newTime)
             )
 
-        CheckExpired currentTime ->
-            ( checkExpired model currentTime
+        UpdateStatus currentTime ->
+            ( updateStatus model currentTime
             , if model.asOfCurrentTime then
                 Task.perform SetAsOfTime (Task.succeed model.currentTime)
 
@@ -504,31 +507,31 @@ returnedHome model m =
 --     { model | sub = newSub }
 
 
-checkExpired : Model -> Posix -> Model
-checkExpired model now =
+updateStatus : Model -> Posix -> Model
+updateStatus model now =
     let
         sub =
             model.sub
 
         checkedTasks =
-            List.map
-                (\task ->
-                    let
-                        pastDeadline =
-                            case secUntil task.deadline now of
-                                Nothing ->
-                                    False
+            sub.tasks
+                |> List.map
+                    (\task ->
+                        let
+                            pastDeadline =
+                                case millisUntil task.deadline now of
+                                    Nothing ->
+                                        False
 
-                                Just sec ->
-                                    sec < 0
-                    in
-                    if not task.isDone && pastDeadline then
-                        { task | isExpired = True }
+                                    Just millis ->
+                                        millis < 0
+                        in
+                        if not task.isDone && pastDeadline then
+                            { task | isExpired = True }
 
-                    else
-                        { task | isExpired = False }
-                )
-                sub.tasks
+                        else
+                            { task | isExpired = False }
+                    )
 
         checkedSub =
             { sub | tasks = checkedTasks }
@@ -811,28 +814,50 @@ initialEncoder m =
 
 textPostEncoder : SubModel -> String -> Encode.Value
 textPostEncoder m content =
-    let
-        zoneName =
-            case m.user.zoneName of
-                Nothing ->
-                    Encode.null
-
-                Just name ->
-                    Encode.string name
-
-        zoneOffset =
-            case m.user.zoneOffset of
-                Nothing ->
-                    Encode.null
-
-                Just offset ->
-                    Encode.int offset
-    in
     Encode.object
-        [ ( "textPostUser", Encode.int m.user.id )
+        [ ( "textPostUser", userEncoder m.user )
         , ( "textPostContent", Encode.string content )
-        , ( "textPostZoneName", zoneName )
-        , ( "textPostZoneOffset", zoneOffset )
+        ]
+
+
+userEncoder : User -> Encode.Value
+userEncoder u =
+    -- let
+    --     defaultDpy =
+    --         case u.defaultDpy of
+    --             Nothing ->
+    --                 Encode.null
+    --             Just dpy ->
+    --                 Encode.int
+    --     zoneName =
+    --         case u.zoneName of
+    --             Nothing ->
+    --                 Encode.null
+    --             Just name ->
+    --                 Encode.string name
+    --     zoneOffset =
+    --         case u.zoneOffset of
+    --             Nothing ->
+    --                 Encode.null
+    --             Just offset ->
+    --                 Encode.int offset
+    -- in
+    Encode.object
+        [ ( "elmUserId", Encode.int u.id )
+        , ( "elmUserName", Encode.string u.name )
+        , ( "elmUserAdmin", Encode.bool u.admin )
+        , ( "elmUserDurations", Encode.list durationEncoder u.durs )
+        , ( "elmUserDefaultDpy", maybe Encode.int u.defaultDpy )
+        , ( "elmUserZoneName", maybe Encode.string u.zoneName )
+        , ( "elmUserZoneOffset", maybe Encode.int u.zoneOffset )
+        ]
+
+
+durationEncoder : Duration -> Encode.Value
+durationEncoder dur =
+    Encode.object
+        [ ( "elmDurationLeft", Encode.int dur.left )
+        , ( "elmDurationRight", Encode.int dur.right )
         ]
 
 
@@ -920,8 +945,6 @@ taskDecoder =
         |> optional "elmTaskDeadline" (nullable int) Nothing
         |> optional "elmTaskWeight" (nullable float) Nothing
         |> required "elmTaskUser" string
-        -- |> optional "elmTaskSecUntilStartable" (nullable int) Nothing
-        -- |> optional "elmTaskSecUntilDeadline" (nullable int) Nothing
         |> optional "elmTaskIsSelected" bool False
         |> optional "elmTaskIsExpired" bool False
 
@@ -1188,7 +1211,7 @@ viewWeight task =
                 String.fromFloat w
 
 
-viewTimeByDpy : Int -> Zone -> Maybe Int -> String
+viewTimeByDpy : Int -> Zone -> Maybe Millis -> String
 viewTimeByDpy dpy z mt =
     case mt of
         Nothing ->
@@ -1197,7 +1220,7 @@ viewTimeByDpy dpy z mt =
         Just t ->
             let
                 p =
-                    t |> (*) (10 ^ 3) |> millisToPosix
+                    millisToPosix t
 
                 yea =
                     String.fromInt <| Time.toYear z p
@@ -1246,73 +1269,18 @@ fillL n putty target =
     String.right n <| String.repeat n putty ++ target
 
 
-
--- barString : Model -> Task -> String
--- barString model task =
---     let
---         secUS =
---             secUntil task.startable model.asOfTime
---         secUD =
---             secUntil task.deadline model.asOfTime
---     in
---     barString_ model.sub.dpy task.weight secUS secUD
--- barString_ : Maybe Int -> Maybe Float -> Maybe Int -> Maybe Int -> String
--- barString_ mdpy weight secUS secUD =
---     case mdpy of
---         Nothing ->
---             "-"
---         Just dpy ->
---             let
---                 dot =
---                     case secUS of
---                         Nothing ->
---                             0
---                         Just s ->
---                             dotsFromSec dpy s
---                 sha =
---                     case weight of
---                         Nothing ->
---                             0
---                         Just w ->
---                             case secFromWeight w of
---                                 0 ->
---                                     0
---                                 s ->
---                                     dotsFromSec dpy s + 1
---                 exc =
---                     case secUD of
---                         Nothing ->
---                             -1
---                         Just s ->
---                             dotsFromSec dpy s
---             in
---             String.repeat dot "."
---                 ++ String.repeat sha "#"
---                 |> fillR 48 "."
---                 |> String.toList
---                 |> Array.fromList
---                 |> Array.set exc '!'
---                 |> Array.toList
---                 |> String.fromList
+millisFromWeight : Float -> Millis
+millisFromWeight w =
+    floor (60 * 60 * 10 ^ 3 * w)
 
 
-dotsFromSec : Int -> Int -> Int
-dotsFromSec dpy sec =
-    floor <| toFloat (dpy * sec) / toFloat (60 * 60 * 24 * 365)
-
-
-secFromWeight : Float -> Int
-secFromWeight w =
-    floor (60 * 60 * w)
-
-
-secUntil : Maybe Int -> Posix -> Maybe Int
-secUntil target now =
+millisUntil : Maybe Millis -> Posix -> Maybe Millis
+millisUntil target now =
     let
-        nowSec =
-            (now |> posixToMillis) // (10 ^ 3)
+        nowMillis =
+            now |> posixToMillis
     in
-    Maybe.map (\t -> t - nowSec) target
+    Maybe.map (\t -> t - nowMillis) target
 
 
 barString : Model -> Task -> String
@@ -1330,7 +1298,7 @@ barString m t =
         |> String.fromList
 
 
-position : Int -> Posix -> Maybe Int -> Int
+position : Int -> Posix -> Maybe Millis -> Int
 position dpy asof mt =
     case mt of
         Nothing ->
@@ -1339,7 +1307,7 @@ position dpy asof mt =
         Just t ->
             let
                 millis =
-                    (-) (t * 10 ^ 3) (posixToMillis asof)
+                    t - posixToMillis asof
             in
             (dpy * millis)
                 // (secPerY * 10 ^ 3)
@@ -1357,7 +1325,7 @@ preString : Int -> Posix -> Task -> List Duration -> List Char
 preString dpy asof task durs =
     case ( task.begin, task.end ) of
         ( Just b, Just e ) ->
-            preString_ 0 dpy (posixToMillis asof) (b * 10 ^ 3) (e * 10 ^ 3) durs []
+            preString_ 0 dpy (posixToMillis asof) b e durs []
 
         _ ->
             List.repeat 48 '.'
@@ -1384,7 +1352,7 @@ preString_ count dpy asof begin end durs store =
         preString_ (count + 1) dpy (next dpy asof) begin end durs (char :: store)
 
 
-next : Int -> Int -> Int
+next : Int -> Millis -> Millis
 next dpy t =
     t + (secPerY * 10 ^ 3 // dpy)
 

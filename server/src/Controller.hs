@@ -66,11 +66,12 @@ import Data.Tuple.Extra (both)
 
 import System.Posix.Types (EpochTime)
 import Foreign.C.Types (CTime (..))
-import Data.Time.Clock.POSIX (utcTimeToPOSIXSeconds)
+import Data.Time.Clock.POSIX (utcTimeToPOSIXSeconds, posixSecondsToUTCTime)
 -- import Data.Time.Clock.Internal.NominalDiffTime (nominalDiffTimeToSeconds)
 import qualified Database.Esqueleto as Q (Value (..)) 
 -- import Data.Int                     ( Int64 )
 
+import Data.Time.Clock (nominalDay)
 
 -- type alias
 
@@ -92,7 +93,8 @@ anonymousUser = toSqlKey 1 :: UserId
 --     | Offset Int
 
 type TimeZoneHour = Int
-
+type Millis = Int
+type Minutes = Int
 
 
 -- DATA DECLARATION
@@ -100,37 +102,37 @@ type TimeZoneHour = Int
 
 
 data ElmDuration = ElmDuration
-    { elmDurationLeft :: Int
-    , elmDurationRight :: Int
+    { elmDurationLeft   :: Millis
+    , elmDurationRight  :: Millis
     } deriving (Eq, Show)
 
 $(deriveJSON defaultOptions ''ElmDuration)
 
 data ElmUser = ElmUser
-    { elmUserId :: Int
-    , elmUserName :: Text
-    , elmUserAdmin :: Bool
-    , elmUserDurations :: [ElmDuration]
+    { elmUserId         :: Int
+    , elmUserName       :: Text
+    , elmUserAdmin      :: Bool
+    , elmUserDurations  :: [ElmDuration]
     , elmUserDefaultDpy :: Maybe Int
-    -- , elmUserZoneName :: Maybe Text
-    -- , elmUserZoneOffset :: Maybe Int
+    , elmUserZoneName   :: Maybe Text
+    , elmUserZoneOffset :: Maybe Minutes
     } deriving (Eq, Show)
 
 $(deriveJSON defaultOptions ''ElmUser)
 
 data ElmTask = ElmTask
-    { elmTaskId :: Int
-    , elmTaskIsDummy :: Bool
-    , elmTaskIsDone :: Bool
-    , elmTaskIsStarred :: Bool
-    , elmTaskTitle :: Maybe Text
-    , elmTaskLink :: Maybe Text
-    , elmTaskStartable :: Maybe Int
-    , elmTaskBegin :: Maybe Int
-    , elmTaskEnd :: Maybe Int
-    , elmTaskDeadline :: Maybe Int
-    , elmTaskWeight :: Maybe Double
-    , elmTaskUser :: Text
+    { elmTaskId         :: Int
+    , elmTaskIsDummy    :: Bool
+    , elmTaskIsDone     :: Bool
+    , elmTaskIsStarred  :: Bool
+    , elmTaskTitle      :: Maybe Text
+    , elmTaskLink       :: Maybe Text
+    , elmTaskStartable  :: Maybe Millis
+    , elmTaskBegin      :: Maybe Millis
+    , elmTaskEnd        :: Maybe Millis
+    , elmTaskDeadline   :: Maybe Millis
+    , elmTaskWeight     :: Maybe Double
+    , elmTaskUser       :: Text
     -- , elmTaskSecUntilStartable :: Maybe Integer
     -- , elmTaskSecUntilDeadline :: Maybe Integer
     } deriving (Eq, Show)
@@ -138,10 +140,10 @@ data ElmTask = ElmTask
 $(deriveJSON defaultOptions ''ElmTask)
 
 data ElmSubModel = ElmSubModel
-    { elmSubModelUser :: ElmUser
-    , elmSubModelTasks :: [ElmTask]
-    , elmSubModelInputText :: Maybe Text
-    , elmSubModelMessage :: Maybe Text
+    { elmSubModelUser       :: ElmUser
+    , elmSubModelTasks      :: [ElmTask]
+    , elmSubModelInputText  :: Maybe Text
+    , elmSubModelMessage    :: Maybe Text
     }
 
 $(deriveJSON defaultOptions ''ElmSubModel)
@@ -153,17 +155,15 @@ data Initial = Initial
 $(deriveJSON defaultOptions ''Initial)
 
 data TextPost = TextPost
-    { textPostUser :: Int
-    , textPostContent :: Text
-    , textPostZoneName :: Maybe Text
-    , textPostZoneOffset :: Maybe Int
+    { textPostUser      :: ElmUser
+    , textPostContent   :: Text
     } deriving (Eq, Show)
 
 $(deriveJSON defaultOptions ''TextPost)
 
 data DoneTasks = DoneTasks
     { doneTasksUser :: Int
-    , doneTasksIds :: [Int]
+    , doneTasksIds  :: [Int]
     } deriving (Eq, Show)
 
 $(deriveJSON defaultOptions ''DoneTasks)
@@ -192,7 +192,7 @@ $(deriveJSON defaultOptions ''GoHome)
 
 
 
-type API =  "dev"   :> "sModel" :> Capture "userId" Int         :> Get  '[JSON] ElmSubModel
+type API =  "dev"   :> "model"  :> Capture "user"  Int          :> Get  '[JSON] ElmSubModel
     :<|>    "tasks" :> "init"   :> ReqBody '[JSON] Initial      :> Post '[JSON] ElmSubModel
     :<|>    "tasks" :> "post"   :> ReqBody '[JSON] TextPost     :> Post '[JSON] [ElmTask]
     :<|>    "tasks" :> "done"   :> ReqBody '[JSON] DoneTasks    :> Post '[JSON] [ElmTask]
@@ -264,15 +264,18 @@ getUndoneElmTasks user = do
     return $ map toElmTask taskAssigns 
 
 textPostReload' :: TextPost -> IO [ElmTask]
-textPostReload' (TextPost u text mzn mzo) = do
-    let tzh = timeZoneHour mzn mzo
+textPostReload' (TextPost elmUser text) = do
+    pool <- pgPool
+    let uid = elmUserId elmUser
+    user <- Prelude.head <$> (map entityVal) <$> getUserById pool uid
+    durations <- (map entityVal) <$> getDurationsById pool uid
     mn <- getMaxNode
     let maxNode = case mn of
             Nothing -> 0
             Just n  -> n
     let shift = maxNode + 2  -- TODO 
-    insTasks . (shiftTaskNodes shift) . (tasksFromText tzh) $ text 
-    getUndoneElmTasks u
+    insTasks . (shiftTaskNodes shift) $ tasksFromText user durations text 
+    getUndoneElmTasks uid
 
 doneTasksReload' :: DoneTasks -> IO [ElmTask]
 doneTasksReload' (DoneTasks u ids) = do
@@ -324,8 +327,9 @@ data Attr  =
     | Title         { title         :: Text }
     deriving (Eq, Show)
 
-tasksFromText :: TimeZoneHour -> Text -> [Task]
-tasksFromText tzh = (universalTime tzh) . tasksFromGraph . graphFromText
+tasksFromText :: User -> [Duration] -> Text -> [Task]
+tasksFromText u ds = 
+    (universalTime u) . (setBeginEnd u ds) . tasksFromGraph . graphFromText
 
 tasksFromGraph :: Graph -> [Task]
 tasksFromGraph = map taskFromEdge
@@ -403,11 +407,10 @@ taskFromEdge' (a:as) (Task t i y d s ml ms mb me md mw mt u) =
             taskFromEdge' as (Task t i y d s ml ms mb me md mw mt u)
 
 graphFromText :: Text -> Graph
-graphFromText = spanLink . assemble . markUp . chopLines
+graphFromText = spanDummy . assemble . markUp . chopLines
 
 type Indent = Int
-indent :: Text
-indent = "    "
+indent = "    " :: Text
 
 chopLines :: Text -> [(Indent, [Text])]
 chopLines = map indentAndWords . filter (/= "") . splitOn "\n"
@@ -465,10 +468,10 @@ aAttr = AttrTaskId    <$  char '#'  <*> decimal
     <|> IsDone        <$> char '%'
     <|> IsStarred     <$> char '*'
     <|> Link          <$  char '&'  <*> takeText
-    <|> StartableDate     <$> decimal   <*  char '/' <*> decimal <* char '/' <*> decimal <* char '-'
-    <|> StartableTime     <$> decimal   <*  char ':' <*> decimal <* char ':' <*> decimal <* char '-'
-    <|> DeadlineDate  <$  char '-'  <*> decimal <* char '/' <*> decimal <* char '/' <*> decimal
-    <|> DeadlineTime  <$  char '-'  <*> decimal <* char ':' <*> decimal <* char ':' <*> decimal
+    <|> StartableDate <$> decimal   <*  char '/' <*> decimal <* char '/' <*> decimal <* char '-'
+    <|> StartableTime <$> decimal   <*  char ':' <*> decimal <* char ':' <*> decimal <* char '-'
+    <|> DeadlineDate  <$  char '-'  <*> decimal  <* char '/' <*> decimal <* char '/' <*> decimal
+    <|> DeadlineTime  <$  char '-'  <*> decimal  <* char ':' <*> decimal <* char ':' <*> decimal
     <|> Weight        <$  char '$'  <*> double
     <|> HeadLink      <$  char ']'  <*> takeText
     <|> TailLink      <$  char '['  <*> takeText
@@ -484,18 +487,18 @@ assemble' mem ((t,i), a:as)  =
         Left _ -> ((t,i), mem)
         Right r -> assemble' (r:mem) ((t,i), as)
 
-spanLink :: Graph -> Graph
+spanDummy :: Graph -> Graph
 -- TODO
-spanLink g = spanLink' g g g
+spanDummy g = spanDummy' g g g
 
-spanLink' :: [Edge] -> [Edge] -> Graph -> Graph
-spanLink' [] _ g                    = g
-spanLink' (t:ts) [] g               = spanLink' ts g g
-spanLink' ((p,at):ts) ((q,ah):hs) g = 
+spanDummy' :: [Edge] -> [Edge] -> Graph -> Graph
+spanDummy' [] _ g                    = g
+spanDummy' (t:ts) [] g               = spanDummy' ts g g
+spanDummy' ((p,at):ts) ((q,ah):hs) g = 
     if keyMatch at ah ah then
-        spanLink' ((p,at):ts) hs (spanLink'' p q g)
+        spanDummy' ((p,at):ts) hs (spanDummy'' p q g)
     else
-        spanLink' ((p,at):ts) hs g
+        spanDummy' ((p,at):ts) hs g
 
 keyMatch :: [Attr] -> [Attr] -> [Attr] -> Bool
 keyMatch [] _ _ = False
@@ -510,20 +513,23 @@ keyMatch (a:as) (b:bs) ah = case a of
     _ ->
         keyMatch as (b:bs) ah
 
-spanLink'' :: (Node, Node) -> (Node, Node) -> Graph -> Graph
-spanLink'' (_,t) (i,_) g = ((t,i), [AttrTaskId 0, IsDone '%', Title "LINKER"]) : g
+spanDummy'' :: (Node, Node) -> (Node, Node) -> Graph -> Graph
+spanDummy'' (_,t) (i,_) g = ((t,i), [AttrTaskId 0, IsDone '%', Title "LINKER"]) : g
 
 
 
 
-universalTime :: TimeZoneHour -> [Task] -> [Task]
-universalTime tzh = 
+universalTime :: User -> [Task] -> [Task]
+universalTime user = 
     map (\(Task t i y d s l ms mb me md mw tt u) -> 
         let
+            tzh = userTimeZone user
             mus = universal tzh ms
+            mub = universal tzh mb
+            mue = universal tzh me
             mud = universal tzh md
         in
-            Task t i y d s l mus mb me mud mw tt u
+            Task t i y d s l mus mub mue mud mw tt u
         )
 
 universal :: TimeZoneHour -> Maybe UTCTime -> Maybe UTCTime
@@ -535,7 +541,7 @@ universal tzh mut = addUTCTime <$> Just tzsMinus <*> mut
     --     headLs = map (\(, ) g
     --         map
     -- in
-    --     spanLink' headLs tailLs
+    --     spanDummy' headLs tailLs
 
 -- fileTest :: FilePath -> IO ()
 -- fileTest inFile = do
@@ -636,17 +642,16 @@ toElmUser :: Entity User -> [Entity Duration] -> ElmUser
 toElmUser eu ers =
     let
         i = idFromEntity eu
-        User n a _ mdpy _ _ _ = entityVal eu
+        User n a _ _ mdpy _ _ _ = entityVal eu
         durs = map toElmDuration ers 
     in
-        ElmUser i n a durs mdpy
+        ElmUser i n a durs mdpy Nothing Nothing
 
-toElmTime :: Maybe UTCTime -> Maybe Int
+toElmTime :: Maybe UTCTime -> Maybe Millis
 toElmTime Nothing = 
     Nothing
 toElmTime (Just t) =
-    Just (floor $ utcTimeToPOSIXSeconds t)
-
+    Just (floor $ 10^3 * utcTimeToPOSIXSeconds t)
 
 toElmDuration :: Entity Duration -> ElmDuration
 toElmDuration e = 
@@ -654,39 +659,6 @@ toElmDuration e =
         Duration l r _ = entityVal e
     in
         ElmDuration l r 
-
--- secUntil :: UTCTime -> Maybe UTCTime -> Maybe Integer
--- secUntil now Nothing =
---     Nothing
--- secUntil now (Just t) =
---     Just . floor $ diffUTCTime t now
-
--- dot = case ms of
---     Just s ->
---         dotsFromSec dpy $ diffSeconds s now
---     Nothing ->
---         0
--- sha = case mw of
---     Just w ->
---         (+) 1 $ dotsFromSec dpy $ SecFromWeight w 
---     Nothing ->
---         0
--- exc = case md of
---     Just d ->
---         dotsFromSec dpy $ diffSeconds d now 
---     Nothing ->
---         -1
-
--- diffSeconds :: UTCTime -> UTCTime -> Integer
--- diffSeconds t1 t = floor $ diffUTCTime t1 t
-
--- dotsFromSec :: Int -> Integer -> Int
--- dotsFromSec dpy sec =
---     (dpy * fromIntegral(sec)) `div` (60 * 60 * 24 * 365)
-
--- SecFromWeight :: Double -> Integer
--- SecFromWeight w = floor (60 * 60 * w)
-
 
 shiftTaskNodes :: Int -> [Task] -> [Task]
 shiftTaskNodes sh ts =
@@ -698,13 +670,8 @@ shiftTaskNodes sh ts =
                 Task t' i' y d s l ms mb me md w tt u
         ) ts
 
--- uToE :: UTCTime -> EpochTime
--- uToE = CTime . truncate . utcTimeToPOSIXSeconds
-
-
-timeZoneHour :: Maybe Text -> Maybe Int -> TimeZoneHour
-timeZoneHour mzn mzo = 9  -- TODO
-
+timeZoneHour :: ElmUser -> TimeZoneHour
+timeZoneHour _ = 9  -- TODO
 
 getMaxNode :: IO (Maybe Int)
 getMaxNode = do
@@ -716,3 +683,106 @@ getMaxNode = do
     let mt = Q.unValue $ fst pair
     let mi = Q.unValue $ snd pair
     return $ max <$> mt <*> mi
+
+setBeginEnd :: User -> [Duration] -> [Task] -> [Task]
+setBeginEnd u ds = 
+    map (setBeginEnd' u ds)
+
+setBeginEnd' :: User -> [Duration] -> Task -> Task
+setBeginEnd' user ds (Task t i y d s ml ms mb me md mw mt u) =
+    Task t i y d s ml ms mb md md mw mt u
+    -- case mw of
+    --     Nothing ->
+    --         Task t i y d s ml ms mb me md mw mt u
+    --     Just w ->
+    --         let
+    --             weight = millisFromWeight w
+    --         in
+    --         if  userIsLazy user then
+    --             let
+    --                 end = me
+    --                 begin = case end of
+    --                     Just e ->
+    --                         backward e ds weight
+    --                     _ ->
+    --                         Nothing
+    --             in
+    --             Task t i y d s ml ms begin end md mw mt u 
+                
+    --         else
+    --             let
+    --                 begin = ms
+    --                 end = case begin of
+    --                     Just b ->
+    --                         forward b ds weight
+    --                     _ ->
+    --                         Nothing
+    --             in
+    --             Task t i y d s ml ms begin end md mw mt u 
+
+millisFromWeight :: Double -> Millis
+millisFromWeight w = round $ 60 * 60 * 10^3 * w
+
+type MillisDuration = (Millis, Millis)
+
+toMillis :: Duration -> MillisDuration
+toMillis = \(Duration l r _) -> (10^3*l,10^3*r)
+
+millisFromUTC ::UTCTime -> Millis
+millisFromUTC u = floor . ((*) (10^3)) . utcTimeToPOSIXSeconds $ u
+
+utcFromMillis :: Millis -> UTCTime
+utcFromMillis = posixSecondsToUTCTime . fromIntegral. (`div` 10^3)  
+
+forward :: UTCTime -> [Duration] -> Millis -> Maybe UTCTime
+forward begin ds weight =
+    let
+        ds' = map toMillis ds
+        begin' = millisFromUTC begin
+    in
+    utcFromMillis <$> posi 1 ds' ds' begin' weight
+
+backward :: UTCTime -> [Duration] -> Millis -> Maybe UTCTime
+backward end ds weight = 
+    let
+        ds' = reverse $ map ((\(l,r)-> ((-r),(-l))) . toMillis) ds
+        end' = (-1) * (millisFromUTC end)
+    in
+    (utcFromMillis . ((*) (-1))) <$> posi (-1) ds' ds' end' weight
+
+type Signature = Int
+--TODO
+
+millisPerDay :: Millis
+millisPerDay = round $ 10^3 * nominalDay
+
+isInDur :: Millis -> MillisDuration -> Bool
+isInDur t (l,r) =
+    l <= t && t<= r 
+
+dayPlus :: Signature -> [MillisDuration] -> [MillisDuration]
+dayPlus s = map (both $ (+) (s * millisPerDay) )
+
+posi :: Signature -> [MillisDuration] -> [MillisDuration] -> Millis -> Millis -> Maybe Millis
+posi _ _ [] _ _ = 
+    Nothing
+posi s [] seed left rest =
+    posi s (dayPlus s seed) (dayPlus s seed) left rest
+posi s (d:ds) seed left rest
+    | left `isInDur` d && (left + s * rest) `isInDur` d =
+        Just (left + s * rest)
+    | left `isInDur` d =
+        nega s ds seed (snd d) (rest - s * (snd d - left)) 
+    | otherwise =
+        nega s (d:ds) seed left rest
+
+nega :: Signature -> [MillisDuration] -> [MillisDuration] -> Millis -> Millis -> Maybe Millis
+nega _ _ [] _ _ = 
+    Nothing
+nega s [] seed left rest =
+    nega s (dayPlus s seed) (dayPlus s seed) left rest
+nega s (d:ds) seed left rest
+    | left `isInDur` d =
+        posi s (d:ds) seed left rest
+    | otherwise =
+        posi s (d:ds) seed (fst d) rest
