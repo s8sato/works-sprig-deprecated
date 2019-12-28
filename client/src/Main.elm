@@ -62,9 +62,13 @@ type alias Millis =
     Int
 
 
+type alias DaySec =
+    Int
+
+
 type alias Duration =
-    { left : Millis
-    , right : Millis
+    { left : DaySec
+    , right : DaySec
     }
 
 
@@ -93,7 +97,6 @@ type alias Task =
     , weight : Maybe Float
     , user : String
     , isSelected : Bool
-    , isExpired : Bool
     }
 
 
@@ -515,23 +518,6 @@ updateStatus model now =
 
         checkedTasks =
             sub.tasks
-                |> List.map
-                    (\task ->
-                        let
-                            pastDeadline =
-                                case millisUntil task.deadline now of
-                                    Nothing ->
-                                        False
-
-                                    Just millis ->
-                                        millis < 0
-                        in
-                        if not task.isDone && pastDeadline then
-                            { task | isExpired = True }
-
-                        else
-                            { task | isExpired = False }
-                    )
 
         checkedSub =
             { sub | tasks = checkedTasks }
@@ -946,7 +932,6 @@ taskDecoder =
         |> optional "elmTaskWeight" (nullable float) Nothing
         |> required "elmTaskUser" string
         |> optional "elmTaskIsSelected" bool False
-        |> optional "elmTaskIsExpired" bool False
 
 
 durationsDecoder : Decoder (List Duration)
@@ -1129,6 +1114,24 @@ viewTaskHeader m =
         ]
 
 
+isExpired : Model -> Task -> Bool
+isExpired m task =
+    let
+        pastDeadline =
+            case task.deadline of
+                Nothing ->
+                    False
+
+                Just d ->
+                    d < Time.posixToMillis m.currentTime
+    in
+    if not task.isDone && pastDeadline then
+        True
+
+    else
+        False
+
+
 viewTask : Model -> ( Index, Task ) -> Html Msg
 viewTask m ( i, task ) =
     div
@@ -1136,7 +1139,7 @@ viewTask m ( i, task ) =
             [ ( "task", True )
             , ( "focused ", i == m.indicator )
             , ( "selected", task.isSelected )
-            , ( "expired", task.isExpired )
+            , ( "expired", isExpired m task )
             ]
         ]
         [ div [ class "indicator" ] []
@@ -1292,7 +1295,7 @@ barString m t =
         d =
             position m.dpy m.asOfTime t.deadline
     in
-    preString m.dpy m.asOfTime t m.sub.user.durs
+    preString m.zone m.dpy m.asOfTime t m.sub.user.durs
         |> replace s '['
         |> replace d ']'
         |> String.fromList
@@ -1309,8 +1312,12 @@ position dpy asof mt =
                 millis =
                     t - posixToMillis asof
             in
-            (dpy * millis)
-                // (secPerY * 10 ^ 3)
+            if millis < 0 then
+                -1
+
+            else
+                (dpy * millis)
+                    // (secPerY * 10 ^ 3)
 
 
 replace : Int -> Char -> List Char -> List Char
@@ -1321,45 +1328,95 @@ replace pos char target =
         |> Array.toList
 
 
-preString : Int -> Posix -> Task -> List Duration -> List Char
-preString dpy asof task durs =
+preString : Zone -> Int -> Posix -> Task -> List Duration -> List Char
+preString z dpy asof task durs =
+    let
+        p =
+            posixToMillis asof
+    in
     case ( task.begin, task.end ) of
         ( Just b, Just e ) ->
-            preString_ 0 dpy (posixToMillis asof) b e durs []
+            preString_ z 0 dpy p b e (thatDurations z p durs) []
+                |> List.reverse
 
         _ ->
             List.repeat 48 '.'
 
 
-preString_ : Int -> Int -> Millis -> Millis -> Millis -> List Duration -> List Char -> List Char
-preString_ count dpy asof begin end durs store =
+thatDurations : Zone -> Millis -> List Duration -> List Duration
+thatDurations z p durs =
+    let
+        thatMidnight =
+            p - (10 ^ 3) * daySec z p
+    in
+    List.map
+        (\d ->
+            { d
+                | left = d.left + thatMidnight
+                , right = d.right + thatMidnight
+            }
+        )
+        durs
+
+
+toMillis : Int -> Millis
+toMillis =
+    (*) (10 ^ 3)
+
+
+preString_ : Zone -> Int -> Int -> Millis -> Millis -> Millis -> List Duration -> List Char -> List Char
+preString_ z count dpy p begin end durs store =
     if count >= 48 then
         store
 
     else
         let
+            pR =
+                -- pointerRight
+                p + ((secPerY * 10 ^ 3) // dpy)
+
             char =
-                if isInDur asof durs then
-                    if begin < asof && asof < end then
-                        '#'
+                if p < begin && end < pR then
+                    '#'
+
+                else if p < begin && begin < pR && pR < end then
+                    if List.all (\d -> pR < toMillis d.left || toMillis d.right < begin) durs then
+                        '-'
 
                     else
+                        '#'
+
+                else if p < begin && begin < pR && pR < end then
+                    if List.all (\d -> toMillis d.right < p || end < toMillis d.left) durs then
                         '-'
+
+                    else
+                        '#'
+
+                else if begin < p && pR < end then
+                    if List.all (\d -> toMillis d.right < p || pR < toMillis d.left) durs then
+                        '-'
+
+                    else
+                        '#'
 
                 else
                     '.'
         in
-        preString_ (count + 1) dpy (next dpy asof) begin end durs (char :: store)
+        preString_ z (count + 1) dpy pR begin end (thatDurations z pR durs) (char :: store)
 
 
-next : Int -> Millis -> Millis
-next dpy t =
-    t + (secPerY * 10 ^ 3 // dpy)
-
-
-isInDur : Millis -> List Duration -> Bool
-isInDur time durs =
-    List.any (\d -> d.left < time && time < d.right) durs
+daySec : Zone -> Millis -> DaySec
+daySec z t =
+    let
+        t_ =
+            millisToPosix t
+    in
+    3600
+        * Time.toHour z t_
+        + 60
+        * Time.toMinute z t_
+        + Time.toSecond z t_
 
 
 strFromPosix : Zone -> Posix -> String

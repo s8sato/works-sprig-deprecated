@@ -6899,9 +6899,7 @@ var $author$project$Main$Task = function (id) {
 										return function (weight) {
 											return function (user) {
 												return function (isSelected) {
-													return function (isExpired) {
-														return {begin: begin, deadline: deadline, end: end, id: id, isDone: isDone, isDummy: isDummy, isExpired: isExpired, isSelected: isSelected, isStarred: isStarred, link: link, startable: startable, title: title, user: user, weight: weight};
-													};
+													return {begin: begin, deadline: deadline, end: end, id: id, isDone: isDone, isDummy: isDummy, isSelected: isSelected, isStarred: isStarred, link: link, startable: startable, title: title, user: user, weight: weight};
 												};
 											};
 										};
@@ -6985,70 +6983,65 @@ var $NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required = F3(
 	});
 var $author$project$Main$taskDecoder = A4(
 	$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$optional,
-	'elmTaskIsExpired',
+	'elmTaskIsSelected',
 	$elm$json$Json$Decode$bool,
 	false,
-	A4(
-		$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$optional,
-		'elmTaskIsSelected',
-		$elm$json$Json$Decode$bool,
-		false,
-		A3(
-			$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
-			'elmTaskUser',
-			$elm$json$Json$Decode$string,
+	A3(
+		$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
+		'elmTaskUser',
+		$elm$json$Json$Decode$string,
+		A4(
+			$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$optional,
+			'elmTaskWeight',
+			$elm$json$Json$Decode$nullable($elm$json$Json$Decode$float),
+			$elm$core$Maybe$Nothing,
 			A4(
 				$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$optional,
-				'elmTaskWeight',
-				$elm$json$Json$Decode$nullable($elm$json$Json$Decode$float),
+				'elmTaskDeadline',
+				$elm$json$Json$Decode$nullable($elm$json$Json$Decode$int),
 				$elm$core$Maybe$Nothing,
 				A4(
 					$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$optional,
-					'elmTaskDeadline',
+					'elmTaskEnd',
 					$elm$json$Json$Decode$nullable($elm$json$Json$Decode$int),
 					$elm$core$Maybe$Nothing,
 					A4(
 						$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$optional,
-						'elmTaskEnd',
+						'elmTaskBegin',
 						$elm$json$Json$Decode$nullable($elm$json$Json$Decode$int),
 						$elm$core$Maybe$Nothing,
 						A4(
 							$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$optional,
-							'elmTaskBegin',
+							'elmTaskStartable',
 							$elm$json$Json$Decode$nullable($elm$json$Json$Decode$int),
 							$elm$core$Maybe$Nothing,
 							A4(
 								$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$optional,
-								'elmTaskStartable',
-								$elm$json$Json$Decode$nullable($elm$json$Json$Decode$int),
+								'elmTaskLink',
+								$elm$json$Json$Decode$nullable($elm$json$Json$Decode$string),
 								$elm$core$Maybe$Nothing,
 								A4(
 									$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$optional,
-									'elmTaskLink',
+									'elmTaskTitle',
 									$elm$json$Json$Decode$nullable($elm$json$Json$Decode$string),
 									$elm$core$Maybe$Nothing,
-									A4(
-										$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$optional,
-										'elmTaskTitle',
-										$elm$json$Json$Decode$nullable($elm$json$Json$Decode$string),
-										$elm$core$Maybe$Nothing,
+									A3(
+										$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
+										'elmTaskIsStarred',
+										$elm$json$Json$Decode$bool,
 										A3(
 											$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
-											'elmTaskIsStarred',
+											'elmTaskIsDone',
 											$elm$json$Json$Decode$bool,
 											A3(
 												$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
-												'elmTaskIsDone',
+												'elmTaskIsDummy',
 												$elm$json$Json$Decode$bool,
 												A3(
 													$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
-													'elmTaskIsDummy',
-													$elm$json$Json$Decode$bool,
-													A3(
-														$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
-														'elmTaskId',
-														$elm$json$Json$Decode$int,
-														$elm$json$Json$Decode$succeed($author$project$Main$Task)))))))))))))));
+													'elmTaskId',
+													$elm$json$Json$Decode$int,
+													$elm$json$Json$Decode$succeed($author$project$Main$Task))))))))))))));
 var $author$project$Main$tasksDecoder = $elm$json$Json$Decode$list($author$project$Main$taskDecoder);
 var $author$project$Main$doneTasks = function (m) {
 	return $elm$http$Http$post(
@@ -7702,42 +7695,10 @@ var $author$project$Main$textPost = function (m) {
 			});
 	}
 };
-var $elm$time$Time$posixToMillis = function (_v0) {
-	var millis = _v0.a;
-	return millis;
-};
-var $author$project$Main$millisUntil = F2(
-	function (target, now) {
-		var nowMillis = $elm$time$Time$posixToMillis(now);
-		return A2(
-			$elm$core$Maybe$map,
-			function (t) {
-				return t - nowMillis;
-			},
-			target);
-	});
 var $author$project$Main$updateStatus = F2(
 	function (model, now) {
 		var sub = model.sub;
-		var checkedTasks = A2(
-			$elm$core$List$map,
-			function (task) {
-				var pastDeadline = function () {
-					var _v0 = A2($author$project$Main$millisUntil, task.deadline, now);
-					if (_v0.$ === 'Nothing') {
-						return false;
-					} else {
-						var millis = _v0.a;
-						return millis < 0;
-					}
-				}();
-				return ((!task.isDone) && pastDeadline) ? _Utils_update(
-					task,
-					{isExpired: true}) : _Utils_update(
-					task,
-					{isExpired: false});
-			},
-			sub.tasks);
+		var checkedTasks = sub.tasks;
 		var checkedSub = _Utils_update(
 			sub,
 			{tasks: checkedTasks});
@@ -8173,6 +8134,10 @@ var $elm$core$String$fromList = _String_fromList;
 var $elm$core$Basics$negate = function (n) {
 	return -n;
 };
+var $elm$time$Time$posixToMillis = function (_v0) {
+	var millis = _v0.a;
+	return millis;
+};
 var $elm$core$Basics$pow = _Basics_pow;
 var $author$project$Main$position = F3(
 	function (dpy, asof, mt) {
@@ -8181,7 +8146,7 @@ var $author$project$Main$position = F3(
 		} else {
 			var t = mt.a;
 			var millis = t - $elm$time$Time$posixToMillis(asof);
-			return ((dpy * millis) / ($author$project$Main$secPerY * A2($elm$core$Basics$pow, 10, 3))) | 0;
+			return (millis < 0) ? (-1) : (((dpy * millis) / ($author$project$Main$secPerY * A2($elm$core$Basics$pow, 10, 3))) | 0);
 		}
 	});
 var $elm$core$List$any = F2(
@@ -8205,37 +8170,148 @@ var $elm$core$List$any = F2(
 			}
 		}
 	});
-var $author$project$Main$isInDur = F2(
-	function (time, durs) {
-		return A2(
+var $elm$core$List$all = F2(
+	function (isOkay, list) {
+		return !A2(
 			$elm$core$List$any,
+			A2($elm$core$Basics$composeL, $elm$core$Basics$not, isOkay),
+			list);
+	});
+var $elm$time$Time$flooredDiv = F2(
+	function (numerator, denominator) {
+		return $elm$core$Basics$floor(numerator / denominator);
+	});
+var $elm$core$Basics$modBy = _Basics_modBy;
+var $elm$time$Time$toAdjustedMinutesHelp = F3(
+	function (defaultOffset, posixMinutes, eras) {
+		toAdjustedMinutesHelp:
+		while (true) {
+			if (!eras.b) {
+				return posixMinutes + defaultOffset;
+			} else {
+				var era = eras.a;
+				var olderEras = eras.b;
+				if (_Utils_cmp(era.start, posixMinutes) < 0) {
+					return posixMinutes + era.offset;
+				} else {
+					var $temp$defaultOffset = defaultOffset,
+						$temp$posixMinutes = posixMinutes,
+						$temp$eras = olderEras;
+					defaultOffset = $temp$defaultOffset;
+					posixMinutes = $temp$posixMinutes;
+					eras = $temp$eras;
+					continue toAdjustedMinutesHelp;
+				}
+			}
+		}
+	});
+var $elm$time$Time$toAdjustedMinutes = F2(
+	function (_v0, time) {
+		var defaultOffset = _v0.a;
+		var eras = _v0.b;
+		return A3(
+			$elm$time$Time$toAdjustedMinutesHelp,
+			defaultOffset,
+			A2(
+				$elm$time$Time$flooredDiv,
+				$elm$time$Time$posixToMillis(time),
+				60000),
+			eras);
+	});
+var $elm$time$Time$toHour = F2(
+	function (zone, time) {
+		return A2(
+			$elm$core$Basics$modBy,
+			24,
+			A2(
+				$elm$time$Time$flooredDiv,
+				A2($elm$time$Time$toAdjustedMinutes, zone, time),
+				60));
+	});
+var $elm$time$Time$toMinute = F2(
+	function (zone, time) {
+		return A2(
+			$elm$core$Basics$modBy,
+			60,
+			A2($elm$time$Time$toAdjustedMinutes, zone, time));
+	});
+var $elm$time$Time$toSecond = F2(
+	function (_v0, time) {
+		return A2(
+			$elm$core$Basics$modBy,
+			60,
+			A2(
+				$elm$time$Time$flooredDiv,
+				$elm$time$Time$posixToMillis(time),
+				1000));
+	});
+var $author$project$Main$daySec = F2(
+	function (z, t) {
+		var t_ = $elm$time$Time$millisToPosix(t);
+		return ((3600 * A2($elm$time$Time$toHour, z, t_)) + (60 * A2($elm$time$Time$toMinute, z, t_))) + A2($elm$time$Time$toSecond, z, t_);
+	});
+var $author$project$Main$thatDurations = F3(
+	function (z, p, durs) {
+		var thatMidnight = p - (A2($elm$core$Basics$pow, 10, 3) * A2($author$project$Main$daySec, z, p));
+		return A2(
+			$elm$core$List$map,
 			function (d) {
-				return (_Utils_cmp(d.left, time) < 0) && (_Utils_cmp(time, d.right) < 0);
+				return _Utils_update(
+					d,
+					{left: d.left + thatMidnight, right: d.right + thatMidnight});
 			},
 			durs);
 	});
-var $author$project$Main$next = F2(
-	function (dpy, t) {
-		return t + ((($author$project$Main$secPerY * A2($elm$core$Basics$pow, 10, 3)) / dpy) | 0);
-	});
-var $author$project$Main$preString_ = F7(
-	function (count, dpy, asof, begin, end, durs, store) {
+var $author$project$Main$toMillis = $elm$core$Basics$mul(
+	A2($elm$core$Basics$pow, 10, 3));
+var $author$project$Main$preString_ = F8(
+	function (z, count, dpy, p, begin, end, durs, store) {
 		preString_:
 		while (true) {
 			if (count >= 48) {
 				return store;
 			} else {
-				var _char = A2($author$project$Main$isInDur, asof, durs) ? (((_Utils_cmp(begin, asof) < 0) && (_Utils_cmp(asof, end) < 0)) ? _Utils_chr('#') : _Utils_chr('-')) : _Utils_chr('.');
-				var $temp$count = count + 1,
+				var pR = p + ((($author$project$Main$secPerY * A2($elm$core$Basics$pow, 10, 3)) / dpy) | 0);
+				var _char = ((_Utils_cmp(p, begin) < 0) && (_Utils_cmp(end, pR) < 0)) ? _Utils_chr('#') : (((_Utils_cmp(p, begin) < 0) && ((_Utils_cmp(begin, pR) < 0) && (_Utils_cmp(pR, end) < 0))) ? (A2(
+					$elm$core$List$all,
+					function (d) {
+						return (_Utils_cmp(
+							pR,
+							$author$project$Main$toMillis(d.left)) < 0) || (_Utils_cmp(
+							$author$project$Main$toMillis(d.right),
+							begin) < 0);
+					},
+					durs) ? _Utils_chr('-') : _Utils_chr('#')) : (((_Utils_cmp(p, begin) < 0) && ((_Utils_cmp(begin, pR) < 0) && (_Utils_cmp(pR, end) < 0))) ? (A2(
+					$elm$core$List$all,
+					function (d) {
+						return (_Utils_cmp(
+							$author$project$Main$toMillis(d.right),
+							p) < 0) || (_Utils_cmp(
+							end,
+							$author$project$Main$toMillis(d.left)) < 0);
+					},
+					durs) ? _Utils_chr('-') : _Utils_chr('#')) : (((_Utils_cmp(begin, p) < 0) && (_Utils_cmp(pR, end) < 0)) ? (A2(
+					$elm$core$List$all,
+					function (d) {
+						return (_Utils_cmp(
+							$author$project$Main$toMillis(d.right),
+							p) < 0) || (_Utils_cmp(
+							pR,
+							$author$project$Main$toMillis(d.left)) < 0);
+					},
+					durs) ? _Utils_chr('-') : _Utils_chr('#')) : _Utils_chr('.'))));
+				var $temp$z = z,
+					$temp$count = count + 1,
 					$temp$dpy = dpy,
-					$temp$asof = A2($author$project$Main$next, dpy, asof),
+					$temp$p = pR,
 					$temp$begin = begin,
 					$temp$end = end,
-					$temp$durs = durs,
+					$temp$durs = A3($author$project$Main$thatDurations, z, pR, durs),
 					$temp$store = A2($elm$core$List$cons, _char, store);
+				z = $temp$z;
 				count = $temp$count;
 				dpy = $temp$dpy;
-				asof = $temp$asof;
+				p = $temp$p;
 				begin = $temp$begin;
 				end = $temp$end;
 				durs = $temp$durs;
@@ -8265,21 +8341,24 @@ var $elm$core$List$repeat = F2(
 	function (n, value) {
 		return A3($elm$core$List$repeatHelp, _List_Nil, n, value);
 	});
-var $author$project$Main$preString = F4(
-	function (dpy, asof, task, durs) {
+var $author$project$Main$preString = F5(
+	function (z, dpy, asof, task, durs) {
+		var p = $elm$time$Time$posixToMillis(asof);
 		var _v0 = _Utils_Tuple2(task.begin, task.end);
 		if ((_v0.a.$ === 'Just') && (_v0.b.$ === 'Just')) {
 			var b = _v0.a.a;
 			var e = _v0.b.a;
-			return A7(
-				$author$project$Main$preString_,
-				0,
-				dpy,
-				$elm$time$Time$posixToMillis(asof),
-				b,
-				e,
-				durs,
-				_List_Nil);
+			return $elm$core$List$reverse(
+				A8(
+					$author$project$Main$preString_,
+					z,
+					0,
+					dpy,
+					p,
+					b,
+					e,
+					A3($author$project$Main$thatDurations, z, p, durs),
+					_List_Nil));
 		} else {
 			return A2(
 				$elm$core$List$repeat,
@@ -8309,7 +8388,7 @@ var $author$project$Main$barString = F2(
 					$author$project$Main$replace,
 					s,
 					_Utils_chr('['),
-					A4($author$project$Main$preString, m.dpy, m.asOfTime, t, m.sub.user.durs))));
+					A5($author$project$Main$preString, m.zone, m.dpy, m.asOfTime, t, m.sub.user.durs))));
 	});
 var $elm$html$Html$Attributes$classList = function (classes) {
 	return $elm$html$Html$Attributes$class(
@@ -8327,6 +8406,21 @@ var $elm$html$Html$Attributes$href = function (url) {
 		'href',
 		_VirtualDom_noJavaScriptUri(url));
 };
+var $author$project$Main$isExpired = F2(
+	function (m, task) {
+		var pastDeadline = function () {
+			var _v0 = task.deadline;
+			if (_v0.$ === 'Nothing') {
+				return false;
+			} else {
+				var d = _v0.a;
+				return _Utils_cmp(
+					d,
+					$elm$time$Time$posixToMillis(m.currentTime)) < 0;
+			}
+		}();
+		return ((!task.isDone) && pastDeadline) ? true : false;
+	});
 var $author$project$Main$viewAssign = F2(
 	function (u, t) {
 		return _Utils_eq(u.name, t.user) ? 'me' : t.user;
@@ -8367,46 +8461,6 @@ var $author$project$Main$strFromMonth = function (month) {
 			return '12';
 	}
 };
-var $elm$time$Time$flooredDiv = F2(
-	function (numerator, denominator) {
-		return $elm$core$Basics$floor(numerator / denominator);
-	});
-var $elm$time$Time$toAdjustedMinutesHelp = F3(
-	function (defaultOffset, posixMinutes, eras) {
-		toAdjustedMinutesHelp:
-		while (true) {
-			if (!eras.b) {
-				return posixMinutes + defaultOffset;
-			} else {
-				var era = eras.a;
-				var olderEras = eras.b;
-				if (_Utils_cmp(era.start, posixMinutes) < 0) {
-					return posixMinutes + era.offset;
-				} else {
-					var $temp$defaultOffset = defaultOffset,
-						$temp$posixMinutes = posixMinutes,
-						$temp$eras = olderEras;
-					defaultOffset = $temp$defaultOffset;
-					posixMinutes = $temp$posixMinutes;
-					eras = $temp$eras;
-					continue toAdjustedMinutesHelp;
-				}
-			}
-		}
-	});
-var $elm$time$Time$toAdjustedMinutes = F2(
-	function (_v0, time) {
-		var defaultOffset = _v0.a;
-		var eras = _v0.b;
-		return A3(
-			$elm$time$Time$toAdjustedMinutesHelp,
-			defaultOffset,
-			A2(
-				$elm$time$Time$flooredDiv,
-				$elm$time$Time$posixToMillis(time),
-				60000),
-			eras);
-	});
 var $elm$time$Time$toCivil = function (minutes) {
 	var rawDay = A2($elm$time$Time$flooredDiv, minutes, 60 * 24) + 719468;
 	var era = (((rawDay >= 0) ? rawDay : (rawDay - 146096)) / 146097) | 0;
@@ -8426,24 +8480,6 @@ var $elm$time$Time$toDay = F2(
 	function (zone, time) {
 		return $elm$time$Time$toCivil(
 			A2($elm$time$Time$toAdjustedMinutes, zone, time)).day;
-	});
-var $elm$core$Basics$modBy = _Basics_modBy;
-var $elm$time$Time$toHour = F2(
-	function (zone, time) {
-		return A2(
-			$elm$core$Basics$modBy,
-			24,
-			A2(
-				$elm$time$Time$flooredDiv,
-				A2($elm$time$Time$toAdjustedMinutes, zone, time),
-				60));
-	});
-var $elm$time$Time$toMinute = F2(
-	function (zone, time) {
-		return A2(
-			$elm$core$Basics$modBy,
-			60,
-			A2($elm$time$Time$toAdjustedMinutes, zone, time));
 	});
 var $elm$time$Time$Apr = {$: 'Apr'};
 var $elm$time$Time$Aug = {$: 'Aug'};
@@ -8487,16 +8523,6 @@ var $elm$time$Time$toMonth = F2(
 			default:
 				return $elm$time$Time$Dec;
 		}
-	});
-var $elm$time$Time$toSecond = F2(
-	function (_v0, time) {
-		return A2(
-			$elm$core$Basics$modBy,
-			60,
-			A2(
-				$elm$time$Time$flooredDiv,
-				$elm$time$Time$posixToMillis(time),
-				1000));
 	});
 var $elm$time$Time$toYear = F2(
 	function (zone, time) {
@@ -8555,7 +8581,9 @@ var $author$project$Main$viewTask = F2(
 							'focused ',
 							_Utils_eq(i, m.indicator)),
 							_Utils_Tuple2('selected', task.isSelected),
-							_Utils_Tuple2('expired', task.isExpired)
+							_Utils_Tuple2(
+							'expired',
+							A2($author$project$Main$isExpired, m, task))
 						]))
 				]),
 			_List_fromArray(

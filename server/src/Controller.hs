@@ -690,38 +690,38 @@ setBeginEnd u ds =
 
 setBeginEnd' :: User -> [Duration] -> Task -> Task
 setBeginEnd' user ds (Task t i y d s ml ms mb me md mw mt u) =
-    Task t i y d s ml ms mb md md mw mt u
-    -- case mw of
-    --     Nothing ->
-    --         Task t i y d s ml ms mb me md mw mt u
-    --     Just w ->
-    --         let
-    --             weight = millisFromWeight w
-    --         in
-    --         if  userIsLazy user then
-    --             let
-    --                 end = me
-    --                 begin = case end of
-    --                     Just e ->
-    --                         backward e ds weight
-    --                     _ ->
-    --                         Nothing
-    --             in
-    --             Task t i y d s ml ms begin end md mw mt u 
+    -- Task t i y d s ml ms ms md md mw mt u
+    case mw of
+        Nothing ->
+            Task t i y d s ml ms mb me md mw mt u
+        Just w ->
+            let
+                weight = millisFromWeight w
+            in
+            if  userIsLazy user then
+                let
+                    end = md
+                    begin = case end of
+                        Just e ->
+                            backward e ds weight
+                        _ ->
+                            Nothing
+                in
+                Task t i y d s ml ms begin end md mw mt u 
                 
-    --         else
-    --             let
-    --                 begin = ms
-    --                 end = case begin of
-    --                     Just b ->
-    --                         forward b ds weight
-    --                     _ ->
-    --                         Nothing
-    --             in
-    --             Task t i y d s ml ms begin end md mw mt u 
+            else
+                let
+                    begin = ms
+                    end = case begin of
+                        Just b ->
+                            forward b ds weight
+                        _ ->
+                            Nothing
+                in
+                Task t i y d s ml ms begin end md mw mt u 
 
 millisFromWeight :: Double -> Millis
-millisFromWeight w = round $ 60 * 60 * 10^3 * w
+millisFromWeight w = floor $ 60 * 60 * 10^3 * w
 
 type MillisDuration = (Millis, Millis)
 
@@ -739,50 +739,78 @@ forward begin ds weight =
     let
         ds' = map toMillis ds
         begin' = millisFromUTC begin
+        diff = posi ds' ds' begin' weight
     in
-    utcFromMillis <$> posi 1 ds' ds' begin' weight
+    utcFromMillis <$> ((+) <$> (Just begin') <*> diff)
 
 backward :: UTCTime -> [Duration] -> Millis -> Maybe UTCTime
 backward end ds weight = 
     let
-        ds' = reverse $ map ((\(l,r)-> ((-r),(-l))) . toMillis) ds
-        end' = (-1) * (millisFromUTC end)
+        ds' = reverse $ map toMillis ds
+        end' = millisFromUTC end
+        diff = posi' [] ds' end' weight
     in
-    (utcFromMillis . ((*) (-1))) <$> posi (-1) ds' ds' end' weight
+    utcFromMillis <$> ((+) <$> (Just end') <*> diff)
 
-type Signature = Int
---TODO
 
 millisPerDay :: Millis
-millisPerDay = round $ 10^3 * nominalDay
+millisPerDay = floor $ 10^3 * nominalDay
 
 isInDur :: Millis -> MillisDuration -> Bool
 isInDur t (l,r) =
     l <= t && t<= r 
 
-dayPlus :: Signature -> [MillisDuration] -> [MillisDuration]
-dayPlus s = map (both $ (+) (s * millisPerDay) )
+dayPlus :: [MillisDuration] -> [MillisDuration]
+dayPlus = map (both $ (+) millisPerDay )
 
-posi :: Signature -> [MillisDuration] -> [MillisDuration] -> Millis -> Millis -> Maybe Millis
-posi _ _ [] _ _ = 
+posi :: [MillisDuration] -> [MillisDuration] -> Millis -> Millis -> Maybe Millis
+posi  _ [] _ _ = 
     Nothing
-posi s [] seed left rest =
-    posi s (dayPlus s seed) (dayPlus s seed) left rest
-posi s (d:ds) seed left rest
-    | left `isInDur` d && (left + s * rest) `isInDur` d =
-        Just (left + s * rest)
+posi [] seed left rest =
+    posi (dayPlus seed) (dayPlus seed) left rest
+posi (d:ds) seed left rest
+    | left `isInDur` d && (left + rest) `isInDur` d =
+        Just (left + rest)
     | left `isInDur` d =
-        nega s ds seed (snd d) (rest - s * (snd d - left)) 
+        nega ds seed (snd d) (rest - (snd d - left)) 
     | otherwise =
-        nega s (d:ds) seed left rest
+        nega (d:ds) seed left rest
 
-nega :: Signature -> [MillisDuration] -> [MillisDuration] -> Millis -> Millis -> Maybe Millis
-nega _ _ [] _ _ = 
+nega :: [MillisDuration] -> [MillisDuration] -> Millis -> Millis -> Maybe Millis
+nega  _ [] _ _ = 
     Nothing
-nega s [] seed left rest =
-    nega s (dayPlus s seed) (dayPlus s seed) left rest
-nega s (d:ds) seed left rest
+nega [] seed left rest =
+    nega (dayPlus seed) (dayPlus seed) left rest
+nega (d:ds) seed left rest
     | left `isInDur` d =
-        posi s (d:ds) seed left rest
+        posi (d:ds) seed left rest
     | otherwise =
-        posi s (d:ds) seed (fst d) rest
+        posi (d:ds) seed (fst d) rest
+
+
+dayMinus :: [MillisDuration] -> [MillisDuration]
+dayMinus = map (both (\t -> t - millisPerDay))
+
+posi' :: [MillisDuration] -> [MillisDuration] -> Millis -> Millis -> Maybe Millis
+posi' _ [] _ _ = 
+    Nothing
+posi' [] seed right rest =
+    posi' (dayMinus seed) (dayMinus seed) right rest
+posi' (d:ds) seed right rest
+    | right `isInDur` d && (right - rest) `isInDur` d =
+        Just (right - rest)
+    | right `isInDur` d =
+        nega' ds seed (fst d) (rest - (right - fst d)) 
+    | otherwise =
+        nega' (d:ds) seed right rest
+
+nega' :: [MillisDuration] -> [MillisDuration] -> Millis -> Millis -> Maybe Millis
+nega' _ [] _ _ = 
+    Nothing
+nega' [] seed right rest =
+    nega' (dayMinus seed) (dayMinus seed) right rest
+nega' (d:ds) seed right rest
+    | right `isInDur` d =
+        posi' (d:ds) seed right rest
+    | otherwise =
+        posi' (d:ds) seed (snd d) rest
