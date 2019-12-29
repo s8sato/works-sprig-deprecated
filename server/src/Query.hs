@@ -76,29 +76,29 @@ insTasks ts = do
         sequence_ . map insert $ ts
 
 
-getUndoneTasks :: ConnectionPool -> Int -> IO [Entity Task]
-getUndoneTasks pool user = flip runSqlPool pool $ do
-    select $ from $ \task -> do
-        where_
-            (   task ^. TaskUser ==. val (toSqlKey $ fromIntegral user)
-            &&. not_ ( task ^. TaskIsDone )
-            )
-        orderBy
-            [ desc (task ^. TaskIsStarred)
-            , asc (task ^. TaskDeadline)
-            , asc (task ^. TaskStartable)
-            , asc (task ^. TaskTitle)
-            ]
-        return (task)
+-- getUndoneTasks :: ConnectionPool -> Int -> IO [Entity Task]
+-- getUndoneTasks pool user = flip runSqlPool pool $ do
+--     select $ from $ \task -> do
+--         where_
+--             (   task ^. TaskUser ==. val (toSqlKey $ fromIntegral user)
+--             &&. not_ ( task ^. TaskIsDone )
+--             )
+--         orderBy
+--             [ desc (task ^. TaskIsStarred)
+--             , asc (task ^. TaskDeadline)
+--             , asc (task ^. TaskStartable)
+--             , asc (task ^. TaskTitle)
+--             ]
+--         return (task)
 
 
 keyFromInt :: Integral a => a -> BackendKey SqlBackend
 keyFromInt = SqlBackendKey . fromIntegral
 
 
-get = do
-    pool <- pgPool
-    getUndoneTasks pool 1
+-- get = do
+--     pool <- pgPool
+--     getUndoneTasks pool 1
 
 
 
@@ -285,3 +285,4 @@ getDurationsById pool id = flip runSqlPool pool $ do
             [ asc (duration ^. DurationLeft)
             ]
         return (duration)
+

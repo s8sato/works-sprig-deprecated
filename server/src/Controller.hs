@@ -186,6 +186,13 @@ data GoHome = GoHome
 
 $(deriveJSON defaultOptions ''GoHome)
 
+data CloneTasks = CloneTasks
+    { cloneTasksUser :: ElmUser
+    , cloneTasksIds :: [Int]
+    } deriving (Eq, Show)
+
+$(deriveJSON defaultOptions ''CloneTasks)
+
 
 
 -- API DEFINITION
@@ -194,7 +201,7 @@ $(deriveJSON defaultOptions ''GoHome)
 
 type API =  "dev"   :> "model"  :> Capture "user"  Int          :> Get  '[JSON] ElmSubModel
     :<|>    "tasks" :> "init"   :> ReqBody '[JSON] Initial      :> Post '[JSON] ElmSubModel
-    :<|>    "tasks" :> "post"   :> ReqBody '[JSON] TextPost     :> Post '[JSON] [ElmTask]
+    :<|>    "tasks" :> "post"   :> ReqBody '[JSON] TextPost     :> Post '[JSON] ElmSubModel
     :<|>    "tasks" :> "done"   :> ReqBody '[JSON] DoneTasks    :> Post '[JSON] [ElmTask]
     :<|>    "tasks" :> "star"   :> ReqBody '[JSON] SwitchStar   :> Post '[JSON] ()
     :<|>    "tasks" :> "focus"  :> ReqBody '[JSON] FocusTask    :> Post '[JSON] [ElmTask]
@@ -231,7 +238,7 @@ server = devSubModel
         devSubModel = liftIO . devSubModel'
         initialize :: Initial -> Handler ElmSubModel
         initialize = liftIO . initialize'
-        textPostReload :: TextPost -> Handler [ElmTask]
+        textPostReload :: TextPost -> Handler ElmSubModel
         textPostReload = liftIO . textPostReload'
         doneTasksReload :: DoneTasks -> Handler [ElmTask]
         doneTasksReload = liftIO . doneTasksReload'
@@ -263,19 +270,63 @@ getUndoneElmTasks user = do
     taskAssigns <- getUndoneTaskAssigns pool user
     return $ map toElmTask taskAssigns 
 
-textPostReload' :: TextPost -> IO [ElmTask]
+getMaxNode :: IO (Maybe Int)
+getMaxNode = do
+    pool <- pgPool
+    pairs <- getMaxNode' pool
+    let pair = case pairs of
+            []      -> (Q.Value Nothing, Q.Value Nothing)
+            (p:_)   -> p
+    let mt = Q.unValue $ fst pair
+    let mi = Q.unValue $ snd pair
+    return $ max <$> mt <*> mi
+
+textPostReload' :: TextPost -> IO ElmSubModel
 textPostReload' (TextPost elmUser text) = do
     pool <- pgPool
     let uid = elmUserId elmUser
     user <- Prelude.head <$> (map entityVal) <$> getUserById pool uid
     durations <- (map entityVal) <$> getDurationsById pool uid
-    mn <- getMaxNode
-    let maxNode = case mn of
-            Nothing -> 0
-            Just n  -> n
-    let shift = maxNode + 2  -- TODO 
-    insTasks . (shiftTaskNodes shift) $ tasksFromText user durations text 
-    getUndoneElmTasks uid
+    -- durations <- (map entityVal) <$> getDurationsById pool uid
+    let tasks = tasksFromText user durations text
+    exam <- ifValidPost user tasks
+    case exam of
+        Left errMsg ->
+            return $ ElmSubModel elmUser [] Nothing (Just errMsg) 
+        Right okTasks -> do
+            mn <- getMaxNode
+            let maxNode = case mn of
+                    Nothing -> 0
+                    Just n  -> n
+            let shift = maxNode + 2  -- TODO 
+            insTasks . (shiftTaskNodes shift) $ okTasks
+            newTasks <- getUndoneTaskAssigns pool uid
+            let okMsg = buildPostOkMsg okTasks
+            let elmTasks = map toElmTask newTasks
+            return $ ElmSubModel elmUser elmTasks Nothing (Just okMsg)
+
+ifValidPost :: User -> [Task] -> IO (Either Text [Task])
+ifValidPost user tasks = do
+    faultPerms <- faultPostPermission user tasks
+    faultFormat <- faultPostFormat tasks
+    let faultList =  [ faultPerms
+                    , faultFormat
+                    ]
+    if Prelude.all (== Nothing) faultList then
+        return $ Right tasks
+    else do
+        let errMsg = buildPostErrMsg faultList
+        return $ Left errMsg
+
+faultPostPermission :: User -> [Task] -> IO (Maybe Text)
+faultPostPermission user tasks = do
+    -- TODO
+    return Nothing
+
+faultPostFormat :: [Task] -> IO (Maybe Text)
+faultPostFormat tasks = do
+    -- TODO
+    return $ Nothing
 
 doneTasksReload' :: DoneTasks -> IO [ElmTask]
 doneTasksReload' (DoneTasks u ids) = do
@@ -516,9 +567,6 @@ keyMatch (a:as) (b:bs) ah = case a of
 spanDummy'' :: (Node, Node) -> (Node, Node) -> Graph -> Graph
 spanDummy'' (_,t) (i,_) g = ((t,i), [AttrTaskId 0, IsDone '%', Title "LINKER"]) : g
 
-
-
-
 universalTime :: User -> [Task] -> [Task]
 universalTime user = 
     map (\(Task t i y d s l ms mb me md mw tt u) -> 
@@ -537,6 +585,14 @@ universal tzh mut = addUTCTime <$> Just tzsMinus <*> mut
     where
         tzsMinus :: NominalDiffTime
         tzsMinus = 60*60*(-1)*(fromIntegral tzh)
+
+
+
+-- textFromTasks :: User -> [Duration] -> [Task] -> Text
+-- textFromTasks u ds = 
+    -- (universalTime u) . (setBeginEnd u ds) . tasksFromGraph . graphFromText
+
+
 
     --     headLs = map (\(, ) g
     --         map
@@ -673,17 +729,6 @@ shiftTaskNodes sh ts =
 timeZoneHour :: ElmUser -> TimeZoneHour
 timeZoneHour _ = 9  -- TODO
 
-getMaxNode :: IO (Maybe Int)
-getMaxNode = do
-    pool <- pgPool
-    pairs <- getMaxNode' pool
-    let pair = case pairs of
-            []      -> (Q.Value Nothing, Q.Value Nothing)
-            (p:_)   -> p
-    let mt = Q.unValue $ fst pair
-    let mi = Q.unValue $ snd pair
-    return $ max <$> mt <*> mi
-
 setBeginEnd :: User -> [Duration] -> [Task] -> [Task]
 setBeginEnd u ds = 
     map (setBeginEnd' u ds)
@@ -752,7 +797,6 @@ beginFromEnd end ds weight =
     in
     utcFromMillis <$> ((+) <$> (Just end') <*> diff)
 
-
 millisPerDay :: Millis
 millisPerDay = floor $ 10^3 * nominalDay
 
@@ -761,7 +805,7 @@ isInDur t (l,r) =
     l <= t && t<= r 
 
 dayPlus :: [MillisDuration] -> [MillisDuration]
-dayPlus = map (both $ (+) millisPerDay )
+dayPlus = map (both (+ millisPerDay) )
 
 posi :: [MillisDuration] -> [MillisDuration] -> Millis -> Millis -> Maybe Millis
 posi  _ [] _ _ = 
@@ -786,7 +830,6 @@ nega (d:ds) seed left rest
         posi (d:ds) seed left rest
     | otherwise =
         posi (d:ds) seed (fst d) rest
-
 
 dayMinus :: [MillisDuration] -> [MillisDuration]
 dayMinus = map (both (\t -> t - millisPerDay))
@@ -814,3 +857,13 @@ nega' (d:ds) seed right rest
         posi' (d:ds) seed right rest
     | otherwise =
         posi' (d:ds) seed (snd d) rest
+
+buildPostOkMsg :: [Task] -> Text
+buildPostOkMsg tasks =
+    pack $ (show $ Prelude.length tasks) ++ " tasks registered."
+
+buildPostErrMsg :: [Maybe Text] -> Text
+buildPostErrMsg []              = "No fault."
+buildPostErrMsg ((Just text):_) = text
+buildPostErrMsg (Nothing:es)  = buildPostErrMsg es
+

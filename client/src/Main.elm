@@ -194,7 +194,6 @@ type Msg
     | TaskFocused Int (Result Http.Error (List Task))
     | AdjustTimeZone Zone
     | SetZoneName ZoneName
-    | UpdateStatus Posix
     | SetAsOfTime Posix
     | ReturnedHome (Result Http.Error SubModel)
     | ReadyTyping
@@ -204,6 +203,8 @@ type Msg
     | CharacterKeyUTRelease Char
     | ControlKeyUTRelease String
     | Tick Time.Posix
+    | TextReceived (Result Http.Error SubModel)
+    | TextPosted (Result Http.Error SubModel)
 
 
 
@@ -288,9 +289,7 @@ update msg model =
         -- APIからもらう：String
         CharacterKey 'c' ->
             -- TODO
-            ( model
-            , Task.attempt (\_ -> NoOp) (focus "inputArea")
-            )
+            ( model, cloneTasks model.sub )
 
         CharacterKey '/' ->
             ( model
@@ -411,17 +410,16 @@ update msg model =
             )
 
         Tick newTime ->
-            ( { model | currentTime = newTime }
-            , Task.perform UpdateStatus (Task.succeed newTime)
-            )
+            ( { model
+                | currentTime = newTime
+                , asOfTime =
+                    if model.asOfCurrentTime then
+                        model.currentTime
 
-        UpdateStatus currentTime ->
-            ( updateStatus model currentTime
-            , if model.asOfCurrentTime then
-                Task.perform SetAsOfTime (Task.succeed model.currentTime)
-
-              else
-                Cmd.none
+                    else
+                        model.asOfTime
+              }
+            , Cmd.none
             )
 
         SetAsOfTime aTime ->
@@ -473,6 +471,20 @@ update msg model =
         ControlKeyUTRelease _ ->
             ( model, Cmd.none )
 
+        TextReceived (Ok newSubModel) ->
+            ( textReceived model newSubModel
+            , Task.attempt (\_ -> NoOp) (focus "inputArea")
+            )
+
+        TextReceived (Err httpError) ->
+            ( messageEH model httpError, Cmd.none )
+
+        TextPosted (Ok newSubModel) ->
+            ( textPosted model newSubModel, Cmd.none )
+
+        TextPosted (Err httpError) ->
+            ( messageEH model httpError, Cmd.none )
+
 
 
 -- HELPER FUNCTIONS
@@ -496,33 +508,6 @@ returnedHome model m =
 
         Just dpy ->
             changeDpy { model | sub = newSub } dpy
-
-
-
--- barRedraw : Model -> Posix -> Model
--- barRedraw model asOfTime =
---     let
---         sub =
---             model.sub
---         newSub =
---             { sub |  }
---     in
---     { model | sub = newSub }
-
-
-updateStatus : Model -> Posix -> Model
-updateStatus model now =
-    let
-        sub =
-            model.sub
-
-        checkedTasks =
-            sub.tasks
-
-        checkedSub =
-            { sub | tasks = checkedTasks }
-    in
-    { model | sub = checkedSub }
 
 
 setZoneName : Model -> ZoneName -> Model
@@ -708,13 +693,43 @@ switchSelect model i =
             }
 
 
+textReceived : Model -> SubModel -> Model
+textReceived model m =
+    let
+        sub =
+            model.sub
 
--- getDevModel : Model -> Cmd Msg
--- getDevModel m =
---     Http.get
---         { url = "http://localhost:8080/dev/model" ++ String.fromInt m.user.id
---         , expect = Http.expectJson ModelReceived modelDecoder
---         }
+        newSub =
+            { sub
+                | inputText = m.inputText
+                , message = m.message
+            }
+    in
+    { model | sub = newSub }
+
+
+textPosted : Model -> SubModel -> Model
+textPosted model m =
+    let
+        sub =
+            model.sub
+
+        newSub =
+            { sub
+                | tasks =
+                    case m.tasks of
+                        [] ->
+                            sub.tasks
+
+                        _ ->
+                            m.tasks
+                , message = m.message
+            }
+    in
+    { model | sub = newSub }
+
+
+
 -- COMMANDS
 
 
@@ -737,17 +752,8 @@ textPost m =
             Http.post
                 { url = "http://localhost:8080/tasks/post"
                 , body = Http.jsonBody (textPostEncoder m content)
-                , expect = Http.expectJson TasksReceived tasksDecoder
+                , expect = Http.expectJson TextPosted subModelDecoder
                 }
-
-
-doneTasks : SubModel -> Cmd Msg
-doneTasks m =
-    Http.post
-        { url = "http://localhost:8080/tasks/done"
-        , body = Http.jsonBody (doneTasksEncoder m)
-        , expect = Http.expectJson TasksReceived tasksDecoder
-        }
 
 
 switchStar : SubModel -> Index -> Cmd Msg
@@ -787,6 +793,24 @@ goHome m =
         }
 
 
+doneTasks : SubModel -> Cmd Msg
+doneTasks m =
+    Http.post
+        { url = "http://localhost:8080/tasks/done"
+        , body = Http.jsonBody (doneTasksEncoder m)
+        , expect = Http.expectJson TasksReceived tasksDecoder
+        }
+
+
+cloneTasks : SubModel -> Cmd Msg
+cloneTasks m =
+    Http.post
+        { url = "http://localhost:8080/tasks/clone"
+        , body = Http.jsonBody (cloneTasksEncoder m)
+        , expect = Http.expectJson TextReceived subModelDecoder
+        }
+
+
 
 -- ENCODER
 
@@ -808,26 +832,6 @@ textPostEncoder m content =
 
 userEncoder : User -> Encode.Value
 userEncoder u =
-    -- let
-    --     defaultDpy =
-    --         case u.defaultDpy of
-    --             Nothing ->
-    --                 Encode.null
-    --             Just dpy ->
-    --                 Encode.int
-    --     zoneName =
-    --         case u.zoneName of
-    --             Nothing ->
-    --                 Encode.null
-    --             Just name ->
-    --                 Encode.string name
-    --     zoneOffset =
-    --         case u.zoneOffset of
-    --             Nothing ->
-    --                 Encode.null
-    --             Just offset ->
-    --                 Encode.int offset
-    -- in
     Encode.object
         [ ( "elmUserId", Encode.int u.id )
         , ( "elmUserName", Encode.string u.name )
@@ -877,6 +881,18 @@ goHomeEncoder : SubModel -> Encode.Value
 goHomeEncoder m =
     Encode.object
         [ ( "goHomeUser", Encode.int m.user.id )
+        ]
+
+
+cloneTasksEncoder : SubModel -> Encode.Value
+cloneTasksEncoder m =
+    let
+        ids =
+            List.map .id <| List.filter .isSelected <| m.tasks
+    in
+    Encode.object
+        [ ( "cloneTasksUser", userEncoder m.user )
+        , ( "cloneTasksIds", Encode.list Encode.int ids )
         ]
 
 
@@ -985,7 +1001,7 @@ view model =
                     [ div [ id "selectionCmdBox" ]
                         [ div [ id "inverseSelect", onClick (CharacterKey 'i') ] []
                         , div [ id "eliminate", onClick (CharacterKey 'e') ] []
-                        , div [ id "create", onClick (CharacterKey 'c') ] []
+                        , div [ id "clone", onClick (CharacterKey 'c') ] []
                         , div [ id "reschedule", onClick (CharacterKey 'r') ] []
                         , div [ id "linksOpen", onClick (CharacterKey 'l') ] []
                         , div [ id "criticalPath", onClick (CharacterKey 'p') ] []
