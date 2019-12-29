@@ -206,6 +206,7 @@ type API =  "dev"   :> "model"  :> Capture "user"  Int          :> Get  '[JSON] 
     :<|>    "tasks" :> "star"   :> ReqBody '[JSON] SwitchStar   :> Post '[JSON] ()
     :<|>    "tasks" :> "focus"  :> ReqBody '[JSON] FocusTask    :> Post '[JSON] [ElmTask]
     :<|>    "tasks" :> "home"   :> ReqBody '[JSON] GoHome       :> Post '[JSON] ElmSubModel
+    :<|>    "tasks" :> "clone"  :> ReqBody '[JSON] CloneTasks   :> Post '[JSON] ElmSubModel
 
 startApp :: IO ()
 startApp = run 8080 app
@@ -233,6 +234,7 @@ server = devSubModel
     :<|> switchStar
     :<|> focusTask
     :<|> goHome
+    :<|> cloneTasks
     where
         devSubModel :: Int -> Handler ElmSubModel
         devSubModel = liftIO . devSubModel'
@@ -248,6 +250,8 @@ server = devSubModel
         focusTask = liftIO . focusTask'
         goHome :: GoHome -> Handler ElmSubModel
         goHome = liftIO . goHome'
+        cloneTasks :: CloneTasks -> Handler ElmSubModel
+        cloneTasks = liftIO . cloneTasks'
 
 devSubModel' :: Int -> IO ElmSubModel
 devSubModel' uid = do
@@ -287,36 +291,35 @@ textPostReload' (TextPost elmUser text) = do
     let uid = elmUserId elmUser
     user <- Prelude.head <$> (map entityVal) <$> getUserById pool uid
     durations <- (map entityVal) <$> getDurationsById pool uid
-    -- durations <- (map entityVal) <$> getDurationsById pool uid
     let tasks = tasksFromText user durations text
-    exam <- ifValidPost user tasks
-    case exam of
-        Left errMsg ->
+    fault <- faultPost user tasks
+    case fault of
+        Just errMsg ->
             return $ ElmSubModel elmUser [] Nothing (Just errMsg) 
-        Right okTasks -> do
+        Nothing -> do
             mn <- getMaxNode
             let maxNode = case mn of
                     Nothing -> 0
                     Just n  -> n
             let shift = maxNode + 2  -- TODO 
-            insTasks . (shiftTaskNodes shift) $ okTasks
+            insTasks . (shiftTaskNodes shift) $ tasks
             newTasks <- getUndoneTaskAssigns pool uid
-            let okMsg = buildPostOkMsg okTasks
             let elmTasks = map toElmTask newTasks
+            let okMsg = buildOkMsg tasks " tasks registered."
             return $ ElmSubModel elmUser elmTasks Nothing (Just okMsg)
 
-ifValidPost :: User -> [Task] -> IO (Either Text [Task])
-ifValidPost user tasks = do
+faultPost :: User -> [Task] -> IO (Maybe Text)
+faultPost user tasks = do
     faultPerms <- faultPostPermission user tasks
     faultFormat <- faultPostFormat tasks
     let faultList =  [ faultPerms
                     , faultFormat
                     ]
     if Prelude.all (== Nothing) faultList then
-        return $ Right tasks
+        return Nothing
     else do
         let errMsg = buildPostErrMsg faultList
-        return $ Left errMsg
+        return $ Just errMsg
 
 faultPostPermission :: User -> [Task] -> IO (Maybe Text)
 faultPostPermission user tasks = do
@@ -351,7 +354,43 @@ goHome' :: GoHome -> IO ElmSubModel
 goHome' (GoHome uid) = 
     devSubModel' uid
 
+cloneTasks' :: CloneTasks -> IO ElmSubModel
+cloneTasks' (CloneTasks elmUser taskIds) = do
+    pool <- pgPool
+    let uid = elmUserId elmUser
+    fault <- faultClonePermission uid taskIds
+    case fault of
+        Just errMsg ->
+            return $ ElmSubModel elmUser [] Nothing (Just errMsg) 
+        Nothing -> do
+            -- user <- Prelude.head <$> (map entityVal) <$> getUserById pool uid
+            -- durations <- (map entityVal) <$> getDurationsById pool uid
+            taskAssigns <- (map (\(e,v) -> (entityVal e, Q.unValue v))) <$> getTaskAssignsByIds taskIds
+            let text = textFromTasks taskAssigns
+            let okMsg = buildOkMsg taskAssigns " tasks cloned."
+            return $ ElmSubModel elmUser [] (Just text) (Just okMsg)
 
+faultClonePermission :: Int -> [Int] -> IO (Maybe Text)
+faultClonePermission uid [] = return $ Nothing
+faultClonePermission uid (t:ts) = do
+    perm <- hasEditPerm uid t
+    if perm then
+        faultClonePermission uid ts
+    else do
+        pool <- pgPool
+        taskAssign <- Prelude.head <$> getTaskAssignById pool t
+        return $ Just (buildCloneErrMsg taskAssign)
+
+getTaskAssignsByIds :: [Int] -> IO [(Entity Task, Q.Value Text)]
+getTaskAssignsByIds ids = do
+    pool <- pgPool
+    Prelude.head <$> sequence ( map (getTaskAssignById pool) ids)
+    
+
+hasEditPerm :: Int -> Int -> IO (Bool)
+hasEditPerm uid taskId =
+    -- TODO
+    return True 
 
 
 
@@ -591,7 +630,8 @@ universal tzh mut = addUTCTime <$> Just tzsMinus <*> mut
 -- textFromTasks :: User -> [Duration] -> [Task] -> Text
 -- textFromTasks u ds = 
     -- (universalTime u) . (setBeginEnd u ds) . tasksFromGraph . graphFromText
-
+textFromTasks :: [(Task, Text)] -> Text
+textFromTasks taskAssigns = pack "hoge"
 
 
     --     headLs = map (\(, ) g
@@ -858,12 +898,16 @@ nega' (d:ds) seed right rest
     | otherwise =
         posi' (d:ds) seed (snd d) rest
 
-buildPostOkMsg :: [Task] -> Text
-buildPostOkMsg tasks =
-    pack $ (show $ Prelude.length tasks) ++ " tasks registered."
+buildOkMsg :: [a] -> String -> Text
+buildOkMsg xs str =
+    pack $ (show $ Prelude.length xs) ++ str
 
 buildPostErrMsg :: [Maybe Text] -> Text
 buildPostErrMsg []              = "No fault."
 buildPostErrMsg ((Just text):_) = text
 buildPostErrMsg (Nothing:es)  = buildPostErrMsg es
+
+buildCloneErrMsg :: (Entity Task, Q.Value Text) -> Text
+buildCloneErrMsg (_, Q.Value userName) =
+    Data.Text.concat [pack "You have no permission for @", userName]
 

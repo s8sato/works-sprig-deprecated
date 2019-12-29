@@ -203,7 +203,7 @@ type Msg
     | CharacterKeyUTRelease Char
     | ControlKeyUTRelease String
     | Tick Time.Posix
-    | TextReceived (Result Http.Error SubModel)
+    | TasksCloned (Result Http.Error SubModel)
     | TextPosted (Result Http.Error SubModel)
 
 
@@ -471,12 +471,12 @@ update msg model =
         ControlKeyUTRelease _ ->
             ( model, Cmd.none )
 
-        TextReceived (Ok newSubModel) ->
-            ( textReceived model newSubModel
+        TasksCloned (Ok newSubModel) ->
+            ( tasksCloned model newSubModel
             , Task.attempt (\_ -> NoOp) (focus "inputArea")
             )
 
-        TextReceived (Err httpError) ->
+        TasksCloned (Err httpError) ->
             ( messageEH model httpError, Cmd.none )
 
         TextPosted (Ok newSubModel) ->
@@ -693,8 +693,8 @@ switchSelect model i =
             }
 
 
-textReceived : Model -> SubModel -> Model
-textReceived model m =
+tasksCloned : Model -> SubModel -> Model
+tasksCloned model m =
     let
         sub =
             model.sub
@@ -807,7 +807,7 @@ cloneTasks m =
     Http.post
         { url = "http://localhost:8080/tasks/clone"
         , body = Http.jsonBody (cloneTasksEncoder m)
-        , expect = Http.expectJson TextReceived subModelDecoder
+        , expect = Http.expectJson TasksCloned subModelDecoder
         }
 
 

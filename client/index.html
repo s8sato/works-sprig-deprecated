@@ -6193,8 +6193,8 @@ var $author$project$Main$changeDpy = F2(
 			model,
 			{dpy: dpy, sub: newSub});
 	});
-var $author$project$Main$TextReceived = function (a) {
-	return {$: 'TextReceived', a: a};
+var $author$project$Main$TasksCloned = function (a) {
+	return {$: 'TasksCloned', a: a};
 };
 var $elm$core$List$filter = F2(
 	function (isGood, list) {
@@ -7180,7 +7180,7 @@ var $author$project$Main$cloneTasks = function (m) {
 		{
 			body: $elm$http$Http$jsonBody(
 				$author$project$Main$cloneTasksEncoder(m)),
-			expect: A2($elm$http$Http$expectJson, $author$project$Main$TextReceived, $author$project$Main$subModelDecoder),
+			expect: A2($elm$http$Http$expectJson, $author$project$Main$TasksCloned, $author$project$Main$subModelDecoder),
 			url: 'http://localhost:8080/tasks/clone'
 		});
 };
@@ -7699,6 +7699,16 @@ var $author$project$Main$taskFocused = F3(
 			model,
 			{indicator: newIndicator, sub: newSub});
 	});
+var $author$project$Main$tasksCloned = F2(
+	function (model, m) {
+		var sub = model.sub;
+		var newSub = _Utils_update(
+			sub,
+			{inputText: m.inputText, message: m.message});
+		return _Utils_update(
+			model,
+			{sub: newSub});
+	});
 var $author$project$Main$TextPosted = function (a) {
 	return {$: 'TextPosted', a: a};
 };
@@ -7746,16 +7756,6 @@ var $author$project$Main$textPosted = F2(
 					}
 				}()
 			});
-		return _Utils_update(
-			model,
-			{sub: newSub});
-	});
-var $author$project$Main$textReceived = F2(
-	function (model, m) {
-		var sub = model.sub;
-		var newSub = _Utils_update(
-			sub,
-			{inputText: m.inputText, message: m.message});
 		return _Utils_update(
 			model,
 			{sub: newSub});
@@ -8062,11 +8062,11 @@ var $author$project$Main$update = F2(
 				} else {
 					return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
 				}
-			case 'TextReceived':
+			case 'TasksCloned':
 				if (msg.a.$ === 'Ok') {
 					var newSubModel = msg.a.a;
 					return _Utils_Tuple2(
-						A2($author$project$Main$textReceived, model, newSubModel),
+						A2($author$project$Main$tasksCloned, model, newSubModel),
 						A2(
 							$elm$core$Task$attempt,
 							function (_v3) {

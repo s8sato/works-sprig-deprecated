@@ -309,12 +309,12 @@ textarea {
     background-image: url("../images/cmd_e_hover.png");
 }
 
-#create {
+#clone {
     background-image: url("../images/cmd_c_normal.png");
     background-size: contain;
 }
 
-#create:hover {
+#clone:hover {
     background-image: url("../images/cmd_c_hover.png");
 }
 

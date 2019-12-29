@@ -243,7 +243,8 @@ getUndoneTaskAssigns pool uid = flip runSqlPool pool $ do
     select $ from $ \(task `InnerJoin` user) -> do
         on (task ^. TaskUser ==. user ^. UserId)
         where_
-            (   task ^. TaskUser ==. val (toSqlKey $ fromIntegral uid)
+            (   task ^. TaskUser ==. val (UserKey . keyFromInt $ uid)
+            -- (   task ^. TaskUser ==. val (toSqlKey $ fromIntegral uid)
             &&. not_ ( task ^. TaskIsDone )
             )
         orderBy
@@ -286,3 +287,12 @@ getDurationsById pool id = flip runSqlPool pool $ do
             ]
         return (duration)
 
+
+getTaskAssignById :: ConnectionPool -> Int -> IO [(Entity Task, Value Text)]
+getTaskAssignById  pool id = flip runSqlPool pool $ do
+    select $ from $ \(task `InnerJoin` user) -> do
+        on (task ^. TaskUser ==. user ^. UserId)
+        where_
+            (   task ^. TaskId ==. val (TaskKey . keyFromInt $ id)
+            )
+        return (task, user ^. UserName)
