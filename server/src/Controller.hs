@@ -703,7 +703,7 @@ setBeginEnd' user ds (Task t i y d s ml ms mb me md mw mt u) =
                     end = md
                     begin = case end of
                         Just e ->
-                            backward e ds weight
+                            beginFromEnd e ds weight
                         _ ->
                             Nothing
                 in
@@ -714,7 +714,7 @@ setBeginEnd' user ds (Task t i y d s ml ms mb me md mw mt u) =
                     begin = ms
                     end = case begin of
                         Just b ->
-                            forward b ds weight
+                            endFromBegin b ds weight
                         _ ->
                             Nothing
                 in
@@ -734,8 +734,8 @@ millisFromUTC u = floor . ((*) (10^3)) . utcTimeToPOSIXSeconds $ u
 utcFromMillis :: Millis -> UTCTime
 utcFromMillis = posixSecondsToUTCTime . fromIntegral. (`div` 10^3)  
 
-forward :: UTCTime -> [Duration] -> Millis -> Maybe UTCTime
-forward begin ds weight =
+endFromBegin :: UTCTime -> [Duration] -> Millis -> Maybe UTCTime
+endFromBegin begin ds weight =
     let
         ds' = map toMillis ds
         begin' = millisFromUTC begin
@@ -743,8 +743,8 @@ forward begin ds weight =
     in
     utcFromMillis <$> ((+) <$> (Just begin') <*> diff)
 
-backward :: UTCTime -> [Duration] -> Millis -> Maybe UTCTime
-backward end ds weight = 
+beginFromEnd :: UTCTime -> [Duration] -> Millis -> Maybe UTCTime
+beginFromEnd end ds weight = 
     let
         ds' = reverse $ map toMillis ds
         end' = millisFromUTC end
