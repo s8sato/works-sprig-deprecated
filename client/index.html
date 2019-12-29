@@ -8170,13 +8170,6 @@ var $elm$core$List$any = F2(
 			}
 		}
 	});
-var $elm$core$List$all = F2(
-	function (isOkay, list) {
-		return !A2(
-			$elm$core$List$any,
-			A2($elm$core$Basics$composeL, $elm$core$Basics$not, isOkay),
-			list);
-	});
 var $elm$time$Time$flooredDiv = F2(
 	function (numerator, denominator) {
 		return $elm$core$Basics$floor(numerator / denominator);
@@ -8228,6 +8221,13 @@ var $elm$time$Time$toHour = F2(
 				A2($elm$time$Time$toAdjustedMinutes, zone, time),
 				60));
 	});
+var $elm$time$Time$toMillis = F2(
+	function (_v0, time) {
+		return A2(
+			$elm$core$Basics$modBy,
+			1000,
+			$elm$time$Time$posixToMillis(time));
+	});
 var $elm$time$Time$toMinute = F2(
 	function (zone, time) {
 		return A2(
@@ -8245,25 +8245,23 @@ var $elm$time$Time$toSecond = F2(
 				$elm$time$Time$posixToMillis(time),
 				1000));
 	});
-var $author$project$Main$daySec = F2(
-	function (z, t) {
-		var t_ = $elm$time$Time$millisToPosix(t);
-		return ((3600 * A2($elm$time$Time$toHour, z, t_)) + (60 * A2($elm$time$Time$toMinute, z, t_))) + A2($elm$time$Time$toSecond, z, t_);
+var $author$project$Main$dayMillis = F2(
+	function (z, time) {
+		var t = $elm$time$Time$millisToPosix(time);
+		return A2($elm$time$Time$toMillis, z, t) + (A2($elm$core$Basics$pow, 10, 3) * (A2($elm$time$Time$toSecond, z, t) + (60 * (A2($elm$time$Time$toMinute, z, t) + (60 * A2($elm$time$Time$toHour, z, t))))));
 	});
 var $author$project$Main$thatDurations = F3(
 	function (z, p, durs) {
-		var thatMidnight = p - (A2($elm$core$Basics$pow, 10, 3) * A2($author$project$Main$daySec, z, p));
+		var thatMidnight = p - A2($author$project$Main$dayMillis, z, p);
 		return A2(
 			$elm$core$List$map,
 			function (d) {
 				return _Utils_update(
 					d,
-					{left: d.left + thatMidnight, right: d.right + thatMidnight});
+					{left: d.orgLeft + thatMidnight, right: d.orgRight + thatMidnight});
 			},
 			durs);
 	});
-var $author$project$Main$toMillis = $elm$core$Basics$mul(
-	A2($elm$core$Basics$pow, 10, 3));
 var $author$project$Main$preString_ = F8(
 	function (z, count, dpy, p, begin, end, durs, store) {
 		preString_:
@@ -8272,34 +8270,12 @@ var $author$project$Main$preString_ = F8(
 				return store;
 			} else {
 				var pR = p + ((($author$project$Main$secPerY * A2($elm$core$Basics$pow, 10, 3)) / dpy) | 0);
-				var _char = ((_Utils_cmp(p, begin) < 0) && (_Utils_cmp(end, pR) < 0)) ? _Utils_chr('#') : (((_Utils_cmp(p, begin) < 0) && ((_Utils_cmp(begin, pR) < 0) && (_Utils_cmp(pR, end) < 0))) ? (A2(
-					$elm$core$List$all,
+				var _char = ((_Utils_cmp(p, begin) < 0) && (_Utils_cmp(end, pR) < 0)) ? _Utils_chr('#') : (((_Utils_cmp(begin, p) < 0) && (_Utils_cmp(p, end) < 0)) ? (A2(
+					$elm$core$List$any,
 					function (d) {
-						return (_Utils_cmp(
-							pR,
-							$author$project$Main$toMillis(d.left)) < 0) || (_Utils_cmp(
-							$author$project$Main$toMillis(d.right),
-							begin) < 0);
+						return (_Utils_cmp(d.left, p) < 0) && (_Utils_cmp(p, d.right) < 0);
 					},
-					durs) ? _Utils_chr('-') : _Utils_chr('#')) : (((_Utils_cmp(p, begin) < 0) && ((_Utils_cmp(begin, pR) < 0) && (_Utils_cmp(pR, end) < 0))) ? (A2(
-					$elm$core$List$all,
-					function (d) {
-						return (_Utils_cmp(
-							$author$project$Main$toMillis(d.right),
-							p) < 0) || (_Utils_cmp(
-							end,
-							$author$project$Main$toMillis(d.left)) < 0);
-					},
-					durs) ? _Utils_chr('-') : _Utils_chr('#')) : (((_Utils_cmp(begin, p) < 0) && (_Utils_cmp(pR, end) < 0)) ? (A2(
-					$elm$core$List$all,
-					function (d) {
-						return (_Utils_cmp(
-							$author$project$Main$toMillis(d.right),
-							p) < 0) || (_Utils_cmp(
-							pR,
-							$author$project$Main$toMillis(d.left)) < 0);
-					},
-					durs) ? _Utils_chr('-') : _Utils_chr('#')) : _Utils_chr('.'))));
+					durs) ? _Utils_chr('#') : _Utils_chr('-')) : _Utils_chr('.'));
 				var $temp$z = z,
 					$temp$count = count + 1,
 					$temp$dpy = dpy,
@@ -8341,9 +8317,24 @@ var $elm$core$List$repeat = F2(
 	function (n, value) {
 		return A3($elm$core$List$repeatHelp, _List_Nil, n, value);
 	});
+var $author$project$Main$MillisDuration = F4(
+	function (left, right, orgLeft, orgRight) {
+		return {left: left, orgLeft: orgLeft, orgRight: orgRight, right: right};
+	});
+var $author$project$Main$toMillis = $elm$core$Basics$mul(
+	A2($elm$core$Basics$pow, 10, 3));
+var $author$project$Main$toMillisDuration = function (d) {
+	return A4(
+		$author$project$Main$MillisDuration,
+		$author$project$Main$toMillis(d.left),
+		$author$project$Main$toMillis(d.right),
+		$author$project$Main$toMillis(d.left),
+		$author$project$Main$toMillis(d.right));
+};
 var $author$project$Main$preString = F5(
 	function (z, dpy, asof, task, durs) {
 		var p = $elm$time$Time$posixToMillis(asof);
+		var durs_ = A2($elm$core$List$map, $author$project$Main$toMillisDuration, durs);
 		var _v0 = _Utils_Tuple2(task.begin, task.end);
 		if ((_v0.a.$ === 'Just') && (_v0.b.$ === 'Just')) {
 			var b = _v0.a.a;
@@ -8357,7 +8348,7 @@ var $author$project$Main$preString = F5(
 					p,
 					b,
 					e,
-					A3($author$project$Main$thatDurations, z, p, durs),
+					A3($author$project$Main$thatDurations, z, p, durs_),
 					_List_Nil));
 		} else {
 			return A2(

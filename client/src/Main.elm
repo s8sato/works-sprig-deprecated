@@ -1333,30 +1333,25 @@ preString z dpy asof task durs =
     let
         p =
             posixToMillis asof
+
+        durs_ =
+            List.map toMillisDuration durs
     in
     case ( task.begin, task.end ) of
         ( Just b, Just e ) ->
-            preString_ z 0 dpy p b e (thatDurations z p durs) []
+            preString_ z 0 dpy p b e (thatDurations z p durs_) []
                 |> List.reverse
 
         _ ->
             List.repeat 48 '.'
 
 
-thatDurations : Zone -> Millis -> List Duration -> List Duration
-thatDurations z p durs =
-    let
-        thatMidnight =
-            p - (10 ^ 3) * daySec z p
-    in
-    List.map
-        (\d ->
-            { d
-                | left = d.left + thatMidnight
-                , right = d.right + thatMidnight
-            }
-        )
-        durs
+type alias MillisDuration =
+    { left : Millis
+    , right : Millis
+    , orgLeft : Millis
+    , orgRight : Millis
+    }
 
 
 toMillis : Int -> Millis
@@ -1364,7 +1359,37 @@ toMillis =
     (*) (10 ^ 3)
 
 
-preString_ : Zone -> Int -> Int -> Millis -> Millis -> Millis -> List Duration -> List Char -> List Char
+toMillisDuration : Duration -> MillisDuration
+toMillisDuration d =
+    MillisDuration (toMillis d.left) (toMillis d.right) (toMillis d.left) (toMillis d.right)
+
+
+dayMillis : Zone -> Millis -> Millis
+dayMillis z time =
+    let
+        t =
+            millisToPosix time
+    in
+    Time.toMillis z t + ((10 ^ 3) * (Time.toSecond z t + 60 * (Time.toMinute z t + (60 * Time.toHour z t))))
+
+
+thatDurations : Zone -> Millis -> List MillisDuration -> List MillisDuration
+thatDurations z p durs =
+    let
+        thatMidnight =
+            p - dayMillis z p
+    in
+    List.map
+        (\d ->
+            { d
+                | left = d.orgLeft + thatMidnight
+                , right = d.orgRight + thatMidnight
+            }
+        )
+        durs
+
+
+preString_ : Zone -> Int -> Int -> Millis -> Millis -> Millis -> List MillisDuration -> List Char -> List Char
 preString_ z count dpy p begin end durs store =
     if count >= 48 then
         store
@@ -1379,44 +1404,17 @@ preString_ z count dpy p begin end durs store =
                 if p < begin && end < pR then
                     '#'
 
-                else if p < begin && begin < pR && pR < end then
-                    if List.all (\d -> pR < toMillis d.left || toMillis d.right < begin) durs then
-                        '-'
-
-                    else
+                else if begin < p && p < end then
+                    if List.any (\d -> d.left < p && p < d.right) durs then
                         '#'
 
-                else if p < begin && begin < pR && pR < end then
-                    if List.all (\d -> toMillis d.right < p || end < toMillis d.left) durs then
-                        '-'
-
                     else
-                        '#'
-
-                else if begin < p && pR < end then
-                    if List.all (\d -> toMillis d.right < p || pR < toMillis d.left) durs then
                         '-'
-
-                    else
-                        '#'
 
                 else
                     '.'
         in
         preString_ z (count + 1) dpy pR begin end (thatDurations z pR durs) (char :: store)
-
-
-daySec : Zone -> Millis -> DaySec
-daySec z t =
-    let
-        t_ =
-            millisToPosix t
-    in
-    3600
-        * Time.toHour z t_
-        + 60
-        * Time.toMinute z t_
-        + Time.toSecond z t_
 
 
 strFromPosix : Zone -> Posix -> String

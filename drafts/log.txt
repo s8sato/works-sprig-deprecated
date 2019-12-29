@@ -59,96 +59,12 @@ insUser $ User (pack "chiro") False 0 False (Just 2920) Nothing Nothing Nothing
 「社員番号4桁に10000を加えたものをサブ垢にして良い」
 2019-12-24 16:38:56
 
-Problem with the value at json[1]: { "elmTaskId": 8, "elmTaskIsDone": false, "elmTaskIsStarred": false, "elmTaskTitle": "A task to complete by the end of 2020", "elmTaskLink": null, "elmTaskStart": null, "elmTaskDeadline": 1609372800, "elmTaskWeight": null, "elmTaskUser": "dev" } Json.Decode.oneOf failed in the following 2 ways: (1) Json.Decode.oneOf failed in the following 2 ways: (1) Problem with the given value: 1609372800 Expecting null (2) Problem with the given value: 1609372800 Expecting a STRING (2) Problem with the given value: 1609372800 Expecting null
-2019-12-24 17:34:46
-
-Delegated time handling to Elm and, in parallel, divided Model into Model and SubModel.
-TextPost issues remain.
-2019-12-25 01:32:52
-
-elm-community/json-extra
-
-Persistent で `Integer` 型のフィールドを定義する方法はあるのでしょうか
-テーブル定義で Integer とすると、そんなものはないと言われるので仕方なく Int にしています
-PostgreSQLの場合、内部的には bigint で扱ってくれているようです
-ところがHaskell側にもってくると、やはり正体は Int です
-20億は超えてくる可能性があるので、Integer で定義したいのですが...
-
-`Int64` もありそうでないのです
-terminal というのはフィールド名です
-
-`Int64` とするとまた別の短いメッセージが
-
-    ? Not in scope: type constructor or class ‘Int64’
-    ? In the quasi-quotation:
-        [persistLowerCase|
-User
-    name                Text
-    admin               Bool
-    timeZone            Int
-    defaultDpy          Int Maybe
-    lookUp              Int Maybe
-    lookDown            Int Maybe
-    -- salt                Text
-    encrypted           Text Maybe
-    UniqueUser          name
-    deriving Show
-Task json
-    terminal            Int64
-    initial             Int
-...
-
-定義できたみたいです、ありがとうございます
-2019-12-25 16:58:26
-
-キー8、dpsが効かなくなった
-オーバーフローだろうか
-2019-12-25 21:00:01
-
-時計を仕込む
-2019-12-25 21:00:20
-
-Eliminated integers.
-Added getMaxNode, many Elm Task.performs.
-
-vertical stripe as guide
-disabled key-event during typing, added / and Escape navigation
-2019-12-27 04:02:22
-
-added isDummy, begin, end as Task fields
-added Entity Duration, revised ElmUser and ElmSubModel
-2019-12-27 18:22:48
-
-
-elm-community/json-extra
-updateStatus
-
 INSERT INTO duration VALUES (30600,43200,1);
 INSERT INTO duration VALUES (46800,63000,1);
-
-not work
-
-253402268400000
-568971788400000
-9007199254740992
 
 UPDATE public.user SET is_lazy = False;
 UPDATE public.user SET is_lazy = True;
 2019-12-28 23:01:19
 
-1577545200000
-621000000
-
-テストを書く
-posi [(30600000,43200000), (46800000,63000000)] [(30600000,43200000), (46800000,63000000)] 0 (millisFromWeight 16)
-posi [(30600000,43200000), (46800000,63000000)] [(30600000,43200000), (46800000,63000000)] 0 (millisFromWeight 80)
-posi [(30600000,43200000), (46800000,63000000)] [(30600000,43200000), (46800000,63000000)] 1577458800 (millisFromWeight 80)
-posi [(30600000,43200000), (46800000,63000000)] [(30600000,43200000), (46800000,63000000)] 1577458800 (millisFromWeight 16)
-
-posi' [(46800000,63000000), (30600000,43200000)] [(46800000,63000000), (30600000,43200000)] 0 (millisFromWeight 16)
-posi' [] [(46800000,63000000), (30600000,43200000)] 0 (millisFromWeight 16)
-posi' [] [(46800000,63000000), (30600000,43200000)] 45867935873 (millisFromWeight 16)
-posi' [] [(46800000,63000000), (30600000,43200000)] (-1) (millisFromWeight 16)
-
-setBeginEnd works!
-2019-12-29 01:24:55
+barString works!
+2019-12-29 11:25:35
