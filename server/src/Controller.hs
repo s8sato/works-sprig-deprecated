@@ -405,7 +405,6 @@ type Edge = ((Node, Node), [Attr])
 type Node  = Int
 data Attr  = 
       AttrTaskId    { attrTaskId    :: Int  }
-    | IsDummy       { isDummy       :: Bool }
     | IsDone        { isDone        :: Char }
     -- | IsStarred     
     | IsStarred     { isStarred     :: Char }
@@ -568,7 +567,6 @@ markUp'' sbj obj is mem
 
 aAttr :: Parser Attr
 aAttr = AttrTaskId    <$  char '#'  <*> decimal
-    -- <|> IsDummy        
     <|> IsDone        <$> char '%'
     <|> IsStarred     <$>  char '*'
     <|> Link          <$  char '&'  <*> takeText
@@ -619,7 +617,7 @@ keyMatch (a:as) (b:bs) ah = case a of
         keyMatch as (b:bs) ah
 
 spanDummy'' :: (Node, Node) -> (Node, Node) -> Graph -> Graph
-spanDummy'' (_,t) (i,_) g = ((t,i), [IsDummy True, IsDone '%', Title "DUMMY"]) : g
+spanDummy'' (_,t) (i,_) g = ((t,i), [AttrTaskId 0, IsDone '%', Title "DUMMY"]) : g
 
 -- universalTime :: User -> [Task] -> [Task]
 -- universalTime user = 
@@ -690,7 +688,6 @@ edgeFromTask ((Task t i y d s ml ms _ _ md mw mt _), (id,an)) =
             Nothing             -> (0,0,0)
         attr = shave
             [ AttrTaskId    (fromIntegral . fromSqlKey $ id)
-            , IsDummy       y
             , IsDone        (if d then '%' else '_')
             -- , IsStarred     
             , IsStarred     (if s then '*' else '_')
@@ -785,7 +782,7 @@ addHead terminal key =
 
 hasDummy :: [Attr] -> Bool
 hasDummy =
-    Prelude.any (\attr -> attr == IsDummy True)
+    Prelude.any (\attr -> attr == AttrTaskId 0)
 
 remDupLink :: Graph -> Graph
 remDupLink =  map (\(p, as) -> (p, remDupLink' as as))
@@ -814,7 +811,6 @@ wordsFromAttrs =
 wordsFromAttrs' :: Attr -> B.Builder
 wordsFromAttrs' a = case a of
     AttrTaskId    i     -> B.singleton '#' <> B.decimal i
-    IsDummy       _     -> B.fromText ""
     IsDone        _     -> B.singleton '%'
     IsStarred     _      -> B.singleton '*'
     HeadLink      h     -> B.singleton ']' <> B.fromText h
@@ -839,12 +835,7 @@ markDown xs =
         xs'     = zip tree' (map snd xs)
         ys      = markDown' tree'
     in
-        -- [
-        --     (1, (pack $ show $ Prelude.length xs))
-        -- ,   (3, (pack $ show $ Prelude.length ys))
-        -- ]
         mergeOnNodes ys xs'
-        -- zip (map snd ys) (map snd xs)
 
 mergeOnNodes :: [((Node, Node), Indent)] -> [((Node, Node), Text)] -> [(Indent, Text)]
 mergeOnNodes ys xs = mergeOnNodes' ys xs xs []
