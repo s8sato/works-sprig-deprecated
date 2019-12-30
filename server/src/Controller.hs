@@ -405,9 +405,10 @@ type Edge = ((Node, Node), [Attr])
 type Node  = Int
 data Attr  = 
       AttrTaskId    { attrTaskId    :: Int  }
-    | IsDone        { isDone        :: Char }
-    -- | IsStarred     
-    | IsStarred     { isStarred     :: Char }
+    | IsDone
+    -- | IsDone        { isDone        :: Char }
+    | IsStarred
+    -- | IsStarred     { isStarred     :: Char }
     | HeadLink      { headLink      :: Text }
     | Title         { title         :: Text }
     | StartableDate { startableYea  :: Int, startableMon    :: Int, startableDay    :: Int }
@@ -428,13 +429,6 @@ tasksFromGraph :: User -> [Duration] -> Graph -> [Task]
 tasksFromGraph u ds = 
     (map (universalize u)) . (setBeginEnd u ds) . (map taskFromEdge)
 
--- tasksFromText :: User -> [Duration] -> Text -> [Task]
--- tasksFromText u ds = 
---     (universalize u) . (setBeginEnd u ds) . tasksFromGraph . graphFromText
-
--- tasksFromGraph :: Graph -> [Task]
--- tasksFromGraph = map taskFromEdge
-
 taskFromEdge :: Edge -> Task
 taskFromEdge ((t,i),as) =
     taskFromEdge' as (Task t i False False False Nothing Nothing Nothing Nothing Nothing Nothing Nothing anonymousUser)
@@ -448,9 +442,9 @@ taskFromEdge' (a:as) (Task t i y d s ml ms mb me md mw mt u) =
             taskFromEdge' as (Task t i y d s ml ms mb me md mw mt u)
         AttrTaskId n ->  -- TODO
             taskFromEdge' as (Task t i y d s ml ms mb me md mw mt u)
-        IsDone _ ->
+        IsDone ->
             taskFromEdge' as (Task t i y True s ml ms mb me md mw mt u)
-        IsStarred _ ->
+        IsStarred ->
             taskFromEdge' as (Task t i y d True ml ms mb me md mw mt u)
         Link l ->
             taskFromEdge' as (Task t i y d s (Just l) ms mb me md mw mt u)
@@ -567,8 +561,8 @@ markUp'' sbj obj is mem
 
 aAttr :: Parser Attr
 aAttr = AttrTaskId    <$  char '#'  <*> decimal
-    <|> IsDone        <$> char '%'
-    <|> IsStarred     <$>  char '*'
+    <|> IsDone        <$  char '%'
+    <|> IsStarred     <$  char '*'
     <|> Link          <$  char '&'  <*> takeText
     <|> StartableDate <$> decimal   <*  char '/' <*> decimal <* char '/' <*> decimal <* char '-'
     <|> StartableTime <$> decimal   <*  char ':' <*> decimal <* char ':' <*> decimal <* char '-'
@@ -617,26 +611,7 @@ keyMatch (a:as) (b:bs) ah = case a of
         keyMatch as (b:bs) ah
 
 spanDummy'' :: (Node, Node) -> (Node, Node) -> Graph -> Graph
-spanDummy'' (_,t) (i,_) g = ((t,i), [AttrTaskId 0, IsDone '%', Title "DUMMY"]) : g
-
--- universalTime :: User -> [Task] -> [Task]
--- universalTime user = 
---     map (\(Task t i y d s l ms mb me md mw tt u) -> 
---         let
---             tzh = userTimeZone user
---             mus = universalize tzh ms
---             mub = universalize tzh mb
---             mue = universalize tzh me
---             mud = universalize tzh md
---         in
---             Task t i y d s l mus mub mue mud mw tt u
---         )
-
--- universalize :: TimeZoneHour -> Maybe UTCTime -> Maybe UTCTime
--- universalize tzh mut = addUTCTime <$> Just tzsMinus <*> mut
---     where
---         tzsMinus :: NominalDiffTime
---         tzsMinus = 60*60*(-1)*(fromIntegral tzh)
+spanDummy'' (_,t) (i,_) g = ((t,i), [AttrTaskId 0, IsDone, Title "DUMMY"]) : g
 
 universalize :: User -> Task -> Task
 universalize user = timeShift minus
@@ -688,9 +663,10 @@ edgeFromTask ((Task t i y d s ml ms _ _ md mw mt _), (id,an)) =
             Nothing             -> (0,0,0)
         attr = shave
             [ AttrTaskId    (fromIntegral . fromSqlKey $ id)
-            , IsDone        (if d then '%' else '_')
-            -- , IsStarred     
-            , IsStarred     (if s then '*' else '_')
+            , IsDone
+            -- , IsDone        (if d then '%' else '_')
+            , IsStarred
+            -- , IsStarred     (if s then '*' else '_')
             -- , HeadLink      
             , Title         (case mt of
                                 Just tt  -> tt
@@ -757,18 +733,6 @@ addLink' node (((t,i),as):es) origin result
             addLink' node es origin result
     | otherwise =
         addLink' node es origin result
--- addLink' node (((t,node),as):es) origin result
---     | hasDummy as = 
---         addLink' (node - 1) origin origin ((addHead node node) . (addTail t node) $ result)
---     | otherwise =
---         addLink' node es origin result
--- addLink' node (((node, i),as):es) origin result
---     | hasDummy as = 
---         addLink' (node - 1) origin origin ((addHead i node) . (addTail node node) $ result)
---     | otherwise =
---         addLink' node es origin result
--- addLink' node (_:es) origin result =
---     addLink' node es origin result
 
 addTail :: Node -> Node -> Graph -> Graph
 addTail initial key =
@@ -811,8 +775,8 @@ wordsFromAttrs =
 wordsFromAttrs' :: Attr -> B.Builder
 wordsFromAttrs' a = case a of
     AttrTaskId    i     -> B.singleton '#' <> B.decimal i
-    IsDone        _     -> B.singleton '%'
-    IsStarred     _      -> B.singleton '*'
+    IsDone              -> B.singleton '%'
+    IsStarred           -> B.singleton '*'
     HeadLink      h     -> B.singleton ']' <> B.fromText h
     Title         t     -> B.fromText t
     StartableDate y m d -> 
@@ -900,88 +864,6 @@ bindLines :: [(Indent, Text)] -> Text
 bindLines =
     Data.Text.unlines . map (\(i,t) -> Data.Text.concat [Data.Text.replicate i indent, t])
 
-
-    --     headLs = map (\(, ) g
-    --         map
-    -- in
-    --     spanDummy' headLs tailLs
-
--- fileTest :: FilePath -> IO ()
--- fileTest inFile = do
---     withFile inFile ReadMode $ \inHandle ->
---         do  text <- hGetContents inHandle
---             print (graphFromText $ pack text)
-
--- fileTest2 :: FilePath -> IO ()
--- fileTest2 inFile = do
---     withFile inFile ReadMode $ \inHandle ->
---         do  text <- hGetContents inHandle
---             print (tasksFromText $ pack text)
-
--- fileTest3 :: FilePath -> IO ()
--- fileTest3 inFile = do
---     withFile inFile ReadMode $ \inHandle ->
---         do  text <- hGetContents inHandle
---             insTasks $ tasksFromText $ pack text
-
-
-
--- textFromGraph :: Graph [Attr] -> B.Builder
--- textFromGraph = setText . setIndent . sortEdge
-
--- sortEdge :: Graph [Attr] -> [Edge [Attr]]
-
--- indent :: [Edge [Attr]] -> [(Indent, Edge [Attr])]
-
--- setText :: [(Indent, Edge [Attr])] -> B.Builder
-
-
-
--- graphFromJson :: Value -> Parser Graph
-
--- jsonFromGraph :: Graph -> Value
--- jsonFromGraph (Graph es) =
---     object  [ "edges"   .= object [ jsonFromEdge es ] 
---             ]
-
--- jsonFromEdge :: Edge -> Value
--- jsonFromEdge (Edge t i as) =
---     object  [ "terminal"    .= Number (fromIntegral t)
---             , "initial"     .= Number (fromInteger i)
---             , "attrs"       .= object [ jsonFromAttr as ]
---             ]
-
--- jsonFromAttr :: Attr -> Value
--- jsonFromAttr (AttrTaskId i) =
---     object  [ "taskId"      .= Number (fromInteger i)
---             ]
-
-
-
-
-                --         <
-                --         <
-                -- IsStarred     <
-                -- Link          <
-                -- StartableDate     <
-                -- StartableTime     <
-                -- DeadlineDate  <
-                -- DeadlineTime  <
-                -- Weight        <
-                -- Title         <
-
-
--- clientToJSON (Company i n p d) =
---     object  [ "type"    .= String "company"
---             , "id"      .= Number (fromInteger i)
---             , "name"    .= String (pack n)
---             , "person"  .= personToJSON p
---             , "duty"    .= String (pack d)
---             ]
-
-
---
-
 idFromEntity :: (Integral a, ToBackendKey SqlBackend record) => Entity record -> a
 idFromEntity = idFromKey . entityKey
 
@@ -1042,7 +924,6 @@ setBeginEnd u ds =
 
 setBeginEnd' :: User -> [Duration] -> Task -> Task
 setBeginEnd' user ds (Task t i y d s ml ms mb me md mw mt u) =
-    -- Task t i y d s ml ms ms md md mw mt u
     case mw of
         Nothing ->
             Task t i y d s ml ms mb me md mw mt u
