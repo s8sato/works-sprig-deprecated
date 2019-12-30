@@ -71,3 +71,7 @@ barString works!
 
 added TextPost validation
 got ready for implementing textFromTasks
+
+#777 % * key] title... @satun [key &https://
+
+mergeOnNodes [((1,2),4), ((2,3),6)] [((2,3), (Data.Text.pack "piyo")),((1,2), (Data.Text.pack "hoge"))]

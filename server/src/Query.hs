@@ -179,7 +179,7 @@ getBeforeMe pool me = flip runSqlPool pool $ do
             [ desc (task ^. TaskIsStarred)
             , asc (task ^. TaskDeadline)
             , asc (task ^. TaskStartable)
-            , asc (task ^. TaskTitle)
+            -- , asc (task ^. TaskTitle)
             ]
         return (task, user ^. UserName)
 
@@ -199,7 +199,7 @@ getAfterMe pool me = flip runSqlPool pool $ do
             [ desc (task ^. TaskIsStarred)
             , asc (task ^. TaskDeadline)
             , asc (task ^. TaskStartable)
-            , asc (task ^. TaskTitle)
+            -- , asc (task ^. TaskTitle)
             ]
         return (task, user ^. UserName)
 
@@ -251,7 +251,7 @@ getUndoneTaskAssigns pool uid = flip runSqlPool pool $ do
             [ desc (task ^. TaskIsStarred)
             , asc (task ^. TaskDeadline)
             , asc (task ^. TaskStartable)
-            , asc (task ^. TaskTitle)
+            -- , asc (task ^. TaskTitle)
             ]
         return (task, user ^. UserName)
 

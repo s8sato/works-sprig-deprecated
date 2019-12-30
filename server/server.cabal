@@ -43,6 +43,7 @@ library
                      , time
                      , double-conversion
                      , extra
+                     , text-format
                      -- CORS
                      , servant-options
                      , wai-cors
