@@ -84,3 +84,6 @@ Succeed in cloning tasks!
 asideDummy [((1,2),[]),((2,3),[IsDummy True]),((3,4),[])]
 removed IsDummy field from Attr
 removed char variable from IsDone and IsStarred
+2019-12-31 06:18:10
+
+Trimmed waste of input field when cloning

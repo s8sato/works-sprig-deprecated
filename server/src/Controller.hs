@@ -647,48 +647,60 @@ localize' u =
     map (\(t,(i,a)) -> (localize u t,(i,a)))
 
 edgeFromTask :: (Task, (TaskId, AssignName)) -> Edge
-edgeFromTask ((Task t i y d s ml ms _ _ md mw mt _), (id,an)) =
+edgeFromTask (task, (id,an)) =
     let
-        (sY, sM, sD) = case ms of 
-            Just (UTCTime s _)  -> toGregorian s
-            Nothing             -> (0,0,0)
-        (sh, sm, ss) = case ms of 
-            Just (UTCTime _ s)  -> toHMS s
-            Nothing             -> (0,0,0)
-        (dY, dM, dD) = case ms of 
-            Just (UTCTime d _)  -> toGregorian d
-            Nothing             -> (0,0,0)
-        (dh, dm, ds) = case ms of 
-            Just (UTCTime _ d)  -> toHMS d
-            Nothing             -> (0,0,0)
-        attr = shave
-            [ AttrTaskId    (fromIntegral . fromSqlKey $ id)
-            , IsDone
-            -- , IsDone        (if d then '%' else '_')
-            , IsStarred
-            -- , IsStarred     (if s then '*' else '_')
-            -- , HeadLink      
-            , Title         (case mt of
-                                Just tt  -> tt
-                                Nothing -> "")
-            , StartableDate (fromIntegral sY) sM sD
-            , StartableTime sh sm ss
-            , Weight        (case mw of
-                                Just w  -> w
-                                Nothing -> 0)
-            , DeadlineDate  (fromIntegral dY) dM dD
-            , DeadlineTime  dh dm ds
-            , Assign        an
-            -- , TailLink      
-            , Link          (case ml of
-                                Just l  -> l
-                                Nothing -> "")
-            ]
+        attrs   =   [ AttrTaskId (fromIntegral . fromSqlKey $ id)
+                    , Assign an
+                    ]
+        attrs'  =   edgeFromTask' task attrs
     in
-        ((t,i), attr)
+        ((taskTerminal task, taskInitial task), attrs')
 
-shave :: [Attr] -> [Attr]
-shave attrs = attrs  -- TODO
+edgeFromTask' :: Task -> [Attr] -> [Attr]
+edgeFromTask' (Task t i y d s ml ms mb me md mw mt u) result
+    | y =
+        edgeFromTask' (Task t i False d s ml ms mb me md mw mt u) ((AttrTaskId 0) : result)
+    | d =
+        edgeFromTask' (Task t i False False s ml ms mb me md mw mt u) (IsDone : result)
+    | s =
+        edgeFromTask' (Task t i False False False ml ms mb me md mw mt u) (IsStarred : result)
+    | ml /= Nothing =
+        let
+            Just l = ml
+        in
+            edgeFromTask' (Task t i False False False Nothing ms mb me md mw mt u) ((Link l) : result)
+    | ms /= Nothing =
+        let
+            Just ss = ms
+            UTCTime date clock = ss
+            (yea, mon, day) = toGregorian date
+            (hou, min, sec) = toHMS clock
+            sD = StartableDate (fromIntegral yea) mon day
+            sT = StartableTime hou min sec
+        in
+            edgeFromTask' (Task t i False False False Nothing Nothing mb me md mw mt u) (sD : sT : result)
+    | md /= Nothing =
+        let
+            Just dd = md
+            UTCTime date clock = dd
+            (yea, mon, day) = toGregorian date
+            (hou, min, sec) = toHMS clock
+            dD = DeadlineDate (fromIntegral yea) mon day
+            dT = DeadlineTime hou min sec
+        in
+            edgeFromTask' (Task t i False False False Nothing Nothing mb me Nothing mw mt u) (dD : dT : result)
+    | mw /= Nothing =
+        let
+            Just w = mw
+        in
+            edgeFromTask' (Task t i False False False Nothing Nothing mb me Nothing Nothing mt u) ((Weight w) : result)
+    | mt /= Nothing =
+        let
+            Just tt = mt
+        in
+            edgeFromTask' (Task t i False False False Nothing Nothing mb me Nothing Nothing Nothing u) ((Title tt) : result)
+    | otherwise =
+        result
 
 toHMS :: DiffTime -> (Int, Int, Int)
 toHMS d =
