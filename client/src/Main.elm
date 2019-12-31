@@ -212,6 +212,7 @@ type Msg
     | TasksCloned (Result Http.Error SubModel)
     | TextPosted (Result Http.Error SubModel)
     | TasksDoneOrUndone (Result Http.Error SubModel)
+    | TasksShown (Result Http.Error SubModel)
 
 
 
@@ -286,7 +287,7 @@ update msg model =
             ( model, doneTasks model )
 
         CharacterKey 'f' ->
-            ( model, focusTask model.sub model.indicator )
+            ( model, focusTask model model.indicator )
 
         CharacterKey 'c' ->
             ( model, cloneTasks model )
@@ -297,7 +298,7 @@ update msg model =
             )
 
         CharacterKey 's' ->
-            ( model, switchStar model.sub model.indicator )
+            ( model, switchStar model model.indicator )
 
         CharacterKey 'x' ->
             ( switchSelect model model.indicator, Cmd.none )
@@ -336,7 +337,7 @@ update msg model =
             ( model, showTrunk model )
 
         CharacterKey 'h' ->
-            ( model, goHome model.sub )
+            ( model, goHome model )
 
         CharacterKey 'b' ->
             ( model, showBuds model )
@@ -363,7 +364,7 @@ update msg model =
             ( model, Cmd.none )
 
         TextPost ->
-            ( model, textPost model.sub )
+            ( model, textPost model )
 
         StarSwitched i (Ok _) ->
             ( starSwitched model i, Cmd.none )
@@ -372,7 +373,7 @@ update msg model =
             ( messageEH model httpError, Cmd.none )
 
         SwitchStar index ->
-            ( model, switchStar model.sub index )
+            ( model, switchStar model index )
 
         SwitchSelect index ->
             ( switchSelect model index, Cmd.none )
@@ -402,7 +403,7 @@ update msg model =
 
         SetZoneName newZoneName ->
             ( setZoneName model newZoneName
-            , initialize model.sub
+            , initialize model
             )
 
         Tick newTime ->
@@ -444,7 +445,7 @@ update msg model =
         ControlKeyUT "Enter" ->
             ( model
             , if model.underControl then
-                textPost model.sub
+                textPost model
 
               else
                 Cmd.none
@@ -485,6 +486,12 @@ update msg model =
             ( tasksDoneOrUndone model newSubModel, Cmd.none )
 
         TasksDoneOrUndone (Err httpError) ->
+            ( messageEH model httpError, Cmd.none )
+
+        TasksShown (Ok newSubModel) ->
+            ( tasksShown model newSubModel, Cmd.none )
+
+        TasksShown (Err httpError) ->
             ( messageEH model httpError, Cmd.none )
 
 
@@ -758,103 +765,193 @@ tasksDoneOrUndone model m =
     }
 
 
+tasksShown : Model -> SubModel -> Model
+tasksShown model m =
+    let
+        sub =
+            model.sub
+
+        newSub =
+            { sub
+                | tasks =
+                    case m.tasks of
+                        [] ->
+                            sub.tasks
+
+                        _ ->
+                            m.tasks
+                , message = m.message
+            }
+    in
+    { model
+        | sub = newSub
+    }
+
+
 
 -- COMMANDS
 
 
-initialize : SubModel -> Cmd Msg
-initialize m =
+postJson : String -> Encode.Value -> (Result Http.Error a -> Msg) -> Decoder a -> Cmd Msg
+postJson path encoder resulting decoder =
     Http.post
-        { url = "http://localhost:8080/tasks/init"
-        , body = Http.jsonBody (initialEncoder m)
-        , expect = Http.expectJson SubModelReceived subModelDecoder
+        { url = "http://localhost:8080/tasks/" ++ path
+        , body = Http.jsonBody encoder
+        , expect = Http.expectJson resulting decoder
         }
 
 
-textPost : SubModel -> Cmd Msg
+initialize : Model -> Cmd Msg
+initialize m =
+    postJson "init" (userEncoder m.sub.user) SubModelReceived subModelDecoder
+
+
+
+-- Http.post
+--     { url = "http://localhost:8080/tasks/init"
+--     , body = Http.jsonBody (userEncoder m.sub.user)
+--     , expect = Http.expectJson SubModelReceived subModelDecoder
+--     }
+
+
+textPost : Model -> Cmd Msg
 textPost m =
-    case m.inputText of
+    case m.sub.inputText of
         Nothing ->
             Cmd.none
 
         Just content ->
-            Http.post
-                { url = "http://localhost:8080/tasks/post"
-                , body = Http.jsonBody (textPostEncoder m content)
-                , expect = Http.expectJson TextPosted subModelDecoder
-                }
+            postJson "post" (textPostEncoder m content) TextPosted subModelDecoder
 
 
-switchStar : SubModel -> Index -> Cmd Msg
+
+-- Http.post
+--     { url = "http://localhost:8080/tasks/post"
+--     , body = Http.jsonBody (textPostEncoder m content)
+--     , expect = Http.expectJson TextPosted subModelDecoder
+--     }
+
+
+switchStar : Model -> Index -> Cmd Msg
 switchStar m i =
-    case Array.get i (Array.fromList m.tasks) of
+    case Array.get i (Array.fromList m.sub.tasks) of
         Nothing ->
             Cmd.none
 
         Just task ->
             Http.post
                 { url = "http://localhost:8080/tasks/star"
-                , body = Http.jsonBody (switchStarEncoder task.id)
+                , body = Http.jsonBody (userTaskIdEncoder m task.id)
                 , expect = Http.expectWhatever (StarSwitched i)
                 }
 
 
-focusTask : SubModel -> Index -> Cmd Msg
+focusTask : Model -> Index -> Cmd Msg
 focusTask m i =
-    case Array.get i (Array.fromList m.tasks) of
+    case Array.get i (Array.fromList m.sub.tasks) of
         Nothing ->
             Cmd.none
 
         Just task ->
-            Http.post
-                { url = "http://localhost:8080/tasks/focus"
-                , body = Http.jsonBody (focusTaskEncoder task.id)
-                , expect = Http.expectJson (TaskFocused task.id) tasksDecoder
-                }
+            postJson "focus" (userTaskIdEncoder m task.id) (TaskFocused task.id) tasksDecoder
 
 
-goHome : SubModel -> Cmd Msg
+
+-- Http.post
+--     { url = "http://localhost:8080/tasks/focus"
+--     , body = Http.jsonBody (userTaskIdEncoder m task.id)
+--     , expect = Http.expectJson (TaskFocused task.id) tasksDecoder
+--     }
+
+
+goHome : Model -> Cmd Msg
 goHome m =
-    Http.post
-        { url = "http://localhost:8080/tasks/home"
-        , body = Http.jsonBody (goHomeEncoder m)
-        , expect = Http.expectJson ReturnedHome subModelDecoder
-        }
+    postJson "home" (userEncoder m.sub.user) ReturnedHome subModelDecoder
+
+
+
+-- Http.post
+--     { url = "http://localhost:8080/tasks/home"
+--     , body = Http.jsonBody (userEncoder m.sub.user)
+--     , expect = Http.expectJson ReturnedHome subModelDecoder
+--     }
 
 
 doneTasks : Model -> Cmd Msg
 doneTasks m =
-    Http.post
-        { url = "http://localhost:8080/tasks/done"
-        , body = Http.jsonBody (doneTasksEncoder m)
-        , expect = Http.expectJson TasksDoneOrUndone subModelDecoder
-        }
+    postJson "done" (userSelTasksEncoder m) TasksDoneOrUndone subModelDecoder
+
+
+
+-- Http.post
+--     { url = "http://localhost:8080/tasks/done"
+--     , body = Http.jsonBody (userSelTasksEncoder m)
+--     , expect = Http.expectJson TasksDoneOrUndone subModelDecoder
+--     }
 
 
 cloneTasks : Model -> Cmd Msg
 cloneTasks m =
-    Http.post
-        { url = "http://localhost:8080/tasks/clone"
-        , body = Http.jsonBody (cloneTasksEncoder m)
-        , expect = Http.expectJson TasksCloned subModelDecoder
-        }
+    postJson "clone" (userSelTasksEncoder m) TasksCloned subModelDecoder
 
 
 
+-- Http.post
+--     { url = "http://localhost:8080/tasks/clone"
+--     , body = Http.jsonBody (userSelTasksEncoder m)
+--     , expect = Http.expectJson TasksCloned subModelDecoder
+--     }
+
+
+showArchives : Model -> Cmd Msg
+showArchives m =
+    postJson "archives" (userEncoder m.sub.user) TasksShown subModelDecoder
+
+
+
+-- Http.post
+--     { url = "http://localhost:8080/tasks/archives"
+--     , body = Http.jsonBody (userEncoder m.sub.user)
+--     , expect = Http.expectJson TasksShown subModelDecoder
+--     }
+
+
+showTrunk : Model -> Cmd Msg
+showTrunk m =
+    postJson "trunk" (userEncoder m.sub.user) TasksShown subModelDecoder
+
+
+
+-- Http.post
+--     { url = "http://localhost:8080/tasks/trunk"
+--     , body = Http.jsonBody (userEncoder m.sub.user)
+--     , expect = Http.expectJson TasksShown subModelDecoder
+--     }
+
+
+showBuds : Model -> Cmd Msg
+showBuds m =
+    postJson "buds" (userEncoder m.sub.user) TasksShown subModelDecoder
+
+
+
+-- Http.post
+--     { url = "http://localhost:8080/tasks/buds"
+--     , body = Http.jsonBody (userEncoder m.sub.user)
+--     , expect = Http.expectJson TasksShown subModelDecoder
+--     }
 -- ENCODER
+-- initialEncoder : SubModel -> Encode.Value
+-- initialEncoder m =
+--     Encode.object
+--         [ ( "initialUser", Encode.int m.user.id )
+--         ]
 
 
-initialEncoder : SubModel -> Encode.Value
-initialEncoder m =
-    Encode.object
-        [ ( "initialUser", Encode.int m.user.id )
-        ]
-
-
-textPostEncoder : SubModel -> String -> Encode.Value
+textPostEncoder : Model -> String -> Encode.Value
 textPostEncoder m content =
     Encode.object
-        [ ( "textPostUser", userEncoder m.user )
+        [ ( "textPostUser", userEncoder m.sub.user )
         , ( "textPostContent", Encode.string content )
         ]
 
@@ -880,52 +977,61 @@ durationEncoder dur =
         ]
 
 
-doneTasksEncoder : Model -> Encode.Value
-doneTasksEncoder m =
-    let
-        ids =
-            m.selectedTasks
-    in
+userSelTasksEncoder : Model -> Encode.Value
+userSelTasksEncoder m =
     Encode.object
-        [ ( "doneTasksUser", userEncoder m.sub.user )
-        , ( "doneTasksIds", Encode.list Encode.int ids )
-        ]
-
-
-switchStarEncoder : Int -> Encode.Value
-switchStarEncoder i =
-    Encode.object
-        [ ( "switchStarId", Encode.int i )
-        ]
-
-
-focusTaskEncoder : Int -> Encode.Value
-focusTaskEncoder i =
-    Encode.object
-        [ ( "focusTaskId", Encode.int i )
-        ]
-
-
-goHomeEncoder : SubModel -> Encode.Value
-goHomeEncoder m =
-    Encode.object
-        [ ( "goHomeUser", Encode.int m.user.id )
-        ]
-
-
-cloneTasksEncoder : Model -> Encode.Value
-cloneTasksEncoder m =
-    let
-        ids =
-            m.selectedTasks
-    in
-    Encode.object
-        [ ( "cloneTasksUser", userEncoder m.sub.user )
-        , ( "cloneTasksIds", Encode.list Encode.int ids )
+        [ ( "userSelTasksUser", userEncoder m.sub.user )
+        , ( "userSelTasksIds", Encode.list Encode.int m.selectedTasks )
         ]
 
 
 
+-- doneTasksEncoder : Model -> Encode.Value
+-- doneTasksEncoder m =
+--     let
+--         ids =
+--             m.selectedTasks
+--     in
+--     Encode.object
+--         [ ( "doneTasksUser", userEncoder m.sub.user )
+--         , ( "doneTasksIds", Encode.list Encode.int ids )
+--         ]
+
+
+userTaskIdEncoder : Model -> Int -> Encode.Value
+userTaskIdEncoder m i =
+    Encode.object
+        [ ( "userTaskIdUser", userEncoder m.sub.user )
+        , ( "userTaskIdTaskId", Encode.int i )
+        ]
+
+
+
+-- switchStarEncoder : Int -> Encode.Value
+-- switchStarEncoder i =
+--     Encode.object
+--         [ ( "switchStarId", Encode.int i )
+--         ]
+-- focusTaskEncoder : Int -> Encode.Value
+-- focusTaskEncoder i =
+--     Encode.object
+--         [ ( "focusTaskId", Encode.int i )
+--         ]
+-- goHomeEncoder : SubModel -> Encode.Value
+-- goHomeEncoder m =
+--     Encode.object
+--         [ ( "goHomeUser", Encode.int m.user.id )
+--         ]
+-- cloneTasksEncoder : Model -> Encode.Value
+-- cloneTasksEncoder m =
+--     let
+--         ids =
+--             m.selectedTasks
+--     in
+--     Encode.object
+--         [ ( "cloneTasksUser", userEncoder m.sub.user )
+--         , ( "cloneTasksIds", Encode.list Encode.int ids )
+--         ]
 -- DECODER
 
 

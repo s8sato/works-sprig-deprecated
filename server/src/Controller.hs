@@ -75,18 +75,11 @@ import Data.Time.Clock (nominalDay)
 import Data.List (sort)
 import Data.Text.Format (fixed)
 
+
+
 -- type alias
 
 
-
--- yeaPerY = 1
--- quaPerY = 4
--- monPerY = 12
--- weePerY = 52
--- dayPerY = 365
--- houPerY = 8760
--- minPerY = 525600
--- secPerY = 31536000
 
 anonymousUser = toSqlKey 1 :: UserId
 
@@ -97,6 +90,7 @@ anonymousUser = toSqlKey 1 :: UserId
 type TimeZoneHour = Int
 type Millis = Int
 type Minutes = Int
+
 
 
 -- DATA DECLARATION
@@ -135,8 +129,6 @@ data ElmTask = ElmTask
     , elmTaskDeadline   :: Maybe Millis
     , elmTaskWeight     :: Maybe Double
     , elmTaskUser       :: Text
-    -- , elmTaskSecUntilStartable :: Maybe Integer
-    -- , elmTaskSecUntilDeadline :: Maybe Integer
     } deriving (Eq, Show)
 
 $(deriveJSON defaultOptions ''ElmTask)
@@ -150,11 +142,11 @@ data ElmSubModel = ElmSubModel
 
 $(deriveJSON defaultOptions ''ElmSubModel)
 
-data Initial = Initial
-    { initialUser :: Int
-    } deriving (Eq, Show)
+-- data Initial = Initial
+--     { initialUser :: Int
+--     } deriving (Eq, Show)
 
-$(deriveJSON defaultOptions ''Initial)
+-- $(deriveJSON defaultOptions ''Initial)
 
 data TextPost = TextPost
     { textPostUser      :: ElmUser
@@ -163,37 +155,44 @@ data TextPost = TextPost
 
 $(deriveJSON defaultOptions ''TextPost)
 
-data DoneTasks = DoneTasks
-    { doneTasksUser :: ElmUser
-    , doneTasksIds  :: [Int]
+data UserSelTasks = UserSelTasks
+    { userSelTasksUser :: ElmUser
+    , userSelTasksIds  :: [Int]
     } deriving (Eq, Show)
 
-$(deriveJSON defaultOptions ''DoneTasks)
+$(deriveJSON defaultOptions ''UserSelTasks)
+-- data DoneTasks = DoneTasks
+--     { doneTasksUser :: ElmUser
+--     , doneTasksIds  :: [Int]
+--     } deriving (Eq, Show)
 
-data SwitchStar = SwitchStar
-    { switchStarId :: Int
+-- $(deriveJSON defaultOptions ''DoneTasks)
+
+data UserTaskId = UserTaskId
+    { userTaskIdUser :: ElmUser
+    , userTaskIdTaskId :: Int
     } deriving (Eq, Show)
 
-$(deriveJSON defaultOptions ''SwitchStar)
+$(deriveJSON defaultOptions ''UserTaskId)
 
-data FocusTask = FocusTask
-    { focusTaskId :: Int
-    } deriving (Eq, Show)
+-- data FocusTask = FocusTask
+--     { focusTaskId :: Int
+--     } deriving (Eq, Show)
 
-$(deriveJSON defaultOptions ''FocusTask)
+-- $(deriveJSON defaultOptions ''FocusTask)
 
-data GoHome = GoHome
-    { goHomeUser :: Int
-    } deriving (Eq, Show)
+-- data GoHome = GoHome
+--     { goHomeUser :: Int
+--     } deriving (Eq, Show)
 
-$(deriveJSON defaultOptions ''GoHome)
+-- $(deriveJSON defaultOptions ''GoHome)
 
-data CloneTasks = CloneTasks
-    { cloneTasksUser :: ElmUser
-    , cloneTasksIds :: [Int]
-    } deriving (Eq, Show)
+-- data CloneTasks = CloneTasks
+--     { cloneTasksUser :: ElmUser
+--     , cloneTasksIds :: [Int]
+--     } deriving (Eq, Show)
 
-$(deriveJSON defaultOptions ''CloneTasks)
+-- $(deriveJSON defaultOptions ''CloneTasks)
 
 
 
@@ -202,13 +201,13 @@ $(deriveJSON defaultOptions ''CloneTasks)
 
 
 type API =  "dev"   :> "model"  :> Capture "user"  Int          :> Get  '[JSON] ElmSubModel
-    :<|>    "tasks" :> "init"   :> ReqBody '[JSON] Initial      :> Post '[JSON] ElmSubModel
+    :<|>    "tasks" :> "init"   :> ReqBody '[JSON] ElmUser      :> Post '[JSON] ElmSubModel
     :<|>    "tasks" :> "post"   :> ReqBody '[JSON] TextPost     :> Post '[JSON] ElmSubModel
-    :<|>    "tasks" :> "done"   :> ReqBody '[JSON] DoneTasks    :> Post '[JSON] ElmSubModel
-    :<|>    "tasks" :> "star"   :> ReqBody '[JSON] SwitchStar   :> Post '[JSON] ()
-    :<|>    "tasks" :> "focus"  :> ReqBody '[JSON] FocusTask    :> Post '[JSON] [ElmTask]
-    :<|>    "tasks" :> "home"   :> ReqBody '[JSON] GoHome       :> Post '[JSON] ElmSubModel
-    :<|>    "tasks" :> "clone"  :> ReqBody '[JSON] CloneTasks   :> Post '[JSON] ElmSubModel
+    :<|>    "tasks" :> "done"   :> ReqBody '[JSON] UserSelTasks :> Post '[JSON] ElmSubModel
+    :<|>    "tasks" :> "star"   :> ReqBody '[JSON] UserTaskId   :> Post '[JSON] ()
+    :<|>    "tasks" :> "focus"  :> ReqBody '[JSON] UserTaskId   :> Post '[JSON] [ElmTask]
+    :<|>    "tasks" :> "home"   :> ReqBody '[JSON] ElmUser      :> Post '[JSON] ElmSubModel
+    :<|>    "tasks" :> "clone"  :> ReqBody '[JSON] UserSelTasks :> Post '[JSON] ElmSubModel
 
 startApp :: IO ()
 startApp = run 8080 app
@@ -240,19 +239,19 @@ server = devSubModel
     where
         devSubModel :: Int -> Handler ElmSubModel
         devSubModel = liftIO . devSubModel'
-        initialize :: Initial -> Handler ElmSubModel
+        initialize :: ElmUser -> Handler ElmSubModel
         initialize = liftIO . initialize'
         textPostReload :: TextPost -> Handler ElmSubModel
         textPostReload = liftIO . textPostReload'
-        doneTasksReload :: DoneTasks -> Handler ElmSubModel
+        doneTasksReload :: UserSelTasks -> Handler ElmSubModel
         doneTasksReload = liftIO . doneTasksReload'
-        switchStar :: SwitchStar -> Handler ()
+        switchStar :: UserTaskId -> Handler ()
         switchStar = liftIO . switchStar'
-        focusTask :: FocusTask -> Handler [ElmTask]
+        focusTask :: UserTaskId -> Handler [ElmTask]
         focusTask = liftIO . focusTask'
-        goHome :: GoHome -> Handler ElmSubModel
+        goHome :: ElmUser -> Handler ElmSubModel
         goHome = liftIO . goHome'
-        cloneTasks :: CloneTasks -> Handler ElmSubModel
+        cloneTasks :: UserSelTasks -> Handler ElmSubModel
         cloneTasks = liftIO . cloneTasks'
 
 devSubModel' :: Int -> IO ElmSubModel
@@ -260,13 +259,13 @@ devSubModel' uid = do
     pool <- pgPool
     user <- Prelude.head <$> getUserById pool uid
     durations <- getDurationsById pool uid
-    taskAssigns <- getUndoneTaskAssigns pool uid
     let elmUser = toElmUser user durations
-    let elmTasks = map toElmTask taskAssigns 
+    elmTasks <- getUndoneElmTasks uid
     return $ ElmSubModel elmUser elmTasks Nothing Nothing
 
-initialize' :: Initial -> IO ElmSubModel
-initialize' (Initial uid) =
+initialize' :: ElmUser -> IO ElmSubModel
+initialize' elmUser = do
+    let uid = elmUserId elmUser
     devSubModel' uid
 
 
@@ -332,8 +331,8 @@ faultPostFormat tasks = do
     -- TODO
     return $ Nothing
 
-doneTasksReload' :: DoneTasks -> IO ElmSubModel
-doneTasksReload' (DoneTasks elmUser taskIds) = do
+doneTasksReload' :: UserSelTasks -> IO ElmSubModel
+doneTasksReload' (UserSelTasks elmUser taskIds) = do
     pool <- pgPool
     let uid = elmUserId elmUser
     fault <- faultEditPermission uid taskIds
@@ -346,25 +345,28 @@ doneTasksReload' (DoneTasks elmUser taskIds) = do
             let okMsg = buildOkMsg taskIds " tasks done/undone."
             return $ ElmSubModel elmUser elmTasks Nothing (Just okMsg)
 
-switchStar' :: SwitchStar -> IO ()
-switchStar' (SwitchStar id) = do
+switchStar' :: UserTaskId -> IO ()
+switchStar' (UserTaskId elmUser taskId) = do
+    -- TODO check fault
     pool <- pgPool
-    setStarSwitched pool id
+    setStarSwitched pool taskId
 
-focusTask' :: FocusTask -> IO [ElmTask]
-focusTask' (FocusTask id) = do
+focusTask' :: UserTaskId -> IO [ElmTask]
+focusTask' (UserTaskId elmUser taskId) = do
+    -- TODO check fault
     pool        <- pgPool
-    beforeMe    <- getBeforeMe  pool id
-    me          <- getMe        pool id
-    afterMe     <- getAfterMe   pool id
+    beforeMe    <- getBeforeMe  pool taskId
+    me          <- getMe        pool taskId
+    afterMe     <- getAfterMe   pool taskId
     return . map toElmTask $ Prelude.concat [beforeMe, me, afterMe]
 
-goHome' :: GoHome -> IO ElmSubModel
-goHome' (GoHome uid) = 
+goHome' :: ElmUser -> IO ElmSubModel
+goHome' elmUser = do
+    let uid = elmUserId elmUser
     devSubModel' uid
 
-cloneTasks' :: CloneTasks -> IO ElmSubModel
-cloneTasks' (CloneTasks elmUser taskIds) = do
+cloneTasks' :: UserSelTasks -> IO ElmSubModel
+cloneTasks' (UserSelTasks elmUser taskIds) = do
     pool <- pgPool
     let uid = elmUserId elmUser
     fault <- faultEditPermission uid taskIds
