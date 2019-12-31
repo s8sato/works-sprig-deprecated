@@ -806,14 +806,6 @@ initialize m =
     postJson "init" (userEncoder m.sub.user) SubModelReceived subModelDecoder
 
 
-
--- Http.post
---     { url = "http://localhost:8080/tasks/init"
---     , body = Http.jsonBody (userEncoder m.sub.user)
---     , expect = Http.expectJson SubModelReceived subModelDecoder
---     }
-
-
 textPost : Model -> Cmd Msg
 textPost m =
     case m.sub.inputText of
@@ -822,14 +814,6 @@ textPost m =
 
         Just content ->
             postJson "post" (textPostEncoder m content) TextPosted subModelDecoder
-
-
-
--- Http.post
---     { url = "http://localhost:8080/tasks/post"
---     , body = Http.jsonBody (textPostEncoder m content)
---     , expect = Http.expectJson TextPosted subModelDecoder
---     }
 
 
 switchStar : Model -> Index -> Cmd Msg
@@ -856,25 +840,9 @@ focusTask m i =
             postJson "focus" (userTaskIdEncoder m task.id) (TaskFocused task.id) tasksDecoder
 
 
-
--- Http.post
---     { url = "http://localhost:8080/tasks/focus"
---     , body = Http.jsonBody (userTaskIdEncoder m task.id)
---     , expect = Http.expectJson (TaskFocused task.id) tasksDecoder
---     }
-
-
 goHome : Model -> Cmd Msg
 goHome m =
     postJson "home" (userEncoder m.sub.user) ReturnedHome subModelDecoder
-
-
-
--- Http.post
---     { url = "http://localhost:8080/tasks/home"
---     , body = Http.jsonBody (userEncoder m.sub.user)
---     , expect = Http.expectJson ReturnedHome subModelDecoder
---     }
 
 
 doneTasks : Model -> Cmd Msg
@@ -882,25 +850,9 @@ doneTasks m =
     postJson "done" (userSelTasksEncoder m) TasksDoneOrUndone subModelDecoder
 
 
-
--- Http.post
---     { url = "http://localhost:8080/tasks/done"
---     , body = Http.jsonBody (userSelTasksEncoder m)
---     , expect = Http.expectJson TasksDoneOrUndone subModelDecoder
---     }
-
-
 cloneTasks : Model -> Cmd Msg
 cloneTasks m =
     postJson "clone" (userSelTasksEncoder m) TasksCloned subModelDecoder
-
-
-
--- Http.post
---     { url = "http://localhost:8080/tasks/clone"
---     , body = Http.jsonBody (userSelTasksEncoder m)
---     , expect = Http.expectJson TasksCloned subModelDecoder
---     }
 
 
 showArchives : Model -> Cmd Msg
@@ -908,25 +860,9 @@ showArchives m =
     postJson "arch" (userEncoder m.sub.user) TasksShown subModelDecoder
 
 
-
--- Http.post
---     { url = "http://localhost:8080/tasks/archives"
---     , body = Http.jsonBody (userEncoder m.sub.user)
---     , expect = Http.expectJson TasksShown subModelDecoder
---     }
-
-
 showTrunk : Model -> Cmd Msg
 showTrunk m =
     postJson "trunk" (userEncoder m.sub.user) TasksShown subModelDecoder
-
-
-
--- Http.post
---     { url = "http://localhost:8080/tasks/trunk"
---     , body = Http.jsonBody (userEncoder m.sub.user)
---     , expect = Http.expectJson TasksShown subModelDecoder
---     }
 
 
 showBuds : Model -> Cmd Msg
@@ -935,17 +871,7 @@ showBuds m =
 
 
 
--- Http.post
---     { url = "http://localhost:8080/tasks/buds"
---     , body = Http.jsonBody (userEncoder m.sub.user)
---     , expect = Http.expectJson TasksShown subModelDecoder
---     }
 -- ENCODER
--- initialEncoder : SubModel -> Encode.Value
--- initialEncoder m =
---     Encode.object
---         [ ( "initialUser", Encode.int m.user.id )
---         ]
 
 
 textPostEncoder : Model -> String -> Encode.Value
@@ -985,19 +911,6 @@ userSelTasksEncoder m =
         ]
 
 
-
--- doneTasksEncoder : Model -> Encode.Value
--- doneTasksEncoder m =
---     let
---         ids =
---             m.selectedTasks
---     in
---     Encode.object
---         [ ( "doneTasksUser", userEncoder m.sub.user )
---         , ( "doneTasksIds", Encode.list Encode.int ids )
---         ]
-
-
 userTaskIdEncoder : Model -> Int -> Encode.Value
 userTaskIdEncoder m i =
     Encode.object
@@ -1007,31 +920,6 @@ userTaskIdEncoder m i =
 
 
 
--- switchStarEncoder : Int -> Encode.Value
--- switchStarEncoder i =
---     Encode.object
---         [ ( "switchStarId", Encode.int i )
---         ]
--- focusTaskEncoder : Int -> Encode.Value
--- focusTaskEncoder i =
---     Encode.object
---         [ ( "focusTaskId", Encode.int i )
---         ]
--- goHomeEncoder : SubModel -> Encode.Value
--- goHomeEncoder m =
---     Encode.object
---         [ ( "goHomeUser", Encode.int m.user.id )
---         ]
--- cloneTasksEncoder : Model -> Encode.Value
--- cloneTasksEncoder m =
---     let
---         ids =
---             m.selectedTasks
---     in
---     Encode.object
---         [ ( "cloneTasksUser", userEncoder m.sub.user )
---         , ( "cloneTasksIds", Encode.list Encode.int ids )
---         ]
 -- DECODER
 
 
@@ -1054,12 +942,6 @@ userDecoder =
         |> optional "elmUserDefaultDpy" (nullable int) Nothing
         |> optional "elmUserZoneName" (nullable string) Nothing
         |> optional "elmUserZoneOffset" (nullable int) Nothing
-
-
-
--- |> optional "elmUserDefaultDpy" (nullable int) Nothing
--- |> optional "elmUserLookUp" (nullable int) Nothing
--- |> optional "elmUserLookDown" (nullable int) Nothing
 
 
 tasksDecoder : Decoder (List Task)

@@ -142,12 +142,6 @@ data ElmSubModel = ElmSubModel
 
 $(deriveJSON defaultOptions ''ElmSubModel)
 
--- data Initial = Initial
---     { initialUser :: Int
---     } deriving (Eq, Show)
-
--- $(deriveJSON defaultOptions ''Initial)
-
 data TextPost = TextPost
     { textPostUser      :: ElmUser
     , textPostContent   :: Text
@@ -161,12 +155,6 @@ data UserSelTasks = UserSelTasks
     } deriving (Eq, Show)
 
 $(deriveJSON defaultOptions ''UserSelTasks)
--- data DoneTasks = DoneTasks
---     { doneTasksUser :: ElmUser
---     , doneTasksIds  :: [Int]
---     } deriving (Eq, Show)
-
--- $(deriveJSON defaultOptions ''DoneTasks)
 
 data UserTaskId = UserTaskId
     { userTaskIdUser :: ElmUser
@@ -174,25 +162,6 @@ data UserTaskId = UserTaskId
     } deriving (Eq, Show)
 
 $(deriveJSON defaultOptions ''UserTaskId)
-
--- data FocusTask = FocusTask
---     { focusTaskId :: Int
---     } deriving (Eq, Show)
-
--- $(deriveJSON defaultOptions ''FocusTask)
-
--- data GoHome = GoHome
---     { goHomeUser :: Int
---     } deriving (Eq, Show)
-
--- $(deriveJSON defaultOptions ''GoHome)
-
--- data CloneTasks = CloneTasks
---     { cloneTasksUser :: ElmUser
---     , cloneTasksIds :: [Int]
---     } deriving (Eq, Show)
-
--- $(deriveJSON defaultOptions ''CloneTasks)
 
 
 
