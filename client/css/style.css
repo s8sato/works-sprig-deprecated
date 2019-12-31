@@ -221,7 +221,15 @@ textarea {
     background-color: #C2DBFF;
 }
 
+.executable .startable {
+    background-color: #E1F4C9;
+}
+
 .expired .deadline {
+    background-color: #E1F4C9;
+}
+
+.overload .weight {
     background-color: #E1F4C9;
 }
 

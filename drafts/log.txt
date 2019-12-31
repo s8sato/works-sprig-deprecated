@@ -191,3 +191,6 @@ parse (takeTill (=='<')) "hey<foy"
 ignored seconds
 
 selection independent of actually shown tasks
+
+このような時分にありがとうございます。
+F12はしてみたのですが、Stylesを見ても種が分かりませんでした...

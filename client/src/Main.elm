@@ -288,10 +288,7 @@ update msg model =
         CharacterKey 'f' ->
             ( model, focusTask model.sub model.indicator )
 
-        -- APIに送る：[taskId]
-        -- APIからもらう：String
         CharacterKey 'c' ->
-            -- TODO
             ( model, cloneTasks model )
 
         CharacterKey '/' ->
@@ -332,21 +329,17 @@ update msg model =
         CharacterKey '9' ->
             ( changeDpy model minPerY, Cmd.none )
 
-        CharacterKey '0' ->
-            -- TODO
-            ( model, Cmd.none )
+        CharacterKey 'a' ->
+            ( model, showArchives model )
 
         CharacterKey 't' ->
-            -- TODO
-            ( model, Cmd.none )
+            ( model, showTrunk model )
 
         CharacterKey 'h' ->
-            -- TODO
             ( model, goHome model.sub )
 
         CharacterKey 'b' ->
-            -- TODO
-            ( model, Cmd.none )
+            ( model, showBuds model )
 
         CharacterKey 'p' ->
             -- TODO
@@ -1186,6 +1179,50 @@ isExpired m task =
         False
 
 
+isExecutable : Model -> Task -> Bool
+isExecutable m task =
+    let
+        pastStartable =
+            case task.startable of
+                Nothing ->
+                    False
+
+                Just s ->
+                    s < Time.posixToMillis m.currentTime
+    in
+    if not task.isDone && pastStartable then
+        True
+
+    else
+        False
+
+
+isOverload : Model -> Task -> Bool
+isOverload _ task =
+    let
+        overBegin =
+            case ( task.begin, task.startable ) of
+                ( Just b, Just s ) ->
+                    b < s
+
+                _ ->
+                    False
+
+        overEnd =
+            case ( task.deadline, task.end ) of
+                ( Just d, Just e ) ->
+                    d < e
+
+                _ ->
+                    False
+    in
+    if not task.isDone && (overBegin || overEnd) then
+        True
+
+    else
+        False
+
+
 viewTask : Model -> ( Index, Task ) -> Html Msg
 viewTask m ( i, task ) =
     div
@@ -1194,6 +1231,8 @@ viewTask m ( i, task ) =
             , ( "focused ", i == m.indicator )
             , ( "selected", List.member task.id m.selectedTasks )
             , ( "expired", isExpired m task )
+            , ( "executable", isExecutable m task )
+            , ( "overload", isOverload m task )
             ]
         ]
         [ div [ class "indicator" ] []

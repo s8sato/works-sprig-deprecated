@@ -8499,6 +8499,21 @@ var $elm$html$Html$Attributes$href = function (url) {
 		'href',
 		_VirtualDom_noJavaScriptUri(url));
 };
+var $author$project$Main$isExecutable = F2(
+	function (m, task) {
+		var pastStartable = function () {
+			var _v0 = task.startable;
+			if (_v0.$ === 'Nothing') {
+				return false;
+			} else {
+				var s = _v0.a;
+				return _Utils_cmp(
+					s,
+					$elm$time$Time$posixToMillis(m.currentTime)) < 0;
+			}
+		}();
+		return ((!task.isDone) && pastStartable) ? true : false;
+	});
 var $author$project$Main$isExpired = F2(
 	function (m, task) {
 		var pastDeadline = function () {
@@ -8513,6 +8528,30 @@ var $author$project$Main$isExpired = F2(
 			}
 		}();
 		return ((!task.isDone) && pastDeadline) ? true : false;
+	});
+var $author$project$Main$isOverload = F2(
+	function (_v0, task) {
+		var overEnd = function () {
+			var _v2 = _Utils_Tuple2(task.deadline, task.end);
+			if ((_v2.a.$ === 'Just') && (_v2.b.$ === 'Just')) {
+				var d = _v2.a.a;
+				var e = _v2.b.a;
+				return _Utils_cmp(d, e) < 0;
+			} else {
+				return false;
+			}
+		}();
+		var overBegin = function () {
+			var _v1 = _Utils_Tuple2(task.begin, task.startable);
+			if ((_v1.a.$ === 'Just') && (_v1.b.$ === 'Just')) {
+				var b = _v1.a.a;
+				var s = _v1.b.a;
+				return _Utils_cmp(b, s) < 0;
+			} else {
+				return false;
+			}
+		}();
+		return ((!task.isDone) && (overBegin || overEnd)) ? true : false;
 	});
 var $author$project$Main$viewAssign = F2(
 	function (u, t) {
@@ -8678,7 +8717,13 @@ var $author$project$Main$viewTask = F2(
 							A2($elm$core$List$member, task.id, m.selectedTasks)),
 							_Utils_Tuple2(
 							'expired',
-							A2($author$project$Main$isExpired, m, task))
+							A2($author$project$Main$isExpired, m, task)),
+							_Utils_Tuple2(
+							'executable',
+							A2($author$project$Main$isExecutable, m, task)),
+							_Utils_Tuple2(
+							'overload',
+							A2($author$project$Main$isOverload, m, task))
 						]))
 				]),
 			_List_fromArray(
