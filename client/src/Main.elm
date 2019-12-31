@@ -724,6 +724,7 @@ textPosted model m =
                         _ ->
                             m.tasks
                 , message = m.message
+                , inputText = Nothing
             }
     in
     { model | sub = newSub }
