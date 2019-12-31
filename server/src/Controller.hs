@@ -208,6 +208,10 @@ type API =  "dev"   :> "model"  :> Capture "user"  Int          :> Get  '[JSON] 
     :<|>    "tasks" :> "focus"  :> ReqBody '[JSON] UserTaskId   :> Post '[JSON] [ElmTask]
     :<|>    "tasks" :> "home"   :> ReqBody '[JSON] ElmUser      :> Post '[JSON] ElmSubModel
     :<|>    "tasks" :> "clone"  :> ReqBody '[JSON] UserSelTasks :> Post '[JSON] ElmSubModel
+    :<|>    "tasks" :> "arch"   :> ReqBody '[JSON] ElmUser      :> Post '[JSON] ElmSubModel
+    :<|>    "tasks" :> "trunk"  :> ReqBody '[JSON] ElmUser      :> Post '[JSON] ElmSubModel
+    :<|>    "tasks" :> "buds"   :> ReqBody '[JSON] ElmUser      :> Post '[JSON] ElmSubModel
+
 
 startApp :: IO ()
 startApp = run 8080 app
@@ -236,6 +240,9 @@ server = devSubModel
     :<|> focusTask
     :<|> goHome
     :<|> cloneTasks
+    :<|> showArchives
+    :<|> showTrunk
+    :<|> showBuds
     where
         devSubModel :: Int -> Handler ElmSubModel
         devSubModel = liftIO . devSubModel'
@@ -253,6 +260,12 @@ server = devSubModel
         goHome = liftIO . goHome'
         cloneTasks :: UserSelTasks -> Handler ElmSubModel
         cloneTasks = liftIO . cloneTasks'
+        showArchives :: ElmUser -> Handler ElmSubModel
+        showArchives = liftIO . showArchives'
+        showTrunk :: ElmUser -> Handler ElmSubModel
+        showTrunk = liftIO . showTrunk'
+        showBuds :: ElmUser -> Handler ElmSubModel
+        showBuds = liftIO . showBuds'
 
 devSubModel' :: Int -> IO ElmSubModel
 devSubModel' uid = do
@@ -347,14 +360,14 @@ doneTasksReload' (UserSelTasks elmUser taskIds) = do
 
 switchStar' :: UserTaskId -> IO ()
 switchStar' (UserTaskId elmUser taskId) = do
-    -- TODO check fault
     pool <- pgPool
+    -- TODO check fault
     setStarSwitched pool taskId
 
 focusTask' :: UserTaskId -> IO [ElmTask]
 focusTask' (UserTaskId elmUser taskId) = do
-    -- TODO check fault
     pool        <- pgPool
+    -- TODO check fault
     beforeMe    <- getBeforeMe  pool taskId
     me          <- getMe        pool taskId
     afterMe     <- getAfterMe   pool taskId
@@ -401,6 +414,36 @@ hasEditPerm :: Int -> Int -> IO (Bool)
 hasEditPerm uid taskId =
     -- TODO
     return True 
+
+showArchives' :: ElmUser -> IO ElmSubModel
+showArchives' elmUser = do
+    pool <- pgPool
+    let uid = elmUserId elmUser
+    -- TODO check fault
+    taskAssigns <- getArchivesAssigns pool uid
+    let elmTasks = map toElmTask taskAssigns
+    let okMsg = buildOkMsg elmTasks " archives here."
+    return $ ElmSubModel elmUser elmTasks Nothing (Just okMsg) 
+
+showTrunk' :: ElmUser -> IO ElmSubModel
+showTrunk' elmUser = do
+    pool <- pgPool
+    let uid = elmUserId elmUser
+    -- TODO check fault
+    taskAssigns <- getTrunkAssigns pool uid
+    let elmTasks = map toElmTask taskAssigns
+    let okMsg = buildOkMsg elmTasks " trunk here."
+    return $ ElmSubModel elmUser elmTasks Nothing (Just okMsg) 
+
+showBuds' :: ElmUser -> IO ElmSubModel
+showBuds' elmUser = do
+    pool <- pgPool
+    let uid = elmUserId elmUser
+    -- TODO check fault
+    taskAssigns <- getBudsAssigns pool uid
+    let elmTasks = map toElmTask taskAssigns
+    let okMsg = buildOkMsg elmTasks " buds here."
+    return $ ElmSubModel elmUser elmTasks Nothing (Just okMsg) 
 
 
 

@@ -281,3 +281,61 @@ getTaskAssignById  pool id = flip runSqlPool pool $ do
             (   task ^. TaskId ==. val (TaskKey . keyFromInt $ id)
             )
         return (task, user ^. UserName)
+
+
+getArchivesAssigns :: ConnectionPool -> Int -> IO [(Entity Task, Value Text)]
+getArchivesAssigns pool uid = flip runSqlPool pool $ do
+    select $ from $ \(task `InnerJoin` user) -> do
+        on (task ^. TaskUser ==. user ^. UserId)
+        where_
+            (   task ^. TaskUser ==. val (UserKey . keyFromInt $ uid)
+            &&. task ^. TaskIsDone
+            )
+        orderBy
+            [ desc (task ^. TaskIsStarred)
+            , desc (task ^. TaskDeadline)
+            , desc (task ^. TaskStartable)
+            ]
+        return (task, user ^. UserName)
+
+
+getTrunkAssigns :: ConnectionPool -> Int -> IO [(Entity Task, Value Text)]
+getTrunkAssigns pool uid = flip runSqlPool pool $ do
+    select $ from $ \(task `InnerJoin` user) -> do
+        on (task ^. TaskUser ==. user ^. UserId)
+        where_
+            (   task ^. TaskUser ==. val (UserKey . keyFromInt $ uid)
+            &&. (
+                notExists $ from $ \self ->
+                where_
+                    (   self ^. TaskInitial ==. task ^. TaskTerminal
+                    )
+                )
+            )
+        orderBy
+            [ desc (task ^. TaskIsStarred)
+            , asc (task ^. TaskDeadline)
+            , asc (task ^. TaskStartable)
+            ]
+        return (task, user ^. UserName)
+
+
+getBudsAssigns :: ConnectionPool -> Int -> IO [(Entity Task, Value Text)]
+getBudsAssigns pool uid = flip runSqlPool pool $ do
+    select $ from $ \(task `InnerJoin` user) -> do
+        on (task ^. TaskUser ==. user ^. UserId)
+        where_
+            (   task ^. TaskUser ==. val (UserKey . keyFromInt $ uid)
+            &&. (
+                notExists $ from $ \self ->
+                where_
+                    (   self ^. TaskTerminal ==. task ^. TaskInitial
+                    )
+                )
+            )
+        orderBy
+            [ desc (task ^. TaskIsStarred)
+            , asc (task ^. TaskDeadline)
+            , asc (task ^. TaskStartable)
+            ]
+        return (task, user ^. UserName)

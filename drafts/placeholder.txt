@@ -64,7 +64,7 @@ Select tasks whose deadline is today's end.
 /sel -w >30 <300
 Select tasks whose weight is between 30 and 300 hours.
 
-/sel -arc
+/sel -arch
 Select archived tasks.
 
 /sel -star
@@ -76,7 +76,7 @@ Select trunk, namely, tasks with no successor.
 /sel -buds
 Select buds, namely, tasks with no predecessor.
 
-/sel -t word -s >2020/1/1 -d <23:59 -w >30 <300 -arc -star
+/sel -t word -s >2020/1/1 -d <23:59 -w >30 <300 -arch -star
 Specify multiple conditions.
 
 /care 1 2

@@ -905,7 +905,7 @@ cloneTasks m =
 
 showArchives : Model -> Cmd Msg
 showArchives m =
-    postJson "archives" (userEncoder m.sub.user) TasksShown subModelDecoder
+    postJson "arch" (userEncoder m.sub.user) TasksShown subModelDecoder
 
 
 
