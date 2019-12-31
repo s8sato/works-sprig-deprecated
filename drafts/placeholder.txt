@@ -8,7 +8,7 @@ A task to complete by the end of 2020 -2020/12/31
     A task expected to take 300 hours $300
         A task you can start in the beginning of 2020 2020/1/1-
 
-A time-critical task 2020/01/1- 23:59:59- $0.001 -0:0:3 -2020/1/02
+A time-critical task 2020/01/1- 23:59:- $0.1 -0:5 -2020/1/02
 
 trunk
     branch Alice
@@ -43,7 +43,7 @@ YOU CAN ALSO ENTER ONE OF THE FOLLOWING SLASH COMMANDS:
 /dpy 1
 Set default dpy (dots per year) to 1, that is, a dot represents a year.
 
-/asof 2020/01/01_12:0:0
+/asof 2020/01/01 12:0
 Set the time corresponding to the left edge of dots to noon on January 1, 2020.
 
 /pause
@@ -55,13 +55,13 @@ Update the chart every second.
 /sel -t word
 Select tasks whose title contains 'word'.
 
-/sel -s 2020/1/1_12:0:0< <2020/1/2
+/sel -s >2020/1/1 >12:0 <2020/1/2
 Select tasks whose startable is in the afternoon of January 1, 2020.
 
-/sel -d <23:59:59
+/sel -d <23:59
 Select tasks whose deadline is today's end.
 
-/sel -w 30< <300
+/sel -w >30 <300
 Select tasks whose weight is between 30 and 300 hours.
 
 /sel -arc
@@ -76,7 +76,7 @@ Select trunk, namely, tasks with no successor.
 /sel -buds
 Select buds, namely, tasks with no predecessor.
 
-/sel -t word -s 2020/1/1< -d <23:59:59 -w 30< <300 -arc -star
+/sel -t word -s >2020/1/1 -d <23:59 -w >30 <300 -arc -star
 Specify multiple conditions.
 
 /care 1 2

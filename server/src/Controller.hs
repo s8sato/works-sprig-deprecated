@@ -73,7 +73,7 @@ import qualified Database.Esqueleto as Q (Value (..))
 
 import Data.Time.Clock (nominalDay)
 import Data.List (sort)
-import Data.Text.Format (fixed, prec)
+import Data.Text.Format (fixed)
 
 -- type alias
 
@@ -418,10 +418,10 @@ data Attr  =
     | HeadLink      { headLink      :: Text }
     | Title         { title         :: Text }
     | StartableDate { startableYea  :: Int, startableMon    :: Int, startableDay    :: Int }
-    | StartableTime { startableHou  :: Int, startableMin    :: Int, startableSec    :: Int }
+    | StartableTime { startableHou  :: Int, startableMin    :: Int }
     | Weight        { weight        :: Double }
     | DeadlineDate  { deadlineYea   :: Int, deadlineMon     :: Int, deadlineDay     :: Int }
-    | DeadlineTime  { deadlineHou   :: Int, deadlineMin     :: Int, deadlineSec     :: Int }
+    | DeadlineTime  { deadlineHou   :: Int, deadlineMin     :: Int }
     | Assign        { assign        :: Text }
     | TailLink      { tailLink      :: Text }
     | Link          { link          :: Text }
@@ -463,9 +463,9 @@ taskFromEdge' (a:as) (Task t i y d s ml ms mb me md mw mt u) =
                         taskFromEdge' as (Task t i y d s ml (Just (UTCTime nd ot)) mb me md mw mt u)
                     Nothing ->
                         taskFromEdge' as (Task t i y d s ml (Just (UTCTime nd 0)) mb me md mw mt u)
-        StartableTime hh mm ss ->
+        StartableTime hh mm ->
             let
-                nt = secondsToDiffTime . fromIntegral $ ss + 60 * (mm + 60 * hh)
+                nt = secondsToDiffTime . fromIntegral $ 60 * (mm + 60 * hh)
             in
                 case ms of
                     Just (UTCTime od ot) ->
@@ -484,9 +484,9 @@ taskFromEdge' (a:as) (Task t i y d s ml ms mb me md mw mt u) =
                         taskFromEdge' as (Task t i y d s ml ms mb me (Just (UTCTime nd ot)) mw mt u)
                     Nothing ->
                         taskFromEdge' as (Task t i y d s ml ms mb me (Just (UTCTime nd 0)) mw mt u)
-        DeadlineTime hh mm ss ->
+        DeadlineTime hh mm ->
             let
-                nt = secondsToDiffTime . fromIntegral $ ss + 60 * (mm + 60 * hh)
+                nt = secondsToDiffTime . fromIntegral $ 60 * (mm + 60 * hh)
             in
                 case md of
                     Just (UTCTime od ot) ->
@@ -571,9 +571,9 @@ aAttr = AttrTaskId    <$  char '#'  <*> decimal
     <|> IsStarred     <$  char '*'
     <|> Link          <$  char '&'  <*> takeText
     <|> StartableDate <$> decimal   <*  char '/' <*> decimal <* char '/' <*> decimal <* char '-'
-    <|> StartableTime <$> decimal   <*  char ':' <*> decimal <* char ':' <*> decimal <* char '-'
+    <|> StartableTime <$> decimal   <*  char ':' <*> decimal <* char '-'
     <|> DeadlineDate  <$  char '-'  <*> decimal  <* char '/' <*> decimal <* char '/' <*> decimal
-    <|> DeadlineTime  <$  char '-'  <*> decimal  <* char ':' <*> decimal <* char ':' <*> decimal
+    <|> DeadlineTime  <$  char '-'  <*> decimal  <* char ':' <*> decimal
     <|> Weight        <$  char '$'  <*> double
     -- <|> HeadLink      <$> takeTill (==']') <* char ']'
     <|> HeadLink      <$  char ']'  <*> takeText
@@ -681,9 +681,9 @@ edgeFromTask' (Task t i y d s ml ms mb me md mw mt u) result
             Just ss = ms
             UTCTime date clock = ss
             (yea, mon, day) = toGregorian date
-            (hou, min, sec) = toHMS clock
+            (hou, min, _) = toHMS clock
             sD = StartableDate (fromIntegral yea) mon day
-            sT = StartableTime hou min sec
+            sT = StartableTime hou min
         in
             edgeFromTask' (Task t i False False False Nothing Nothing mb me md mw mt u) (sD : sT : result)
     | md /= Nothing =
@@ -691,9 +691,9 @@ edgeFromTask' (Task t i y d s ml ms mb me md mw mt u) result
             Just dd = md
             UTCTime date clock = dd
             (yea, mon, day) = toGregorian date
-            (hou, min, sec) = toHMS clock
+            (hou, min, _) = toHMS clock
             dD = DeadlineDate (fromIntegral yea) mon day
-            dT = DeadlineTime hou min sec
+            dT = DeadlineTime hou min
         in
             edgeFromTask' (Task t i False False False Nothing Nothing mb me Nothing mw mt u) (dD : dT : result)
     | mw /= Nothing =
@@ -800,13 +800,13 @@ wordsFromAttrs' a = case a of
     Title         t     -> B.fromText t
     StartableDate y m d -> 
         B.decimal y <>  B.singleton '/' <> B.decimal m <> B.singleton '/' <> B.decimal d <> B.singleton '-'
-    StartableTime h m s ->
-        B.decimal h <>  B.singleton ':' <> B.decimal m <> B.singleton ':' <> B.decimal s <> B.singleton '-'
-    Weight        w     -> B.singleton '$' <> prec 4 w
+    StartableTime h m ->
+        B.decimal h <>  B.singleton ':' <> B.decimal m <> B.singleton '-'
+    Weight        w     -> B.singleton '$' <> fixed 1 w
     DeadlineDate  y m d ->
         B.singleton '-' <> B.decimal y <>  B.singleton '/' <> B.decimal m <> B.singleton '/' <> B.decimal d
-    DeadlineTime  h m s ->
-        B.singleton '-' <> B.decimal h <>  B.singleton ':' <> B.decimal m <> B.singleton ':' <> B.decimal s
+    DeadlineTime  h m ->
+        B.singleton '-' <> B.decimal h <>  B.singleton ':' <> B.decimal m
     Assign        a     -> B.singleton '@' <> B.fromText a
     TailLink      t     -> B.singleton '[' <> B.fromText t
     Link          l     -> B.singleton '&' <> B.fromText l
