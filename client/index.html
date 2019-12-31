@@ -5462,6 +5462,7 @@ var $author$project$Main$init = function (_v0) {
 			currentTime: $elm$time$Time$millisToPosix(0),
 			dpy: $author$project$Main$dayPerY,
 			indicator: 0,
+			selectedTasks: _List_Nil,
 			sub: initSub,
 			underControl: false,
 			underTyping: false,
@@ -6196,17 +6197,6 @@ var $author$project$Main$changeDpy = F2(
 var $author$project$Main$TasksCloned = function (a) {
 	return {$: 'TasksCloned', a: a};
 };
-var $elm$core$List$filter = F2(
-	function (isGood, list) {
-		return A3(
-			$elm$core$List$foldr,
-			F2(
-				function (x, xs) {
-					return isGood(x) ? A2($elm$core$List$cons, x, xs) : xs;
-				}),
-			_List_Nil,
-			list);
-	});
 var $elm$json$Json$Encode$int = _Json_wrap;
 var $elm$json$Json$Encode$list = F2(
 	function (func, entries) {
@@ -6303,23 +6293,13 @@ var $author$project$Main$userEncoder = function (u) {
 			]));
 };
 var $author$project$Main$cloneTasksEncoder = function (m) {
-	var ids = A2(
-		$elm$core$List$map,
-		function ($) {
-			return $.id;
-		},
-		A2(
-			$elm$core$List$filter,
-			function ($) {
-				return $.isSelected;
-			},
-			m.tasks));
+	var ids = m.selectedTasks;
 	return $elm$json$Json$Encode$object(
 		_List_fromArray(
 			[
 				_Utils_Tuple2(
 				'cloneTasksUser',
-				$author$project$Main$userEncoder(m.user)),
+				$author$project$Main$userEncoder(m.sub.user)),
 				_Utils_Tuple2(
 				'cloneTasksIds',
 				A2($elm$json$Json$Encode$list, $elm$json$Json$Encode$int, ids))
@@ -7031,9 +7011,7 @@ var $author$project$Main$Task = function (id) {
 									return function (deadline) {
 										return function (weight) {
 											return function (user) {
-												return function (isSelected) {
-													return {begin: begin, deadline: deadline, end: end, id: id, isDone: isDone, isDummy: isDummy, isSelected: isSelected, isStarred: isStarred, link: link, startable: startable, title: title, user: user, weight: weight};
-												};
+												return {begin: begin, deadline: deadline, end: end, id: id, isDone: isDone, isDummy: isDummy, isStarred: isStarred, link: link, startable: startable, title: title, user: user, weight: weight};
 											};
 										};
 									};
@@ -7049,67 +7027,62 @@ var $author$project$Main$Task = function (id) {
 var $elm$json$Json$Decode$bool = _Json_decodeBool;
 var $elm$json$Json$Decode$float = _Json_decodeFloat;
 var $elm$json$Json$Decode$int = _Json_decodeInt;
-var $author$project$Main$taskDecoder = A4(
-	$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$optional,
-	'elmTaskIsSelected',
-	$elm$json$Json$Decode$bool,
-	false,
-	A3(
-		$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
-		'elmTaskUser',
-		$elm$json$Json$Decode$string,
+var $author$project$Main$taskDecoder = A3(
+	$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
+	'elmTaskUser',
+	$elm$json$Json$Decode$string,
+	A4(
+		$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$optional,
+		'elmTaskWeight',
+		$elm$json$Json$Decode$nullable($elm$json$Json$Decode$float),
+		$elm$core$Maybe$Nothing,
 		A4(
 			$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$optional,
-			'elmTaskWeight',
-			$elm$json$Json$Decode$nullable($elm$json$Json$Decode$float),
+			'elmTaskDeadline',
+			$elm$json$Json$Decode$nullable($elm$json$Json$Decode$int),
 			$elm$core$Maybe$Nothing,
 			A4(
 				$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$optional,
-				'elmTaskDeadline',
+				'elmTaskEnd',
 				$elm$json$Json$Decode$nullable($elm$json$Json$Decode$int),
 				$elm$core$Maybe$Nothing,
 				A4(
 					$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$optional,
-					'elmTaskEnd',
+					'elmTaskBegin',
 					$elm$json$Json$Decode$nullable($elm$json$Json$Decode$int),
 					$elm$core$Maybe$Nothing,
 					A4(
 						$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$optional,
-						'elmTaskBegin',
+						'elmTaskStartable',
 						$elm$json$Json$Decode$nullable($elm$json$Json$Decode$int),
 						$elm$core$Maybe$Nothing,
 						A4(
 							$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$optional,
-							'elmTaskStartable',
-							$elm$json$Json$Decode$nullable($elm$json$Json$Decode$int),
+							'elmTaskLink',
+							$elm$json$Json$Decode$nullable($elm$json$Json$Decode$string),
 							$elm$core$Maybe$Nothing,
 							A4(
 								$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$optional,
-								'elmTaskLink',
+								'elmTaskTitle',
 								$elm$json$Json$Decode$nullable($elm$json$Json$Decode$string),
 								$elm$core$Maybe$Nothing,
-								A4(
-									$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$optional,
-									'elmTaskTitle',
-									$elm$json$Json$Decode$nullable($elm$json$Json$Decode$string),
-									$elm$core$Maybe$Nothing,
+								A3(
+									$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
+									'elmTaskIsStarred',
+									$elm$json$Json$Decode$bool,
 									A3(
 										$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
-										'elmTaskIsStarred',
+										'elmTaskIsDone',
 										$elm$json$Json$Decode$bool,
 										A3(
 											$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
-											'elmTaskIsDone',
+											'elmTaskIsDummy',
 											$elm$json$Json$Decode$bool,
 											A3(
 												$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
-												'elmTaskIsDummy',
-												$elm$json$Json$Decode$bool,
-												A3(
-													$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
-													'elmTaskId',
-													$elm$json$Json$Decode$int,
-													$elm$json$Json$Decode$succeed($author$project$Main$Task))))))))))))));
+												'elmTaskId',
+												$elm$json$Json$Decode$int,
+												$elm$json$Json$Decode$succeed($author$project$Main$Task)))))))))))));
 var $author$project$Main$Duration = F2(
 	function (left, right) {
 		return {left: left, right: right};
@@ -7184,27 +7157,17 @@ var $author$project$Main$cloneTasks = function (m) {
 			url: 'http://localhost:8080/tasks/clone'
 		});
 };
-var $author$project$Main$TasksArchivedOrUndoned = function (a) {
-	return {$: 'TasksArchivedOrUndoned', a: a};
+var $author$project$Main$TasksDoneOrUndone = function (a) {
+	return {$: 'TasksDoneOrUndone', a: a};
 };
 var $author$project$Main$doneTasksEncoder = function (m) {
-	var ids = A2(
-		$elm$core$List$map,
-		function ($) {
-			return $.id;
-		},
-		A2(
-			$elm$core$List$filter,
-			function ($) {
-				return $.isSelected;
-			},
-			m.tasks));
+	var ids = m.selectedTasks;
 	return $elm$json$Json$Encode$object(
 		_List_fromArray(
 			[
 				_Utils_Tuple2(
 				'doneTasksUser',
-				$author$project$Main$userEncoder(m.user)),
+				$author$project$Main$userEncoder(m.sub.user)),
 				_Utils_Tuple2(
 				'doneTasksIds',
 				A2($elm$json$Json$Encode$list, $elm$json$Json$Encode$int, ids))
@@ -7215,7 +7178,7 @@ var $author$project$Main$doneTasks = function (m) {
 		{
 			body: $elm$http$Http$jsonBody(
 				$author$project$Main$doneTasksEncoder(m)),
-			expect: A2($elm$http$Http$expectJson, $author$project$Main$TasksArchivedOrUndoned, $author$project$Main$subModelDecoder),
+			expect: A2($elm$http$Http$expectJson, $author$project$Main$TasksDoneOrUndone, $author$project$Main$subModelDecoder),
 			url: 'http://localhost:8080/tasks/done'
 		});
 };
@@ -7379,24 +7342,93 @@ var $author$project$Main$initialize = function (m) {
 			url: 'http://localhost:8080/tasks/init'
 		});
 };
+var $elm$core$List$append = F2(
+	function (xs, ys) {
+		if (!ys.b) {
+			return xs;
+		} else {
+			return A3($elm$core$List$foldr, $elm$core$List$cons, ys, xs);
+		}
+	});
+var $elm$core$List$concat = function (lists) {
+	return A3($elm$core$List$foldr, $elm$core$List$append, _List_Nil, lists);
+};
+var $elm$core$List$filter = F2(
+	function (isGood, list) {
+		return A3(
+			$elm$core$List$foldr,
+			F2(
+				function (x, xs) {
+					return isGood(x) ? A2($elm$core$List$cons, x, xs) : xs;
+				}),
+			_List_Nil,
+			list);
+	});
+var $elm$core$List$any = F2(
+	function (isOkay, list) {
+		any:
+		while (true) {
+			if (!list.b) {
+				return false;
+			} else {
+				var x = list.a;
+				var xs = list.b;
+				if (isOkay(x)) {
+					return true;
+				} else {
+					var $temp$isOkay = isOkay,
+						$temp$list = xs;
+					isOkay = $temp$isOkay;
+					list = $temp$list;
+					continue any;
+				}
+			}
+		}
+	});
+var $elm$core$List$member = F2(
+	function (x, xs) {
+		return A2(
+			$elm$core$List$any,
+			function (a) {
+				return _Utils_eq(a, x);
+			},
+			xs);
+	});
 var $elm$core$Basics$not = _Basics_not;
 var $author$project$Main$inverseSelect = function (model) {
-	var sub = model.sub;
-	var newSub = _Utils_update(
-		sub,
-		{
-			tasks: A2(
-				$elm$core$List$map,
-				function (task) {
-					return _Utils_update(
-						task,
-						{isSelected: !task.isSelected});
-				},
-				model.sub.tasks)
-		});
 	return _Utils_update(
 		model,
-		{sub: newSub});
+		{
+			selectedTasks: function () {
+				var presence = A2(
+					$elm$core$List$map,
+					function ($) {
+						return $.id;
+					},
+					model.sub.tasks);
+				var realSel = A2(
+					$elm$core$List$filter,
+					function (id) {
+						return A2($elm$core$List$member, id, presence);
+					},
+					model.selectedTasks);
+				var inversedRealSel = A2(
+					$elm$core$List$filter,
+					function (id) {
+						return !A2($elm$core$List$member, id, realSel);
+					},
+					presence);
+				var imaginarySel = A2(
+					$elm$core$List$filter,
+					function (id) {
+						return !A2($elm$core$List$member, id, presence);
+					},
+					model.selectedTasks);
+				return $elm$core$List$concat(
+					_List_fromArray(
+						[inversedRealSel, imaginarySel]));
+			}()
+		});
 };
 var $author$project$Main$buildMessageEH = function (httpError) {
 	switch (httpError.$) {
@@ -7437,19 +7469,15 @@ var $author$project$Main$returnedHome = F2(
 		var newSub = _Utils_update(
 			sub,
 			{message: m.message, tasks: m.tasks});
+		var newModel = _Utils_update(
+			model,
+			{selectedTasks: _List_Nil, sub: newSub});
 		var _v0 = model.sub.user.defaultDpy;
 		if (_v0.$ === 'Nothing') {
-			return _Utils_update(
-				model,
-				{sub: newSub});
+			return newModel;
 		} else {
 			var dpy = _v0.a;
-			return A2(
-				$author$project$Main$changeDpy,
-				_Utils_update(
-					model,
-					{sub: newSub}),
-				dpy);
+			return A2($author$project$Main$changeDpy, newModel, dpy);
 		}
 	});
 var $author$project$Main$setZoneName = F2(
@@ -7554,6 +7582,7 @@ var $author$project$Main$starSwitched = F2(
 				{sub: newSub});
 		}
 	});
+var $elm$core$Basics$neq = _Utils_notEqual;
 var $author$project$Main$switchSelect = F2(
 	function (model, i) {
 		var _v0 = A2(
@@ -7564,23 +7593,18 @@ var $author$project$Main$switchSelect = F2(
 			return model;
 		} else {
 			var task = _v0.a;
-			var sub = model.sub;
-			var newTask = _Utils_update(
-				task,
-				{isSelected: !task.isSelected});
-			var newSub = _Utils_update(
-				sub,
-				{
-					tasks: $elm$core$Array$toList(
-						A3(
-							$elm$core$Array$set,
-							i,
-							newTask,
-							$elm$core$Array$fromList(model.sub.tasks)))
-				});
 			return _Utils_update(
 				model,
-				{sub: newSub});
+				{
+					selectedTasks: A2($elm$core$List$member, task.id, model.selectedTasks) ? A2(
+						$elm$core$List$filter,
+						$elm$core$Basics$neq(task.id),
+						model.selectedTasks) : A2(
+						$elm$core$List$append,
+						model.selectedTasks,
+						_List_fromArray(
+							[task.id]))
+				});
 		}
 	});
 var $author$project$Main$StarSwitched = F2(
@@ -7698,7 +7722,17 @@ var $author$project$Main$taskFocused = F3(
 			model,
 			{indicator: newIndicator, sub: newSub});
 	});
-var $author$project$Main$tasksArchivedOrUndoned = F2(
+var $author$project$Main$tasksCloned = F2(
+	function (model, m) {
+		var sub = model.sub;
+		var newSub = _Utils_update(
+			sub,
+			{inputText: m.inputText, message: m.message});
+		return _Utils_update(
+			model,
+			{selectedTasks: _List_Nil, sub: newSub});
+	});
+var $author$project$Main$tasksDoneOrUndone = F2(
 	function (model, m) {
 		var sub = model.sub;
 		var newSub = _Utils_update(
@@ -7716,17 +7750,7 @@ var $author$project$Main$tasksArchivedOrUndoned = F2(
 			});
 		return _Utils_update(
 			model,
-			{sub: newSub});
-	});
-var $author$project$Main$tasksCloned = F2(
-	function (model, m) {
-		var sub = model.sub;
-		var newSub = _Utils_update(
-			sub,
-			{inputText: m.inputText, message: m.message});
-		return _Utils_update(
-			model,
-			{sub: newSub});
+			{selectedTasks: _List_Nil, sub: newSub});
 	});
 var $author$project$Main$TextPosted = function (a) {
 	return {$: 'TextPosted', a: a};
@@ -7792,12 +7816,7 @@ var $author$project$Main$update = F2(
 				if (msg.a.$ === 'Ok') {
 					var newSubModel = msg.a.a;
 					return _Utils_Tuple2(
-						A2(
-							$author$project$Main$returnedHome,
-							_Utils_update(
-								model,
-								{sub: newSubModel}),
-							newSubModel),
+						A2($author$project$Main$returnedHome, model, newSubModel),
 						$elm$core$Platform$Cmd$none);
 				} else {
 					var httpError = msg.a.a;
@@ -7848,7 +7867,7 @@ var $author$project$Main$update = F2(
 					case 'e':
 						return _Utils_Tuple2(
 							model,
-							$author$project$Main$doneTasks(model.sub));
+							$author$project$Main$doneTasks(model));
 					case 'f':
 						return _Utils_Tuple2(
 							model,
@@ -7856,7 +7875,7 @@ var $author$project$Main$update = F2(
 					case 'c':
 						return _Utils_Tuple2(
 							model,
-							$author$project$Main$cloneTasks(model.sub));
+							$author$project$Main$cloneTasks(model));
 					case '/':
 						return _Utils_Tuple2(
 							model,
@@ -8116,7 +8135,7 @@ var $author$project$Main$update = F2(
 				if (msg.a.$ === 'Ok') {
 					var newSubModel = msg.a.a;
 					return _Utils_Tuple2(
-						A2($author$project$Main$tasksArchivedOrUndoned, model, newSubModel),
+						A2($author$project$Main$tasksDoneOrUndone, model, newSubModel),
 						$elm$core$Platform$Cmd$none);
 				} else {
 					var httpError = msg.a.a;
@@ -8251,27 +8270,6 @@ var $author$project$Main$position = F3(
 			var t = mt.a;
 			var millis = t - $elm$time$Time$posixToMillis(asof);
 			return (millis < 0) ? (-1) : (((dpy * millis) / ($author$project$Main$secPerY * A2($elm$core$Basics$pow, 10, 3))) | 0);
-		}
-	});
-var $elm$core$List$any = F2(
-	function (isOkay, list) {
-		any:
-		while (true) {
-			if (!list.b) {
-				return false;
-			} else {
-				var x = list.a;
-				var xs = list.b;
-				if (isOkay(x)) {
-					return true;
-				} else {
-					var $temp$isOkay = isOkay,
-						$temp$list = xs;
-					isOkay = $temp$isOkay;
-					list = $temp$list;
-					continue any;
-				}
-			}
 		}
 	});
 var $elm$time$Time$flooredDiv = F2(
@@ -8675,7 +8673,9 @@ var $author$project$Main$viewTask = F2(
 							_Utils_Tuple2(
 							'focused ',
 							_Utils_eq(i, m.indicator)),
-							_Utils_Tuple2('selected', task.isSelected),
+							_Utils_Tuple2(
+							'selected',
+							A2($elm$core$List$member, task.id, m.selectedTasks)),
 							_Utils_Tuple2(
 							'expired',
 							A2($author$project$Main$isExpired, m, task))
@@ -8700,7 +8700,7 @@ var $author$project$Main$viewTask = F2(
 						]),
 					_List_fromArray(
 						[
-							task.isSelected ? $elm$html$Html$text('SEL') : $elm$html$Html$text('-')
+							A2($elm$core$List$member, task.id, m.selectedTasks) ? $elm$html$Html$text('SEL') : $elm$html$Html$text('-')
 						])),
 					A2(
 					$elm$html$Html$div,
@@ -8822,6 +8822,13 @@ var $author$project$Main$viewTask = F2(
 						]))
 				]));
 	});
+var $elm$core$List$isEmpty = function (xs) {
+	if (!xs.b) {
+		return true;
+	} else {
+		return false;
+	}
+};
 var $elm$core$Bitwise$shiftRightBy = _Bitwise_shiftRightBy;
 var $elm$core$String$repeatHelp = F3(
 	function (n, chunk, result) {
@@ -8965,7 +8972,12 @@ var $author$project$Main$viewTaskHeader = function (m) {
 					[
 						$elm$html$Html$Attributes$class('selection')
 					]),
-				_List_Nil),
+				_List_fromArray(
+					[
+						$elm$core$List$isEmpty(m.selectedTasks) ? A2($elm$html$Html$div, _List_Nil, _List_Nil) : $elm$html$Html$text(
+						$elm$core$String$fromInt(
+							$elm$core$List$length(m.selectedTasks)))
+					])),
 				A2(
 				$elm$html$Html$div,
 				_List_fromArray(
@@ -8979,20 +8991,7 @@ var $author$project$Main$viewTaskHeader = function (m) {
 					[
 						$elm$html$Html$Attributes$class('title')
 					]),
-				_List_fromArray(
-					[
-						A2(
-						$elm$html$Html$div,
-						_List_fromArray(
-							[
-								$elm$html$Html$Attributes$class('dev')
-							]),
-						_List_fromArray(
-							[
-								$elm$html$Html$text(
-								A2($author$project$Main$strFromPosix, m.zone, m.currentTime))
-							]))
-					])),
+				_List_Nil),
 				A2(
 				$elm$html$Html$div,
 				_List_fromArray(

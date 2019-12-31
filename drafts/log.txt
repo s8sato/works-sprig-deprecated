@@ -187,3 +187,7 @@ parse (takeTill (=='<')) "hey<foy"
 
 17:30過ぎたら#が-になってしまった
 2019-12-31 17:39:39
+
+ignored seconds
+
+selection independent of actually shown tasks

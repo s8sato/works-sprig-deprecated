@@ -47,6 +47,7 @@ type alias Model =
     , underControl : Bool
     , asOfCurrentTime : Bool
     , dpy : Int
+    , selectedTasks : List Int
     }
 
 
@@ -96,7 +97,6 @@ type alias Task =
     , deadline : Maybe Millis
     , weight : Maybe Float
     , user : String
-    , isSelected : Bool
     }
 
 
@@ -125,6 +125,7 @@ init _ =
       , underControl = False
       , asOfCurrentTime = True
       , dpy = dayPerY
+      , selectedTasks = []
       }
       -- , Cmd.none
     , Task.perform AdjustTimeZone Time.here
@@ -210,7 +211,7 @@ type Msg
     | Tick Time.Posix
     | TasksCloned (Result Http.Error SubModel)
     | TextPosted (Result Http.Error SubModel)
-    | TasksArchivedOrUndoned (Result Http.Error SubModel)
+    | TasksDoneOrUndone (Result Http.Error SubModel)
 
 
 
@@ -229,11 +230,7 @@ update msg model =
             ( model, Cmd.none )
 
         SubModelReceived (Ok newSubModel) ->
-            ( returnedHome
-                { model
-                    | sub = newSubModel
-                }
-                newSubModel
+            ( returnedHome model newSubModel
             , Cmd.none
             )
 
@@ -286,7 +283,7 @@ update msg model =
             )
 
         CharacterKey 'e' ->
-            ( model, doneTasks model.sub )
+            ( model, doneTasks model )
 
         CharacterKey 'f' ->
             ( model, focusTask model.sub model.indicator )
@@ -295,7 +292,7 @@ update msg model =
         -- APIからもらう：String
         CharacterKey 'c' ->
             -- TODO
-            ( model, cloneTasks model.sub )
+            ( model, cloneTasks model )
 
         CharacterKey '/' ->
             ( model
@@ -491,10 +488,10 @@ update msg model =
         TextPosted (Err httpError) ->
             ( messageEH model httpError, Cmd.none )
 
-        TasksArchivedOrUndoned (Ok newSubModel) ->
-            ( tasksArchivedOrUndoned model newSubModel, Cmd.none )
+        TasksDoneOrUndone (Ok newSubModel) ->
+            ( tasksDoneOrUndone model newSubModel, Cmd.none )
 
-        TasksArchivedOrUndoned (Err httpError) ->
+        TasksDoneOrUndone (Err httpError) ->
             ( messageEH model httpError, Cmd.none )
 
 
@@ -513,13 +510,19 @@ returnedHome model m =
                 | tasks = m.tasks
                 , message = m.message
             }
+
+        newModel =
+            { model
+                | sub = newSub
+                , selectedTasks = []
+            }
     in
     case model.sub.user.defaultDpy of
         Nothing ->
-            { model | sub = newSub }
+            newModel
 
         Just dpy ->
-            changeDpy { model | sub = newSub } dpy
+            changeDpy newModel dpy
 
 
 setZoneName : Model -> ZoneName -> Model
@@ -610,22 +613,22 @@ starSwitched model i =
 
 inverseSelect : Model -> Model
 inverseSelect model =
-    let
-        sub =
-            model.sub
-
-        newSub =
-            { sub
-                | tasks =
-                    List.map
-                        (\task ->
-                            { task | isSelected = not task.isSelected }
-                        )
-                        model.sub.tasks
-            }
-    in
     { model
-        | sub = newSub
+        | selectedTasks =
+            let
+                presence =
+                    List.map .id model.sub.tasks
+
+                imaginarySel =
+                    List.filter (\id -> not <| List.member id presence) model.selectedTasks
+
+                realSel =
+                    List.filter (\id -> List.member id presence) model.selectedTasks
+
+                inversedRealSel =
+                    List.filter (\id -> not <| List.member id realSel) presence
+            in
+            List.concat [ inversedRealSel, imaginarySel ]
     }
 
 
@@ -686,22 +689,13 @@ switchSelect model i =
             model
 
         Just task ->
-            let
-                newTask =
-                    { task | isSelected = not task.isSelected }
-
-                sub =
-                    model.sub
-
-                newSub =
-                    { sub
-                        | tasks =
-                            Array.toList <|
-                                Array.set i newTask (Array.fromList model.sub.tasks)
-                    }
-            in
             { model
-                | sub = newSub
+                | selectedTasks =
+                    if List.member task.id model.selectedTasks then
+                        List.filter ((/=) task.id) model.selectedTasks
+
+                    else
+                        List.append model.selectedTasks [ task.id ]
             }
 
 
@@ -717,7 +711,10 @@ tasksCloned model m =
                 , message = m.message
             }
     in
-    { model | sub = newSub }
+    { model
+        | sub = newSub
+        , selectedTasks = []
+    }
 
 
 textPosted : Model -> SubModel -> Model
@@ -739,11 +736,13 @@ textPosted model m =
                 , inputText = Nothing
             }
     in
-    { model | sub = newSub }
+    { model
+        | sub = newSub
+    }
 
 
-tasksArchivedOrUndoned : Model -> SubModel -> Model
-tasksArchivedOrUndoned model m =
+tasksDoneOrUndone : Model -> SubModel -> Model
+tasksDoneOrUndone model m =
     let
         sub =
             model.sub
@@ -760,7 +759,10 @@ tasksArchivedOrUndoned model m =
                 , message = m.message
             }
     in
-    { model | sub = newSub }
+    { model
+        | sub = newSub
+        , selectedTasks = []
+    }
 
 
 
@@ -827,16 +829,16 @@ goHome m =
         }
 
 
-doneTasks : SubModel -> Cmd Msg
+doneTasks : Model -> Cmd Msg
 doneTasks m =
     Http.post
         { url = "http://localhost:8080/tasks/done"
         , body = Http.jsonBody (doneTasksEncoder m)
-        , expect = Http.expectJson TasksArchivedOrUndoned subModelDecoder
+        , expect = Http.expectJson TasksDoneOrUndone subModelDecoder
         }
 
 
-cloneTasks : SubModel -> Cmd Msg
+cloneTasks : Model -> Cmd Msg
 cloneTasks m =
     Http.post
         { url = "http://localhost:8080/tasks/clone"
@@ -885,14 +887,14 @@ durationEncoder dur =
         ]
 
 
-doneTasksEncoder : SubModel -> Encode.Value
+doneTasksEncoder : Model -> Encode.Value
 doneTasksEncoder m =
     let
         ids =
-            List.map .id <| List.filter .isSelected <| m.tasks
+            m.selectedTasks
     in
     Encode.object
-        [ ( "doneTasksUser", userEncoder m.user )
+        [ ( "doneTasksUser", userEncoder m.sub.user )
         , ( "doneTasksIds", Encode.list Encode.int ids )
         ]
 
@@ -918,14 +920,14 @@ goHomeEncoder m =
         ]
 
 
-cloneTasksEncoder : SubModel -> Encode.Value
+cloneTasksEncoder : Model -> Encode.Value
 cloneTasksEncoder m =
     let
         ids =
-            List.map .id <| List.filter .isSelected <| m.tasks
+            m.selectedTasks
     in
     Encode.object
-        [ ( "cloneTasksUser", userEncoder m.user )
+        [ ( "cloneTasksUser", userEncoder m.sub.user )
         , ( "cloneTasksIds", Encode.list Encode.int ids )
         ]
 
@@ -981,7 +983,6 @@ taskDecoder =
         |> optional "elmTaskDeadline" (nullable int) Nothing
         |> optional "elmTaskWeight" (nullable float) Nothing
         |> required "elmTaskUser" string
-        |> optional "elmTaskIsSelected" bool False
 
 
 durationsDecoder : Decoder (List Duration)
@@ -1143,12 +1144,15 @@ viewTaskHeader : Model -> Html Msg
 viewTaskHeader m =
     div [ id "taskHeader" ]
         [ div [ class "indicator" ] []
-        , div [ class "selection" ] []
-        , div [ class "star" ] []
-        , div [ class "title" ]
-            [ div [ class "dev" ]
-                [ text (strFromPosix m.zone m.currentTime) ]
+        , div [ class "selection" ]
+            [ if List.isEmpty m.selectedTasks then
+                div [] []
+
+              else
+                text (String.fromInt (List.length m.selectedTasks))
             ]
+        , div [ class "star" ] []
+        , div [ class "title" ] []
         , div [ class "startable" ]
             [ text (viewDateTimeUnit m.dpy) ]
         , div [ class "bar" ]
@@ -1188,7 +1192,7 @@ viewTask m ( i, task ) =
         [ classList
             [ ( "task", True )
             , ( "focused ", i == m.indicator )
-            , ( "selected", task.isSelected )
+            , ( "selected", List.member task.id m.selectedTasks )
             , ( "expired", isExpired m task )
             ]
         ]
@@ -1197,7 +1201,7 @@ viewTask m ( i, task ) =
             [ class "selection"
             , onClick (SwitchSelect i)
             ]
-            [ if task.isSelected then
+            [ if List.member task.id m.selectedTasks then
                 text "SEL"
 
               else
