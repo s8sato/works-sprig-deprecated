@@ -87,3 +87,7 @@ removed char variable from IsDone and IsStarred
 2019-12-31 06:18:10
 
 Trimmed waste of input field when cloning
+
+"x tasks archived/undone."
+2019-12-31 14:29:16
+

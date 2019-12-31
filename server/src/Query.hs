@@ -14,17 +14,12 @@ import Data.Time
 
 import Control.Monad.IO.Class       ( MonadIO )
 import Data.Text                    ( Text )
--- import Data.Int                     ( Int64 )
 
 -- getTasks :: ConnectionPool -> IO [Entity Task]
 -- getTasks pool = flip runSqlPool pool $ selectList [] []
 
-
-
 -- getTask :: ConnectionPool -> Key Task -> IO (Maybe (Entity Task))
 -- getTask pool = flip runSqlPool pool . getEntity
-
-
 
 -- insertUser :: ConnectionPool -> User -> IO (Maybe (Entity User))
 -- insertUser pool user = flip runSqlPool pool $ do
@@ -35,8 +30,6 @@ import Data.Text                    ( Text )
 --                      key <- insert user
 --                      pure $ Just $ Entity key user
 
-
-
 -- getTasks :: ConnectionPool -> IO [Entity User]
 -- getTasks pool = flip runSqlPool pool $ do
 --     select $
@@ -46,16 +39,12 @@ import Data.Text                    ( Text )
 --     let s = sum_ (purchase.PurchaseAmount)
 --     return (client, s)
 
-
-
 -- insTask :: Task -> IO ()
 -- insTask task = do
 --     pool <- pgPool
 --     flip runSqlPool pool $ do
 --         insert $ task
 --         return ()
-
-
 
 insUser :: User -> IO ()
 insUser user = do
@@ -75,7 +64,6 @@ insTasks ts = do
     flip runSqlPool pool $ do
         sequence_ . map insert $ ts
 
-
 -- getUndoneTasks :: ConnectionPool -> Int -> IO [Entity Task]
 -- getUndoneTasks pool user = flip runSqlPool pool $ do
 --     select $ from $ \task -> do
@@ -91,16 +79,12 @@ insTasks ts = do
 --             ]
 --         return (task)
 
-
 keyFromInt :: Integral a => a -> BackendKey SqlBackend
 keyFromInt = SqlBackendKey . fromIntegral
-
 
 -- get = do
 --     pool <- pgPool
 --     getUndoneTasks pool 1
-
-
 
 -- rawTask :: IO [Task]
 -- rawTask = do
@@ -108,22 +92,28 @@ keyFromInt = SqlBackendKey . fromIntegral
 --     tasks <- getTasks pool
 --     return (map (\(Entity k v) -> v) tasks)
 
+-- setTasksDone :: ConnectionPool -> [Int] -> IO ()
+-- setTasksDone pool ids = flip runSqlPool pool $ do
+--     update $ \task -> do
+--         set
+--             task [TaskIsDone =. val True]
+--         where_ 
+--             (   task ^. TaskId `in_` valList (map (TaskKey . keyFromInt ) ids)
+--             )
 
-
-setTasksDone :: ConnectionPool -> [Int] -> IO ()
-setTasksDone pool ids = flip runSqlPool pool $ do
+setTaskDoneOrUndone :: ConnectionPool -> Int -> IO ()
+setTaskDoneOrUndone pool id = flip runSqlPool pool $ do
     update $ \task -> do
+        let isDone = sub_select $ from $ \task -> do
+                where_ 
+                    (   task ^. TaskId ==. val (TaskKey . keyFromInt $ id)
+                    )
+                return $ task ^. TaskIsDone
         set
-            task [TaskIsDone =. val True]
+            task [TaskIsDone =. not_ isDone]
         where_ 
-            (   task ^. TaskId `in_` valList (map (TaskKey . keyFromInt ) ids)
+            (   task ^. TaskId ==. val (TaskKey . keyFromInt $ id)
             )
-
-
-done = do
-    pool <- pgPool
-    setTasksDone pool [6]
-
 
 setStarSwitched :: ConnectionPool -> Int -> IO ()
 setStarSwitched pool id = flip runSqlPool pool $ do
@@ -222,8 +212,6 @@ getMaxNode' pool = flip runSqlPool pool $ do
     select $ from $ \task -> do
         return $ (max_ (task ^. TaskTerminal), max_ (task ^. TaskInitial))
 
-
-
 -- getMe' :: MonadIO m => Integer -> SqlPersistT m [Entity Task]
 -- getMe' me = 
 --     select $ from $ \task -> do
@@ -236,7 +224,6 @@ getMaxNode' pool = flip runSqlPool pool $ do
 -- meh pool arg = 
 --     flip runSqlPool pool $ do
 --         getMe' arg
-
 
 getUndoneTaskAssigns :: ConnectionPool -> Int -> IO [(Entity Task, Value Text)]
 getUndoneTaskAssigns pool uid = flip runSqlPool pool $ do
@@ -254,7 +241,6 @@ getUndoneTaskAssigns pool uid = flip runSqlPool pool $ do
             -- , asc (task ^. TaskTitle)
             ]
         return (task, user ^. UserName)
-
 
 getUserById :: ConnectionPool -> Int -> IO [Entity User]
 getUserById pool id = flip runSqlPool pool $ do
@@ -286,7 +272,6 @@ getDurationsById pool id = flip runSqlPool pool $ do
             [ asc (duration ^. DurationLeft)
             ]
         return (duration)
-
 
 getTaskAssignById :: ConnectionPool -> Int -> IO [(Entity Task, Value Text)]
 getTaskAssignById  pool id = flip runSqlPool pool $ do

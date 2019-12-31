@@ -7184,8 +7184,8 @@ var $author$project$Main$cloneTasks = function (m) {
 			url: 'http://localhost:8080/tasks/clone'
 		});
 };
-var $author$project$Main$TasksReceived = function (a) {
-	return {$: 'TasksReceived', a: a};
+var $author$project$Main$TasksArchivedOrUndoned = function (a) {
+	return {$: 'TasksArchivedOrUndoned', a: a};
 };
 var $author$project$Main$doneTasksEncoder = function (m) {
 	var ids = A2(
@@ -7204,19 +7204,18 @@ var $author$project$Main$doneTasksEncoder = function (m) {
 			[
 				_Utils_Tuple2(
 				'doneTasksUser',
-				$elm$json$Json$Encode$int(m.user.id)),
+				$author$project$Main$userEncoder(m.user)),
 				_Utils_Tuple2(
 				'doneTasksIds',
 				A2($elm$json$Json$Encode$list, $elm$json$Json$Encode$int, ids))
 			]));
 };
-var $author$project$Main$tasksDecoder = $elm$json$Json$Decode$list($author$project$Main$taskDecoder);
 var $author$project$Main$doneTasks = function (m) {
 	return $elm$http$Http$post(
 		{
 			body: $elm$http$Http$jsonBody(
 				$author$project$Main$doneTasksEncoder(m)),
-			expect: A2($elm$http$Http$expectJson, $author$project$Main$TasksReceived, $author$project$Main$tasksDecoder),
+			expect: A2($elm$http$Http$expectJson, $author$project$Main$TasksArchivedOrUndoned, $author$project$Main$subModelDecoder),
 			url: 'http://localhost:8080/tasks/done'
 		});
 };
@@ -7313,6 +7312,7 @@ var $elm$core$Array$get = F2(
 	});
 var $elm$core$Platform$Cmd$batch = _Platform_batch;
 var $elm$core$Platform$Cmd$none = $elm$core$Platform$Cmd$batch(_List_Nil);
+var $author$project$Main$tasksDecoder = $elm$json$Json$Decode$list($author$project$Main$taskDecoder);
 var $author$project$Main$focusTask = F2(
 	function (m, i) {
 		var _v0 = A2(
@@ -7699,6 +7699,26 @@ var $author$project$Main$taskFocused = F3(
 			model,
 			{indicator: newIndicator, sub: newSub});
 	});
+var $author$project$Main$tasksArchivedOrUndoned = F2(
+	function (model, m) {
+		var sub = model.sub;
+		var newSub = _Utils_update(
+			sub,
+			{
+				message: m.message,
+				tasks: function () {
+					var _v0 = m.tasks;
+					if (!_v0.b) {
+						return sub.tasks;
+					} else {
+						return m.tasks;
+					}
+				}()
+			});
+		return _Utils_update(
+			model,
+			{sub: newSub});
+	});
 var $author$project$Main$tasksCloned = F2(
 	function (model, m) {
 		var sub = model.sub;
@@ -8080,11 +8100,23 @@ var $author$project$Main$update = F2(
 						A2($author$project$Main$messageEH, model, httpError),
 						$elm$core$Platform$Cmd$none);
 				}
-			default:
+			case 'TextPosted':
 				if (msg.a.$ === 'Ok') {
 					var newSubModel = msg.a.a;
 					return _Utils_Tuple2(
 						A2($author$project$Main$textPosted, model, newSubModel),
+						$elm$core$Platform$Cmd$none);
+				} else {
+					var httpError = msg.a.a;
+					return _Utils_Tuple2(
+						A2($author$project$Main$messageEH, model, httpError),
+						$elm$core$Platform$Cmd$none);
+				}
+			default:
+				if (msg.a.$ === 'Ok') {
+					var newSubModel = msg.a.a;
+					return _Utils_Tuple2(
+						A2($author$project$Main$tasksArchivedOrUndoned, model, newSubModel),
 						$elm$core$Platform$Cmd$none);
 				} else {
 					var httpError = msg.a.a;

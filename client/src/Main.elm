@@ -205,6 +205,7 @@ type Msg
     | Tick Time.Posix
     | TasksCloned (Result Http.Error SubModel)
     | TextPosted (Result Http.Error SubModel)
+    | TasksArchivedOrUndoned (Result Http.Error SubModel)
 
 
 
@@ -485,6 +486,12 @@ update msg model =
         TextPosted (Err httpError) ->
             ( messageEH model httpError, Cmd.none )
 
+        TasksArchivedOrUndoned (Ok newSubModel) ->
+            ( tasksArchivedOrUndoned model newSubModel, Cmd.none )
+
+        TasksArchivedOrUndoned (Err httpError) ->
+            ( messageEH model httpError, Cmd.none )
+
 
 
 -- HELPER FUNCTIONS
@@ -730,6 +737,27 @@ textPosted model m =
     { model | sub = newSub }
 
 
+tasksArchivedOrUndoned : Model -> SubModel -> Model
+tasksArchivedOrUndoned model m =
+    let
+        sub =
+            model.sub
+
+        newSub =
+            { sub
+                | tasks =
+                    case m.tasks of
+                        [] ->
+                            sub.tasks
+
+                        _ ->
+                            m.tasks
+                , message = m.message
+            }
+    in
+    { model | sub = newSub }
+
+
 
 -- COMMANDS
 
@@ -799,7 +827,7 @@ doneTasks m =
     Http.post
         { url = "http://localhost:8080/tasks/done"
         , body = Http.jsonBody (doneTasksEncoder m)
-        , expect = Http.expectJson TasksReceived tasksDecoder
+        , expect = Http.expectJson TasksArchivedOrUndoned subModelDecoder
         }
 
 
@@ -859,7 +887,7 @@ doneTasksEncoder m =
             List.map .id <| List.filter .isSelected <| m.tasks
     in
     Encode.object
-        [ ( "doneTasksUser", Encode.int m.user.id )
+        [ ( "doneTasksUser", userEncoder m.user )
         , ( "doneTasksIds", Encode.list Encode.int ids )
         ]
 
