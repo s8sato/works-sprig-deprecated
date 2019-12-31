@@ -181,6 +181,8 @@ textarea {
     background-image: url("../images/shisocho.png");
     background-position-x: center;
     flex-grow: 1;
+    display: flex;
+    flex-direction: column;
 }
 
 #taskHeader {
@@ -198,7 +200,8 @@ textarea {
 
 #tasks {
     width : inherit;
-    height: inherit;
+    /* height: inherit; */
+    flex-grow: 1;
     overflow: auto;
 }
 

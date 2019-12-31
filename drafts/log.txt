@@ -91,3 +91,99 @@ Trimmed waste of input field when cloning
 "x tasks archived/undone."
 2019-12-31 14:29:16
 
+スクロールの件
+
+-- Main.elm
+
+view model =
+    div [ id "container" ]
+        [ div [ id "header" ]
+        , div [ id "body" ]
+            [ div [ id "mainContainer" ]
+                [ div [ id "mainHeader" ]
+                , div [ id "mainBody" ]
+                    [ viewTaskHeader model
+                    , div [ id "tasks" ]
+                        [...]
+                    ]
+                ]
+            ]
+        , div [ id "fotter" ] []
+        ]
+
+-- style.css
+
+#container {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+#header {
+    height: 64px;
+}
+
+#body {
+    flex-grow: 1;
+    display: flex;
+}
+
+#mainContainer {
+    height: inherit;
+    display: flex;
+    flex-direction: column;
+}
+
+#mainHeader {
+    height: 48px;
+}
+
+#mainBody {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+#taskHeader {
+    height: 56px;
+}
+
+#tasks {
+    flex-grow: 1;
+    overflow: auto;
+}
+
+#footer {
+    height: 86px;
+}
+
+
+Gmailに似たビジュアルと操作感を目指してタスク管理ツールを作っているのですが
+2点でつまづいています。
+
+1.
+画像のような構成で、やりたいことは
+環境に合わせて全体としては画面ぴったりに表示させつつ
+タスクの行たち(Gmailでいうメールの行たち）だけ縦スクロールさせたいです。
+ところが現状 `#tasks` の `overflow: auto;` が利いておらず
+画面外まで縦に伸びてしまいます。
+`#container` の `height: 100%;` に帰着する問題かと思い試しにpxで指定しても同様でした。
+`flex-grow` あたりに問題があるのかもしれませんが、
+これを用いる他、柔軟に表示させる方法がちょっと分かりません。
+あるいは、Elm側で実現する方法はありますでしょうか。
+
+2.
+1.の縦スクロールに関連して、Gmailのように
+キーボードショートカットによる行フォーカスが画面外に行きそうになったとき
+それに追従するようにスクロールさせたいです。
+方法を調べているところですが、ヒントがありましたらご教示ください。
+2019-12-31 17:11:49
+
+
+:set -XOverloadedStrings
+import Data.Attoparsec.Text
+parse takeText "hey"
+parse (takeTill (=='<')) "hey<foy"
+
+17:30過ぎたら#が-になってしまった
+2019-12-31 17:39:39

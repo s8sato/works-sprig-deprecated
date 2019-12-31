@@ -343,7 +343,7 @@ doneTasksReload' (DoneTasks elmUser taskIds) = do
         Nothing -> do
             sequence_ ( map (setTaskDoneOrUndone pool) taskIds)
             elmTasks <- getUndoneElmTasks uid
-            let okMsg = buildOkMsg taskIds " tasks archived/undone."
+            let okMsg = buildOkMsg taskIds " tasks done/undone."
             return $ ElmSubModel elmUser elmTasks Nothing (Just okMsg)
 
 switchStar' :: SwitchStar -> IO ()
@@ -575,6 +575,7 @@ aAttr = AttrTaskId    <$  char '#'  <*> decimal
     <|> DeadlineDate  <$  char '-'  <*> decimal  <* char '/' <*> decimal <* char '/' <*> decimal
     <|> DeadlineTime  <$  char '-'  <*> decimal  <* char ':' <*> decimal <* char ':' <*> decimal
     <|> Weight        <$  char '$'  <*> double
+    -- <|> HeadLink      <$> takeTill (==']') <* char ']'
     <|> HeadLink      <$  char ']'  <*> takeText
     <|> TailLink      <$  char '['  <*> takeText
     <|> Assign        <$  char '@'  <*> takeText
