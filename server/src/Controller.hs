@@ -1025,7 +1025,7 @@ toElmUser :: Entity User -> [Entity Duration] -> ElmUser
 toElmUser eu ers =
     let
         i = idFromEntity eu
-        User n a _ _ mdpy _ _ _ = entityVal eu
+        User n a _ _ _ mdpy _ _ _ = entityVal eu
         durs = map toElmDuration ers 
     in
         ElmUser i n a durs mdpy Nothing Nothing
@@ -1039,9 +1039,9 @@ toElmTime (Just t) =
 toElmDuration :: Entity Duration -> ElmDuration
 toElmDuration e = 
     let
-        Duration l r _ = entityVal e
+        (l, r) = toMillis $ entityVal e
     in
-        ElmDuration l r 
+        ElmDuration l r
 
 shiftTaskNodes :: Int -> [Task] -> [Task]
 shiftTaskNodes sh ts =
@@ -1097,7 +1097,10 @@ millisFromWeight w = floor $ 60 * 60 * 10^3 * w
 type MillisDuration = (Millis, Millis)
 
 toMillis :: Duration -> MillisDuration
-toMillis = \(Duration l r _) -> (10^3*l,10^3*r)
+toMillis (Duration l r _) = (fromTOD l, fromTOD r)
+    where
+        fromTOD :: TimeOfDay -> Millis
+        fromTOD t = floor $ (10^3)*(todSec t)
 
 millisFromUTC ::UTCTime -> Millis
 millisFromUTC u = floor . ((*) (10^3)) . utcTimeToPOSIXSeconds $ u
@@ -1227,3 +1230,37 @@ preShift ((PredInit tt xx):ps) shift tasks =
                 Task t (xx-shift) y d s ml ms mb me md mw mt u) targets
     in
         preShift ps shift (Prelude.concat [targets', others])
+
+-- backward :: [Duration] -> [Task] -> [Task]
+-- backward durs tasks =
+-- tasks' = sortDescDeadline tasks
+
+
+
+-- data TaskSeq = TaskSeq
+--     { qNodes :: [Node]
+--     , qStartable :: Millis
+--     , qDeadline :: Millis
+--     , qWeight :: Millis
+--     }
+
+-- makeSequence :: [Task] -> [TaskSeq]
+
+-- margin :: TaskSeq -> Millis
+-- margin (TaskSeq _ qs qd qw) =
+--     qd - (qs + qw)
+
+-- criticalSeq :: [TaskSeq] -> TaskSeq
+-- criticalSeq =
+--     minimumBy (\p q -> compare (margin p) (margin q))
+
+
+
+-- scheduleForward'' :: Millis -> [TaskSeq] ->
+-- scheduleForward'' now qs =
+--     let 
+--         qs' = filter (\q -> qWeight q > 0) qs
+--         q = criticalSeq qs'
+
+-- [(Task, [])]
+    

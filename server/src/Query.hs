@@ -427,3 +427,9 @@ setTaskUser pool id  u = flip runSqlPool pool $ do
         where_ 
             (   task ^. TaskId ==. val (TaskKey . keyFromInt $ id)
             )
+
+
+endless :: [Int] -> [Int]
+endless seed =
+    Prelude.concat [seed, (map (+ 1) (endless seed))]
+

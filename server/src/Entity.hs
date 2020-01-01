@@ -28,9 +28,9 @@ import Database.Persist.TH          ( mkMigrate
                                     , sqlSettings
                                     )
 import Data.Text                    ( Text )
-import Data.Time                    ( UTCTime )
+import Data.Time                    ( UTCTime
+                                    , TimeOfDay )
 -- import Data.Int                     ( Int64 )
-
 
 pgPool :: IO ConnectionPool
 pgPool = do
@@ -50,6 +50,7 @@ User
     admin               Bool
     timeZone            Int
     isLazy              Bool
+    resolutionMin       Int
     defaultDpy          Int Maybe
     lookUp              Int Maybe
     lookDown            Int Maybe
@@ -86,13 +87,18 @@ Permission
     UniquePermission    subject object
     deriving Show
 Duration
-    left                Int
-    right               Int
+    left                TimeOfDay
+    right               TimeOfDay
     user                UserId
     UniqueDuration left right user
+    deriving Show
+Schedule
+    begin               UTCTime
+    end                 UTCTime
+    task                TaskId
+    UniqueSchedule begin end task
     deriving Show
 |]
 
 migrateDb :: IO ()
 migrateDb = doMigration migrateAll
-

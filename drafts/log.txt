@@ -199,36 +199,8 @@ refactored elm-to-servant interface
 implemented Archives/Trunk/Buds
 
 implemented merging-insert!
+implemented message-code!
 
-There are some rules for using # sign:
-
-1.
-Each #ID can only be used once per post:
-
-NG1
-    step
-        hop2
-            #400 duplicate
-    step
-        #400 duplicate
-
-OK1
-    step
-        hop2 [key
-    step
-        ]key #200 unique
-
-2.
-#IDs can only be placed as trunks or buds:
-
-NG2
-    #400 NOT a trunk NOR a bud
-        hop
-
-3.
-If placed as a bud, it must be an existing trunk.
-
-NG3
-    #200 OK existing as a trunk
-    #400 NG existing NOT as a trunk
+Not applicable to diagrams with loops.
+2020-01-02 00:50:34
 
