@@ -135,11 +135,18 @@ data ElmTask = ElmTask
 
 $(deriveJSON defaultOptions ''ElmTask)
 
+data ElmMessage = ElmMessage
+    { elmMessageCode  :: Int
+    , elmMessageBody  :: Text
+    }
+
+$(deriveJSON defaultOptions ''ElmMessage)
+
 data ElmSubModel = ElmSubModel
     { elmSubModelUser       :: ElmUser
     , elmSubModelTasks      :: [ElmTask]
     , elmSubModelInputText  :: Maybe Text
-    , elmSubModelMessage    :: Maybe Text
+    , elmSubModelMessage    :: Maybe ElmMessage
     }
 
 $(deriveJSON defaultOptions ''ElmSubModel)
@@ -290,15 +297,15 @@ textPostReload' (TextPost elmUser text) = do
             prediction <- insertOrUpdate tasksMaybeIds
             case prediction of
                 Left errMsg' ->
-                    return $ ElmSubModel elmUser [] Nothing (Just errMsg')
+                    return $ ElmSubModel elmUser [] Nothing (Just $ ElmMessage 400 errMsg')
                 Right (inserts, updates, preds) -> do
                     maybeUpdate updates
                     let inserts' = preShift preds shift inserts 
                     insTasks . (shiftTaskNodes shift) $ inserts'
                     elmTasks <- getUndoneElmTasks uid
-                    let okMsg1 = buildOkMsg inserts' " tasks registered."
-                    let okMsg2 = buildOkMsg updates " tasks updated."
-                    let okMsg = intercalate " " [okMsg1, okMsg2]
+                    let ElmMessage _ ok1 = buildOkMsg inserts' " tasks registered."
+                    let ElmMessage _ ok2 = buildOkMsg updates " tasks updated."
+                    let okMsg = ElmMessage 200 (intercalate " " [ok1, ok2])
                     return $ ElmSubModel elmUser elmTasks Nothing (Just okMsg)
 
 data Predictor =    PredTerm { predTermTarget :: Node, predTermToBe :: Node }
@@ -309,7 +316,7 @@ insertOrUpdate xs =
     if  allUnique $ filter ((/=) Nothing) $ map snd xs then
         insertOrUpdate' xs (map fst xs) ([], [], [])
     else
-        return $ Left "Duplicate # use."
+        return $ Left "Duplicate use of #."
 
 
 insertOrUpdate' :: [(Task, Maybe Int)] -> [Task] -> ([Task], [(Int,Task)], [Predictor]) -> IO (Either Text ([Task], [(Int,Task)], [Predictor]))
@@ -334,7 +341,7 @@ insertOrUpdate' ((ta,mid):tas) ref (ins, upd, pred) = case mid of
                     isNowBud i ref && isOldT then
                         insertOrUpdate' tas ref (ins, ((id,ta):upd), ((PredInit t x):pred))
                 else
-                    return $ Left (intercalate "" ["Wrong use of #", pack (show id), "."])
+                    return $ Left (intercalate "" ["Invalid use of #", pack (show id), "."])
                 
 isOldTrunk :: Node -> IO (Bool)
 isOldTrunk x = do
@@ -383,7 +390,7 @@ maybeUpdate' pool (tid, task)
     where
         Task t i y d s ml ms mb me md mw mt u = task
 
-faultPost :: User -> [Task] -> IO (Maybe Text)
+faultPost :: User -> [Task] -> IO (Maybe ElmMessage)
 faultPost user tasks = do
     faultPerms <- faultPostPermission user tasks
     faultFormat <- faultPostFormat tasks
@@ -455,7 +462,7 @@ cloneTasks' (UserSelTasks elmUser taskIds) = do
             let okMsg = buildOkMsg taskAssigns " tasks cloned."
             return $ ElmSubModel elmUser [] (Just text) (Just okMsg)
 
-faultEditPermission :: Int -> [Int] -> IO (Maybe Text)
+faultEditPermission :: Int -> [Int] -> IO (Maybe ElmMessage)
 faultEditPermission uid [] = 
     return Nothing
 faultEditPermission uid (t:ts) = do
@@ -1177,18 +1184,20 @@ nega' (d:ds) seed right rest
     | otherwise =
         posi' (d:ds) seed (snd d) rest
 
-buildOkMsg :: [a] -> String -> Text
+buildOkMsg :: [a] -> String -> ElmMessage
 buildOkMsg xs str =
-    pack $ (show $ Prelude.length xs) ++ str
+    let body = pack $ (show $ Prelude.length xs) ++ str
+    in  ElmMessage 200 body
 
-buildPostErrMsg :: [Maybe Text] -> Text
-buildPostErrMsg []              = "No fault."
-buildPostErrMsg ((Just text):_) = text
+buildPostErrMsg :: [Maybe Text] -> ElmMessage
+buildPostErrMsg []              = ElmMessage 300 "No fault?"
+buildPostErrMsg ((Just text):_) = ElmMessage 400 text
 buildPostErrMsg (Nothing:es)  = buildPostErrMsg es
 
-buildEditErrMsg :: (Entity Task, Q.Value Text) -> Text
+buildEditErrMsg :: (Entity Task, Q.Value Text) -> ElmMessage
 buildEditErrMsg (_, Q.Value userName) =
-    Data.Text.concat [pack "No permission to edit ", userName, "'s tasks."]
+    let body = Data.Text.concat ["No permission to edit ", userName, "'s tasks."]
+    in  ElmMessage 400 body
 
 isNowTrunk :: Node -> [Task] -> Bool
 isNowTrunk t =

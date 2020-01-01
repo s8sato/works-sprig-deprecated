@@ -6181,6 +6181,10 @@ var $elm$core$Task$attempt = F2(
 						task))));
 	});
 var $elm$browser$Browser$Dom$blur = _Browser_call('blur');
+var $author$project$Main$Message = F2(
+	function (code, body) {
+		return {body: body, code: code};
+	});
 var $author$project$Main$changeDpy = F2(
 	function (model, dpy) {
 		var sub = model.sub;
@@ -6188,7 +6192,10 @@ var $author$project$Main$changeDpy = F2(
 			sub,
 			{
 				message: $elm$core$Maybe$Just(
-					$elm$core$String$fromInt(dpy) + ' dpy')
+					A2(
+						$author$project$Main$Message,
+						200,
+						$elm$core$String$fromInt(dpy) + ' dpy'))
 			});
 		return _Utils_update(
 			model,
@@ -6840,6 +6847,24 @@ var $author$project$Main$SubModel = F4(
 		return {inputText: inputText, message: message, tasks: tasks, user: user};
 	});
 var $elm$json$Json$Decode$list = _Json_decodeList;
+var $elm$json$Json$Decode$int = _Json_decodeInt;
+var $NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$custom = $elm$json$Json$Decode$map2($elm$core$Basics$apR);
+var $NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required = F3(
+	function (key, valDecoder, decoder) {
+		return A2(
+			$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$custom,
+			A2($elm$json$Json$Decode$field, key, valDecoder),
+			decoder);
+	});
+var $author$project$Main$messageDecoder = A3(
+	$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
+	'elmMessageBody',
+	$elm$json$Json$Decode$string,
+	A3(
+		$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
+		'elmMessageCode',
+		$elm$json$Json$Decode$int,
+		$elm$json$Json$Decode$succeed($author$project$Main$Message)));
 var $elm$json$Json$Decode$null = _Json_decodeNull;
 var $elm$json$Json$Decode$oneOf = _Json_oneOf;
 var $elm$json$Json$Decode$nullable = function (decoder) {
@@ -6850,7 +6875,6 @@ var $elm$json$Json$Decode$nullable = function (decoder) {
 				A2($elm$json$Json$Decode$map, $elm$core$Maybe$Just, decoder)
 			]));
 };
-var $NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$custom = $elm$json$Json$Decode$map2($elm$core$Basics$apR);
 var $elm$json$Json$Decode$andThen = _Json_andThen;
 var $elm$json$Json$Decode$decodeValue = _Json_run;
 var $elm$json$Json$Decode$fail = _Json_fail;
@@ -6898,13 +6922,6 @@ var $NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$optional = F4(
 				fallback),
 			decoder);
 	});
-var $NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required = F3(
-	function (key, valDecoder, decoder) {
-		return A2(
-			$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$custom,
-			A2($elm$json$Json$Decode$field, key, valDecoder),
-			decoder);
-	});
 var $author$project$Main$Task = function (id) {
 	return function (isDummy) {
 		return function (isDone) {
@@ -6932,7 +6949,6 @@ var $author$project$Main$Task = function (id) {
 };
 var $elm$json$Json$Decode$bool = _Json_decodeBool;
 var $elm$json$Json$Decode$float = _Json_decodeFloat;
-var $elm$json$Json$Decode$int = _Json_decodeInt;
 var $author$project$Main$taskDecoder = A3(
 	$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
 	'elmTaskUser',
@@ -7038,7 +7054,7 @@ var $author$project$Main$userDecoder = A4(
 var $author$project$Main$subModelDecoder = A4(
 	$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$optional,
 	'elmSubModelMessage',
-	$elm$json$Json$Decode$nullable($elm$json$Json$Decode$string),
+	$elm$json$Json$Decode$nullable($author$project$Main$messageDecoder),
 	$elm$core$Maybe$Nothing,
 	A4(
 		$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$optional,
@@ -7427,7 +7443,10 @@ var $author$project$Main$messageEH = F2(
 			sub,
 			{
 				message: $elm$core$Maybe$Just(
-					$author$project$Main$buildMessageEH(httpError))
+					A2(
+						$author$project$Main$Message,
+						400,
+						$author$project$Main$buildMessageEH(httpError)))
 			});
 		return _Utils_update(
 			model,
@@ -7799,14 +7818,33 @@ var $author$project$Main$textPosted = F2(
 		var newSub = _Utils_update(
 			sub,
 			{
-				inputText: $elm$core$Maybe$Nothing,
+				inputText: function () {
+					var _v0 = m.message;
+					if (_v0.$ === 'Just') {
+						var me = _v0.a;
+						var _v1 = me.code;
+						if (_v1 === 200) {
+							return $elm$core$Maybe$Nothing;
+						} else {
+							return sub.inputText;
+						}
+					} else {
+						return sub.inputText;
+					}
+				}(),
 				message: m.message,
 				tasks: function () {
-					var _v0 = m.tasks;
-					if (!_v0.b) {
-						return sub.tasks;
+					var _v2 = m.message;
+					if (_v2.$ === 'Just') {
+						var me = _v2.a;
+						var _v3 = me.code;
+						if (_v3 === 200) {
+							return m.tasks;
+						} else {
+							return sub.tasks;
+						}
 					} else {
-						return m.tasks;
+						return sub.tasks;
 					}
 				}()
 			});
@@ -8252,7 +8290,7 @@ var $elm$html$Html$Events$onInput = function (tagger) {
 var $elm$html$Html$Attributes$placeholder = $elm$html$Html$Attributes$stringProperty('placeholder');
 var $elm$virtual_dom$VirtualDom$text = _VirtualDom_text;
 var $elm$html$Html$text = $elm$virtual_dom$VirtualDom$text;
-var $author$project$Main$textPlaceholder = 'ENTER TASKS OR A COMMAND:\n\njump\n    step\n        hop\n\nA task to complete by the end of 2020 -2020/12/31\n    A task expected to take 300 hours $300\n        A task you can start in the beginning of 2020 2020/1/1-\n\nA time-critical task 2020/01/1- 23:59:- $0.1 -0:5 -2020/1/02\n\ntrunk\n    branch Alice\n        bud \n    branch Bob\n        bud\n        bud\n\njump\n    step\n        hop2 dependent on hop1 [key\n    step\n        ]key hop1\n\n% A task to register as completed\n* A task to register as starred\n\nA linked task e.g. slack permalink &https://\n\n#777 The task with ID 777 whose weight will be updated to 30 $30\n\n#777 The complex task\n    A simpler task\n    A simpler task\n\nA new emerging task dependent on existing #777 and #888\n    #777\n    #888\n\nYOU CAN ALSO ENTER ONE OF THE FOLLOWING SLASH COMMANDS:\n\n/dpy 1\nSet default dpy (dots per year) to 1, that is, a dot represents a year.\n\n/asof 2020/01/01 12:0\nSet the time corresponding to the left edge of dots to noon on January 1, 2020.\n\n/pause\nFix the chart.\n\n/tick\nUpdate the chart every second.\n\n/sel -t word\nSelect tasks whose title contains \'word\'.\n\n/sel -s >2020/1/1 >12:0 <2020/1/2\nSelect tasks whose startable is in the afternoon of January 1, 2020.\n\n/sel -d <23:59\nSelect tasks whose deadline is today\'s end.\n\n/sel -w >30 <300\nSelect tasks whose weight is between 30 and 300 hours.\n\n/sel -arc\nSelect archived tasks.\n\n/sel -star\nSelect starred tasks.\n\n/sel -trunk\nSelect trunk, namely, tasks with no successor.\n\n/sel -buds\nSelect buds, namely, tasks with no predecessor.\n\n/sel -t word -s >2020/1/1 -d <23:59 -w >30 <300 -arc -star\nSpecify multiple conditions.\n\n/care 1 2\nCare from parents to grandchildren, namely, watch their tasks too,\nprovided you have permission for each.\n\nCOMMANDS FOR ADMINISTRATORS:\n\n/allow albert edit sci_team\nAllow Albert to edit sci_team tasks; create, update, and perform.\nAutomatically allow to view.\n\n/ban pisces_dep view albert\nBan pisces_dep from viewing Albert tasks.\nAutomatically ban from editing.\n\n/connect zodiac_inc pisces_dep\nGive zodiac_inc and pisces_dep a parent-child relationship.\nYou can, by default,\nview direct parents and all descendants and\nedit direct children.\n\nTHANK YOU FOR READING!\n';
+var $author$project$Main$textPlaceholder = 'ENTER TASKS OR A COMMAND:\n\njump\n    step\n        hop\n\nA task to complete by the end of 2020 -2020/12/31\n    A task expected to take 300 hours $300\n        A task you can start in the beginning of 2020 2020/1/1-\n\nA time-critical task 2020/01/1- 23:59:- $0.1 -0:5 -2020/1/02\n\ntrunk\n    branch Alice\n        bud \n    branch Bob\n        bud\n        bud\n\njump\n    step\n        hop2 dependent on hop1 [key\n    step\n        ]key hop1\n\n% A task to register as completed\n* A task to register as starred\n\nA linked task e.g. slack permalink &https://\n\n#777 The task with ID 777 whose weight will be updated to 30 $30\n\n#777 The complex task\n    A simpler task\n    A simpler task\n\nA new emerging task dependent on existing #777 and #888\n    #777\n    #888\n\nThere are 3 rules for using the # sign:\n\n1.\nEach #ID can only be used once per post:\n\nNG1\n    step\n        hop2\n            #400 duplicate\n    step\n        #400 duplicate\n\nOK1\n    step\n        hop2 [key\n    step\n        ]key #200 unique\n\n2.\n#IDs can only be placed as trunks or buds:\n\nNG2\n    #400 NOT a trunk NOR a bud\n        hop\n\n3.\nIf placed as a bud, it must be an existing trunk.\n\nNG3\n    #200 OK existing as a trunk\n    #400 NG existing NOT as a trunk\n\nYOU CAN ALSO ENTER ONE OF THE FOLLOWING SLASH COMMANDS:\n\n/dpy 1\nSet default dpy (dots per year) to 1, that is, a dot represents a year.\n\n/asof 2020/01/01 12:0\nSet the time corresponding to the left edge of dots to noon on January 1, 2020.\n\n/pause\nFix the chart.\n\n/tick\nUpdate the chart every second.\n\n/sel -t word\nSelect tasks whose title contains \'word\'.\n\n/sel -s >2020/1/1 >12:0 <2020/1/2\nSelect tasks whose startable is in the afternoon of January 1, 2020.\n\n/sel -d <23:59\nSelect tasks whose deadline is today\'s end.\n\n/sel -w >30 <300\nSelect tasks whose weight is between 30 and 300 hours.\n\n/sel -arch\nSelect archived tasks.\n\n/sel -star\nSelect starred tasks.\n\n/sel -trunk\nSelect trunk, namely, tasks with no successor.\n\n/sel -buds\nSelect buds, namely, tasks with no predecessor.\n\n/sel -t word -s >2020/1/1 -d <23:59 -w >30 <300 -arch -star\nSpecify multiple conditions.\n\n/care 1 2\nCare from parents to grandchildren, namely, watch their tasks too,\nprovided you have permission for each.\n\nCOMMANDS FOR ADMINISTRATORS:\n\n/allow albert edit sci_team\nAllow Albert to edit sci_team tasks; create, update, and perform.\nAutomatically allow to view.\n\n/ban pisces_dep view albert\nBan pisces_dep from viewing Albert tasks.\nAutomatically ban from editing.\n\n/connect zodiac_inc pisces_dep\nGive zodiac_inc and pisces_dep a parent-child relationship.\nYou can, by default,\nview direct parents and all descendants and\nedit direct children.\n\nTHANK YOU FOR READING!\n';
 var $elm$html$Html$textarea = _VirtualDom_node('textarea');
 var $elm$html$Html$Attributes$value = $elm$html$Html$Attributes$stringProperty('value');
 var $author$project$Main$viewInputValue = function (model) {
@@ -8268,7 +8306,7 @@ var $author$project$Main$viewMessage = function (m) {
 	var _v0 = m.message;
 	if (_v0.$ === 'Just') {
 		var me = _v0.a;
-		return me;
+		return me.body;
 	} else {
 		return '';
 	}
