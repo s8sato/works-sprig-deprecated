@@ -11,6 +11,17 @@
   (major1) == 0 && (major2) == 1 && (minor) <= 0)
 #endif /* MIN_VERSION_server */
 
+/* package Unique-0.4.7.6 */
+#ifndef VERSION_Unique
+#define VERSION_Unique "0.4.7.6"
+#endif /* VERSION_Unique */
+#ifndef MIN_VERSION_Unique
+#define MIN_VERSION_Unique(major1,major2,minor) (\
+  (major1) <  0 || \
+  (major1) == 0 && (major2) <  4 || \
+  (major1) == 0 && (major2) == 4 && (minor) <= 7)
+#endif /* MIN_VERSION_Unique */
+
 /* package aeson-1.4.6.0 */
 #ifndef VERSION_aeson
 #define VERSION_aeson "1.4.6.0"
@@ -386,10 +397,10 @@
 #endif /* MIN_TOOL_VERSION_strip */
 
 #ifndef CURRENT_PACKAGE_KEY
-#define CURRENT_PACKAGE_KEY "server-0.1.0.0-CqgzxTJtInI90DKR9SvMj1"
+#define CURRENT_PACKAGE_KEY "server-0.1.0.0-BKF2RNL8jGV3ir85CyF8cO"
 #endif /* CURRENT_PACKAGE_KEY */
 #ifndef CURRENT_COMPONENT_ID
-#define CURRENT_COMPONENT_ID "server-0.1.0.0-CqgzxTJtInI90DKR9SvMj1"
+#define CURRENT_COMPONENT_ID "server-0.1.0.0-BKF2RNL8jGV3ir85CyF8cO"
 #endif /* CURRENT_COMPONENT_ID */
 #ifndef CURRENT_PACKAGE_VERSION
 #define CURRENT_PACKAGE_VERSION "0.1.0.0"

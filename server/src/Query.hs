@@ -158,10 +158,10 @@ getBeforeMe pool me = flip runSqlPool pool $ do
     select $ from $ \(task `InnerJoin` user) -> do
         on (task ^. TaskUser ==. user ^. UserId)
         let myInitial = sub_select $ from $ \task -> do
-            where_ 
-                (   task ^. TaskId ==. val (TaskKey . keyFromInt $ me)
-                )
-            return $ task ^. TaskInitial
+                where_ 
+                    (   task ^. TaskId ==. val (TaskKey . keyFromInt $ me)
+                    )
+                return $ task ^. TaskInitial
         where_
             (   task ^. TaskTerminal ==. myInitial
             )
@@ -178,10 +178,10 @@ getAfterMe pool me = flip runSqlPool pool $ do
     select $ from $ \(task `InnerJoin` user) -> do
         on (task ^. TaskUser ==. user ^. UserId)
         let myTerminal = sub_select $ from $ \task -> do
-            where_ 
-                (   task ^. TaskId ==. val (TaskKey . keyFromInt $ me)
-                )
-            return $ task ^. TaskTerminal
+                where_ 
+                    (   task ^. TaskId ==. val (TaskKey . keyFromInt $ me)
+                    )
+                return $ task ^. TaskTerminal
         where_
             (   task ^. TaskInitial ==. myTerminal
             )
@@ -339,3 +339,91 @@ getBudsAssigns pool uid = flip runSqlPool pool $ do
             , asc (task ^. TaskStartable)
             ]
         return (task, user ^. UserName)
+
+getAllTrunkNode :: ConnectionPool -> IO [Value Int]
+getAllTrunkNode pool = flip runSqlPool pool $ do
+    select $ from $ \task -> do
+        where_
+            (   notExists $ from $ \self ->
+                where_
+                    (   self ^. TaskInitial ==. task ^. TaskTerminal
+                    )
+            )
+        orderBy
+            [ desc (task ^. TaskIsStarred)
+            , asc (task ^. TaskDeadline)
+            , asc (task ^. TaskStartable)
+            ]
+        return (task ^. TaskTerminal)
+
+setTaskDone :: ConnectionPool -> Int -> IO ()
+setTaskDone pool id = flip runSqlPool pool $ do
+    update $ \task -> do
+        set
+            task [TaskIsDone =. val (True)]
+        where_ 
+            (   task ^. TaskId ==. val (TaskKey . keyFromInt $ id)
+            )
+
+setTaskStarred :: ConnectionPool -> Int -> IO ()
+setTaskStarred pool id = flip runSqlPool pool $ do
+    update $ \task -> do
+        set
+            task [TaskIsStarred =. val (True)]
+        where_ 
+            (   task ^. TaskId ==. val (TaskKey . keyFromInt $ id)
+            )
+
+setTaskLink :: ConnectionPool -> Int -> Text -> IO ()
+setTaskLink pool id l = flip runSqlPool pool $ do
+    update $ \task -> do
+        set
+            task [TaskLink =. val (Just l)]
+        where_ 
+            (   task ^. TaskId ==. val (TaskKey . keyFromInt $ id)
+            )
+
+setTaskStartable :: ConnectionPool -> Int -> UTCTime -> IO ()
+setTaskStartable pool id s = flip runSqlPool pool $ do
+    update $ \task -> do
+        set
+            task [TaskStartable =. val (Just s)]
+        where_ 
+            (   task ^. TaskId ==. val (TaskKey . keyFromInt $ id)
+            )
+
+setTaskDeadline :: ConnectionPool -> Int -> UTCTime -> IO ()
+setTaskDeadline pool id d = flip runSqlPool pool $ do
+    update $ \task -> do
+        set
+            task [TaskDeadline =. val (Just d)]
+        where_ 
+            (   task ^. TaskId ==. val (TaskKey . keyFromInt $ id)
+            )
+
+setTaskWeight :: ConnectionPool -> Int -> Double -> IO ()
+setTaskWeight pool id w = flip runSqlPool pool $ do
+    update $ \task -> do
+        set
+            task [TaskWeight =. val (Just w)]
+        where_ 
+            (   task ^. TaskId ==. val (TaskKey . keyFromInt $ id)
+            )
+
+setTaskTitle :: ConnectionPool -> Int -> Text -> IO ()
+setTaskTitle pool id tt = flip runSqlPool pool $ do
+    update $ \task -> do
+        set
+            task [TaskTitle=. val (Just tt)]
+        where_ 
+            (   task ^. TaskId ==. val (TaskKey . keyFromInt $ id)
+            )
+
+setTaskUser :: ConnectionPool -> Int -> UserId -> IO ()
+setTaskUser pool id  u = flip runSqlPool pool $ do
+    update $ \task -> do
+        set
+            task [TaskUser =. val (u)]
+        where_ 
+            (   task ^. TaskId ==. val (TaskKey . keyFromInt $ id)
+            )

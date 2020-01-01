@@ -44,6 +44,7 @@ library
                      , double-conversion
                      , extra
                      , text-format
+                     , Unique
                      -- CORS
                      , servant-options
                      , wai-cors

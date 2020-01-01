@@ -1,0 +1,8 @@
+Configuring Unique-0.4.7.6...
+Preprocessing library for Unique-0.4.7.6..
+Building library for Unique-0.4.7.6..
+[1 of 3] Compiling Data.List.Unique ( Data\List\Unique.hs, .stack-work\dist\e626a42b\build\Data\List\Unique.o )
+[2 of 3] Compiling Data.List.UniqueStrict ( Data\List\UniqueStrict.hs, .stack-work\dist\e626a42b\build\Data\List\UniqueStrict.o )
+[3 of 3] Compiling Data.List.UniqueUnsorted ( Data\List\UniqueUnsorted.hs, .stack-work\dist\e626a42b\build\Data\List\UniqueUnsorted.o )
+Installing library in C:\Users\pfmxx\works\sprig\server\.stack-work\install\99a5c7ce\lib\x86_64-windows-ghc-8.6.5\Unique-0.4.7.6-5agCY3H0Epd2eLkt4Eh0Bs
+Registering library for Unique-0.4.7.6..

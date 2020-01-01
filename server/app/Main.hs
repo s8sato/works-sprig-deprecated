@@ -1,7 +1,7 @@
 module Main where
 
--- import Controller
+import Controller
 
 main :: IO ()
--- main = startApp
-main = print ""
+main = startApp
+-- main = print ""

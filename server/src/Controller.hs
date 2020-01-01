@@ -58,7 +58,7 @@ import Control.Monad.IO.Class   (liftIO)
 
 import Data.Double.Conversion.Text (toFixed)
 
-import Database.Persist.Sql (fromSqlKey ,SqlBackend (..), ToBackendKey, toSqlKey)
+import Database.Persist.Sql (fromSqlKey ,SqlBackend (..), ToBackendKey, toSqlKey, ConnectionPool)
 
 import Query
 
@@ -74,6 +74,8 @@ import qualified Database.Esqueleto as Q (Value (..))
 import Data.Time.Clock (nominalDay)
 import Data.List (sort)
 import Data.Text.Format (fixed)
+import Data.List.Unique (allUnique)
+
 
 
 
@@ -274,8 +276,8 @@ textPostReload' (TextPost elmUser text) = do
     let uid = elmUserId elmUser
     user <- Prelude.head <$> (map entityVal) <$> getUserById pool uid
     durations <- (map entityVal) <$> getDurationsById pool uid
-    let tasks = tasksFromText user durations text
-    fault <- faultPost user tasks
+    let tasksMaybeIds = tasksFromText user durations text
+    fault <- faultPost user (map fst tasksMaybeIds)
     case fault of
         Just errMsg ->
             return $ ElmSubModel elmUser [] Nothing (Just errMsg) 
@@ -284,11 +286,102 @@ textPostReload' (TextPost elmUser text) = do
             let maxNode = case mn of
                     Nothing -> 0
                     Just n  -> n
-            let shift = maxNode + 2  -- TODO 
-            insTasks . (shiftTaskNodes shift) $ tasks
-            elmTasks <- getUndoneElmTasks uid
-            let okMsg = buildOkMsg tasks " tasks registered."
-            return $ ElmSubModel elmUser elmTasks Nothing (Just okMsg)
+            let shift = maxNode + 2
+            prediction <- insertOrUpdate tasksMaybeIds
+            case prediction of
+                Left errMsg' ->
+                    return $ ElmSubModel elmUser [] Nothing (Just errMsg')
+                Right (inserts, updates, preds) -> do
+                    maybeUpdate updates
+                    let inserts' = preShift preds shift inserts 
+                    insTasks . (shiftTaskNodes shift) $ inserts'
+                    elmTasks <- getUndoneElmTasks uid
+                    let okMsg1 = buildOkMsg inserts' " tasks registered."
+                    let okMsg2 = buildOkMsg updates " tasks updated."
+                    let okMsg = intercalate " " [okMsg1, okMsg2]
+                    return $ ElmSubModel elmUser elmTasks Nothing (Just okMsg)
+
+data Predictor =    PredTerm { predTermTarget :: Node, predTermToBe :: Node }
+                |   PredInit { predInitTarget :: Node, predInitToBe :: Node }
+
+insertOrUpdate :: [(Task, Maybe Int)] -> IO (Either Text ([Task], [(Int,Task)], [Predictor]))
+insertOrUpdate xs = 
+    if  allUnique $ filter ((/=) Nothing) $ map snd xs then
+        insertOrUpdate' xs (map fst xs) ([], [], [])
+    else
+        return $ Left "Duplicate # use."
+
+
+insertOrUpdate' :: [(Task, Maybe Int)] -> [Task] -> ([Task], [(Int,Task)], [Predictor]) -> IO (Either Text ([Task], [(Int,Task)], [Predictor]))
+insertOrUpdate' [] _ out = return $ Right out
+insertOrUpdate' ((ta,mid):tas) ref (ins, upd, pred) = case mid of
+    Nothing ->
+        insertOrUpdate' tas ref ((ta:ins), upd, pred)
+    Just id -> do
+        pool <- pgPool
+        get  <- getMe pool id
+        case get of
+            [] -> 
+                return $ Left (intercalate " " ["Task ID", pack (show id), "does not exist."])
+            ((e,_):_) -> do
+                let Task t i _ _ _ _ _ _ _ _ _ _ _ = ta
+                let Task x y _ _ _ _ _ _ _ _ _ _ _ = entityVal e
+                isOldT <- isOldTrunk x
+                if  
+                    isNowTrunk t ref then
+                        insertOrUpdate' tas ref (ins, ((id,ta):upd), ((PredTerm i y):pred))
+                else if
+                    isNowBud i ref && isOldT then
+                        insertOrUpdate' tas ref (ins, ((id,ta):upd), ((PredInit t x):pred))
+                else
+                    return $ Left (intercalate "" ["Wrong use of #", pack (show id), "."])
+                
+isOldTrunk :: Node -> IO (Bool)
+isOldTrunk x = do
+    pool <- pgPool
+    allTrunk <- (map Q.unValue) <$> getAllTrunkNode pool
+    return $ x `elem` allTrunk
+
+maybeUpdate :: [(Int,Task)] -> IO ()
+maybeUpdate updates = do
+    pool <- pgPool
+    sequence_ $ map (maybeUpdate' pool) updates
+
+maybeUpdate' :: ConnectionPool -> (Int,Task) -> IO ()
+maybeUpdate' pool (tid, task)
+    | d /= False    = do
+        setTaskDone pool tid
+        maybeUpdate' pool (tid, Task t i y False s ml ms mb me md mw mt u )
+    | s /= False    = do
+        setTaskStarred pool tid
+        maybeUpdate' pool (tid, Task t i y d False ml ms mb me md mw mt u )
+    | ml /= Nothing = do
+        let (Just l) = ml
+        setTaskLink pool tid l
+        maybeUpdate' pool (tid, Task t i y d s Nothing ms mb me md mw mt u)
+    | ms /= Nothing = do
+        let (Just ss) = ms
+        setTaskStartable pool tid ss
+        maybeUpdate' pool (tid, Task t i y d s ml Nothing mb me md mw mt u)
+    | md /= Nothing = do
+        let (Just dd) = md
+        setTaskDeadline pool tid dd
+        maybeUpdate' pool (tid, Task t i y d s ml ms mb me Nothing mw mt u)
+    | mw /= Nothing = do
+        let (Just w) = mw
+        setTaskWeight pool tid w
+        maybeUpdate' pool (tid, Task t i y d s ml ms mb me md Nothing mt u)
+    | mt /= Nothing = do
+        let (Just tt) = mt
+        setTaskTitle pool tid tt
+        maybeUpdate' pool (tid, Task t i y d s ml ms mb me md mw Nothing u)
+    | u /= anonymousUser = do
+        setTaskUser pool tid u
+        maybeUpdate' pool (tid, Task t i y d s ml ms mb me md mw mt anonymousUser)
+    | otherwise = 
+        return ()
+    where
+        Task t i y d s ml ms mb me md mw mt u = task
 
 faultPost :: User -> [Task] -> IO (Maybe Text)
 faultPost user tasks = do
@@ -441,86 +534,91 @@ data Attr  =
     | Link          { link          :: Text }
     deriving (Eq, Show, Ord)
 
-tasksFromText :: User -> [Duration] -> Text -> [Task]
+tasksFromText :: User -> [Duration] -> Text -> [(Task, Maybe Int)]
 tasksFromText u ds = 
     (tasksFromGraph u ds) . graphFromText
 
-tasksFromGraph :: User -> [Duration] -> Graph -> [Task]
-tasksFromGraph u ds = 
-    (map (universalize u)) . (setBeginEnd u ds) . (map taskFromEdge)
+tasksFromGraph :: User -> [Duration] -> Graph -> [(Task, Maybe Int)]
+tasksFromGraph u ds g = 
+    let
+        firsts = 
+            (map (universalize u)) . (setBeginEnd u ds) . (map fst) . (map taskFromEdge) $ g
+        seconds =
+            (map snd) . (map taskFromEdge) $ g
+    in
+        zip firsts seconds
 
-taskFromEdge :: Edge -> Task
+taskFromEdge :: Edge -> (Task, Maybe Int)
+-- keep taskId info
 taskFromEdge ((t,i),as) =
-    taskFromEdge' as (Task t i False False False Nothing Nothing Nothing Nothing Nothing Nothing Nothing anonymousUser)
+    taskFromEdge' as ((Task t i False False False Nothing Nothing Nothing Nothing Nothing Nothing Nothing anonymousUser), Nothing)
 
-taskFromEdge' :: [Attr] -> Task -> Task
+taskFromEdge' :: [Attr] -> (Task, Maybe Int) -> (Task, Maybe Int)
 taskFromEdge' [] task = 
     task
-taskFromEdge' (a:as) (Task t i y d s ml ms mb me md mw mt u) =
+taskFromEdge' (a:as) ((Task t i y d s ml ms mb me md mw mt u), mid) =
     case a of
-        AttrTaskId 0 ->
-            taskFromEdge' as (Task t i y d s ml ms mb me md mw mt u)
-        AttrTaskId n ->  -- TODO
-            taskFromEdge' as (Task t i y d s ml ms mb me md mw mt u)
+        AttrTaskId n ->
+            taskFromEdge' as ((Task t i y d s ml ms mb me md mw mt u), Just n)
         IsDone ->
-            taskFromEdge' as (Task t i y True s ml ms mb me md mw mt u)
+            taskFromEdge' as ((Task t i y True s ml ms mb me md mw mt u), mid)
         IsStarred ->
-            taskFromEdge' as (Task t i y d True ml ms mb me md mw mt u)
+            taskFromEdge' as ((Task t i y d True ml ms mb me md mw mt u), mid)
         Link l ->
-            taskFromEdge' as (Task t i y d s (Just l) ms mb me md mw mt u)
+            taskFromEdge' as ((Task t i y d s (Just l) ms mb me md mw mt u), mid)
         StartableDate yyyy mm dd ->
             let
                 nd = fromGregorian (fromIntegral yyyy) mm dd
             in
                 case ms of
                     Just (UTCTime od ot) ->
-                        taskFromEdge' as (Task t i y d s ml (Just (UTCTime nd ot)) mb me md mw mt u)
+                        taskFromEdge' as ((Task t i y d s ml (Just (UTCTime nd ot)) mb me md mw mt u), mid)
                     Nothing ->
-                        taskFromEdge' as (Task t i y d s ml (Just (UTCTime nd 0)) mb me md mw mt u)
+                        taskFromEdge' as ((Task t i y d s ml (Just (UTCTime nd 0)) mb me md mw mt u), mid)
         StartableTime hh mm ->
             let
                 nt = secondsToDiffTime . fromIntegral $ 60 * (mm + 60 * hh)
             in
                 case ms of
                     Just (UTCTime od ot) ->
-                        taskFromEdge' as (Task t i y d s ml (Just (UTCTime od nt)) mb me md mw mt u)
+                        taskFromEdge' as ((Task t i y d s ml (Just (UTCTime od nt)) mb me md mw mt u), mid)
                     Nothing ->
                         let
                             nd = fromGregorian 3000 0 0
                         in
-                            taskFromEdge' as (Task t i y d s ml (Just (UTCTime nd nt)) mb me md mw mt u)
+                            taskFromEdge' as ((Task t i y d s ml (Just (UTCTime nd nt)) mb me md mw mt u), mid)
         DeadlineDate yyyy mm dd ->
             let
                 nd = fromGregorian (fromIntegral yyyy) mm dd
             in
                 case md of
                     Just (UTCTime od ot) ->
-                        taskFromEdge' as (Task t i y d s ml ms mb me (Just (UTCTime nd ot)) mw mt u)
+                        taskFromEdge' as ((Task t i y d s ml ms mb me (Just (UTCTime nd ot)) mw mt u), mid)
                     Nothing ->
-                        taskFromEdge' as (Task t i y d s ml ms mb me (Just (UTCTime nd 0)) mw mt u)
+                        taskFromEdge' as ((Task t i y d s ml ms mb me (Just (UTCTime nd 0)) mw mt u), mid)
         DeadlineTime hh mm ->
             let
                 nt = secondsToDiffTime . fromIntegral $ 60 * (mm + 60 * hh)
             in
                 case md of
                     Just (UTCTime od ot) ->
-                        taskFromEdge' as (Task t i y d s ml ms mb me (Just (UTCTime od nt)) mw mt u)
+                        taskFromEdge' as ((Task t i y d s ml ms mb me (Just (UTCTime od nt)) mw mt u), mid)
                     Nothing ->
                         let
                             nd = fromGregorian 3000 0 0
                         in
-                            taskFromEdge' as (Task t i y d s ml ms mb me (Just (UTCTime nd nt)) mw mt u)
+                            taskFromEdge' as ((Task t i y d s ml ms mb me (Just (UTCTime nd nt)) mw mt u), mid)
         Weight w ->
-            taskFromEdge' as (Task t i y d s ml ms mb me md (Just w) mt u)
+            taskFromEdge' as ((Task t i y d s ml ms mb me md (Just w) mt u), mid)
         -- Assign an ->  --TODO
         Title tt' ->
             case mt of
                 Just tt ->
-                    taskFromEdge' as (Task t i y d s ml ms mb me md mw (Just $ Data.Text.intercalate " " [tt', tt]) u)
+                    taskFromEdge' as ((Task t i y d s ml ms mb me md mw (Just $ Data.Text.intercalate " " [tt', tt]) u), mid)
                 Nothing ->
-                    taskFromEdge' as (Task t i y d s ml ms mb me md mw (Just tt') u)
+                    taskFromEdge' as ((Task t i y d s ml ms mb me md mw (Just tt') u), mid)
         _ -> 
-            taskFromEdge' as (Task t i y d s ml ms mb me md mw mt u)
+            taskFromEdge' as ((Task t i y d s ml ms mb me md mw mt u), mid)
 
 graphFromText :: Text -> Graph
 graphFromText = spanDummy . assemble . markUp . chopLines
@@ -1092,3 +1190,31 @@ buildEditErrMsg :: (Entity Task, Q.Value Text) -> Text
 buildEditErrMsg (_, Q.Value userName) =
     Data.Text.concat [pack "No permission to edit ", userName, "'s tasks."]
 
+isNowTrunk :: Node -> [Task] -> Bool
+isNowTrunk t =
+    Prelude.all (\task -> (taskInitial task) /= t)
+
+isNowBud :: Node -> [Task] -> Bool
+isNowBud i =
+    Prelude.all (\task -> i /= (taskTerminal task))
+
+preShift :: [Predictor] -> Int -> [Task] -> [Task]
+preShift [] shift tasks = tasks
+preShift ((PredTerm ii yy):ps) shift tasks =
+    let
+        targets  = filter (\task -> taskTerminal task == ii) tasks
+        others   = filter (\task -> taskTerminal task /= ii) tasks
+        targets' =
+            map (\(Task t i y d s ml ms mb me md mw mt u) -> 
+                Task (yy-shift) i y d s ml ms mb me md mw mt u) targets
+    in
+        preShift ps shift (Prelude.concat [targets', others])
+preShift ((PredInit tt xx):ps) shift tasks =
+    let
+        targets  = filter (\task -> taskInitial task == tt) tasks
+        others   = filter (\task -> taskInitial task /= tt) tasks
+        targets' =
+            map (\(Task t i y d s ml ms mb me md mw mt u) -> 
+                Task t (xx-shift) y d s ml ms mb me md mw mt u) targets
+    in
+        preShift ps shift (Prelude.concat [targets', others])

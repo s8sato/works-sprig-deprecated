@@ -194,4 +194,8 @@ selection independent of actually shown tasks
 
 added task classes: .executable .overload
 
-refactored json interface
+refactored elm-to-servant interface
+
+implemented Archives/Trunk/Buds
+
+implemented merging-insert!
