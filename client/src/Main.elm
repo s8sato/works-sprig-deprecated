@@ -63,13 +63,10 @@ type alias Millis =
     Int
 
 
-type alias DaySec =
-    Int
 
-
-type alias Duration =
-    { left : DaySec
-    , right : DaySec
+type alias Schedule =
+    { begin : Millis
+    , end : Millis
     }
 
 
@@ -77,7 +74,6 @@ type alias User =
     { id : Int
     , name : String
     , admin : Bool
-    , durs : List Duration
     , defaultDpy : Maybe Int
     , zoneName : Maybe String
     , zoneOffset : Maybe Int
@@ -92,11 +88,10 @@ type alias Task =
     , title : Maybe String
     , link : Maybe String
     , startable : Maybe Millis -- POSIX milliseconds
-    , begin : Maybe Millis
-    , end : Maybe Millis
     , deadline : Maybe Millis
     , weight : Maybe Float
     , user : String
+    , schedule : List Schedule
     }
 
 
@@ -110,13 +105,7 @@ init : () -> ( Model, Cmd Msg )
 init _ =
     let
         initSub =
-            let
-                saraly =
-                    [ { left = 30600000, right = 43200000 }
-                    , { left = 46800000, right = 63000000 }
-                    ]
-            in
-            { user = User 1 "ANONYMOUS" False saraly Nothing Nothing Nothing
+            { user = User 1 "ANONYMOUS" False Nothing Nothing Nothing
             , tasks = []
             , inputText = Nothing
             , message = Nothing
@@ -910,18 +899,11 @@ userEncoder u =
         [ ( "elmUserId", Encode.int u.id )
         , ( "elmUserName", Encode.string u.name )
         , ( "elmUserAdmin", Encode.bool u.admin )
-        , ( "elmUserDurations", Encode.list durationEncoder u.durs )
+
+        -- , ( "elmUserDurations", Encode.list durationEncoder u.durs )
         , ( "elmUserDefaultDpy", maybe Encode.int u.defaultDpy )
         , ( "elmUserZoneName", maybe Encode.string u.zoneName )
         , ( "elmUserZoneOffset", maybe Encode.int u.zoneOffset )
-        ]
-
-
-durationEncoder : Duration -> Encode.Value
-durationEncoder dur =
-    Encode.object
-        [ ( "elmDurationLeft", Encode.int dur.left )
-        , ( "elmDurationRight", Encode.int dur.right )
         ]
 
 
@@ -960,7 +942,6 @@ userDecoder =
         |> required "elmUserId" int
         |> required "elmUserName" string
         |> required "elmUserAdmin" bool
-        |> required "elmUserDurations" durationsDecoder
         |> optional "elmUserDefaultDpy" (nullable int) Nothing
         |> optional "elmUserZoneName" (nullable string) Nothing
         |> optional "elmUserZoneOffset" (nullable int) Nothing
@@ -981,11 +962,10 @@ taskDecoder =
         |> optional "elmTaskTitle" (nullable string) Nothing
         |> optional "elmTaskLink" (nullable string) Nothing
         |> optional "elmTaskStartable" (nullable int) Nothing
-        |> optional "elmTaskBegin" (nullable int) Nothing
-        |> optional "elmTaskEnd" (nullable int) Nothing
         |> optional "elmTaskDeadline" (nullable int) Nothing
         |> optional "elmTaskWeight" (nullable float) Nothing
         |> required "elmTaskUser" string
+        |> required "elmTaskSchedule" schedulesDecoder
 
 
 messageDecoder : Decoder Message
@@ -995,16 +975,16 @@ messageDecoder =
         |> required "elmMessageBody" string
 
 
-durationsDecoder : Decoder (List Duration)
-durationsDecoder =
-    list durationDecoder
+schedulesDecoder : Decoder (List Schedule)
+schedulesDecoder =
+    list scheduleDecoder
 
 
-durationDecoder : Decoder Duration
-durationDecoder =
-    Decode.succeed Duration
-        |> required "elmDurationLeft" int
-        |> required "elmDurationRight" int
+scheduleDecoder : Decoder Schedule
+scheduleDecoder =
+    Decode.succeed Schedule
+        |> required "elmScheduleBegin" int
+        |> required "elmScheduleEnd" int
 
 
 
@@ -1218,17 +1198,17 @@ isOverload : Model -> Task -> Bool
 isOverload _ task =
     let
         overBegin =
-            case ( task.begin, task.startable ) of
-                ( Just b, Just s ) ->
-                    b < s
+            case task.startable of
+                Just s ->
+                    List.any (\sche -> sche.begin < s) task.schedule
 
                 _ ->
                     False
 
         overEnd =
-            case ( task.deadline, task.end ) of
-                ( Just d, Just e ) ->
-                    d < e
+            case task.deadline of
+                Just d ->
+                    List.any (\sche -> d < sche.end) task.schedule
 
                 _ ->
                     False
@@ -1405,7 +1385,7 @@ barString m t =
         d =
             position m.dpy m.asOfTime t.deadline
     in
-    preString m.zone m.dpy m.asOfTime t m.sub.user.durs
+    preString m.dpy m.asOfTime t
         |> replace s '['
         |> replace d ']'
         |> String.fromList
@@ -1438,93 +1418,36 @@ replace pos char target =
         |> Array.toList
 
 
-preString : Zone -> Int -> Posix -> Task -> List Duration -> List Char
-preString z dpy asof task durs =
+preString : Int -> Posix -> Task -> List Char
+preString dpy asofP task =
     let
-        p =
-            posixToMillis asof
+        asofM =
+            Time.posixToMillis asofP
 
-        durs_ =
-            List.map toMillisDuration durs
+        dot =
+            (10 ^ 3) * secPerY // dpy
     in
-    case ( task.begin, task.end ) of
-        ( Just b, Just e ) ->
-            preString_ z 0 dpy p b e (thatDurations z p durs_) []
-                |> List.reverse
-
-        _ ->
-            List.repeat 48 '.'
+    List.reverse <| preString_ 0 asofM dot task []
 
 
-type alias MillisDuration =
-    { left : Millis
-    , right : Millis
-    , orgLeft : Millis
-    , orgRight : Millis
-    }
-
-
-toMillis : Int -> Millis
-toMillis =
-    (*) (10 ^ 3)
-
-
-toMillisDuration : Duration -> MillisDuration
-toMillisDuration d =
-    MillisDuration (toMillis d.left) (toMillis d.right) (toMillis d.left) (toMillis d.right)
-
-
-dayMillis : Zone -> Millis -> Millis
-dayMillis z time =
-    let
-        t =
-            millisToPosix time
-    in
-    Time.toMillis z t + ((10 ^ 3) * (Time.toSecond z t + 60 * (Time.toMinute z t + (60 * Time.toHour z t))))
-
-
-thatDurations : Zone -> Millis -> List MillisDuration -> List MillisDuration
-thatDurations z p durs =
-    let
-        thatMidnight =
-            p - dayMillis z p
-    in
-    List.map
-        (\d ->
-            { d
-                | left = d.orgLeft + thatMidnight
-                , right = d.orgRight + thatMidnight
-            }
-        )
-        durs
-
-
-preString_ : Zone -> Int -> Int -> Millis -> Millis -> Millis -> List MillisDuration -> List Char -> List Char
-preString_ z count dpy p begin end durs store =
+preString_ : Int -> Millis -> Millis -> Task -> List Char -> List Char
+preString_ count left dot task out =
     if count >= 48 then
-        store
+        out
 
     else
         let
-            pR =
-                -- pointerRight
-                p + ((secPerY * 10 ^ 3) // dpy)
+            right =
+                left + dot
 
             char =
-                if p < begin && end < pR then
+                if List.any (\sch -> sch.begin < right && left < sch.end) task.schedule then
                     '#'
-
-                else if begin < p && p < end then
-                    if List.any (\d -> d.left < p && p < d.right) durs then
-                        '#'
-
-                    else
-                        '-'
 
                 else
                     '.'
         in
-        preString_ z (count + 1) dpy pR begin end (thatDurations z pR durs) (char :: store)
+        preString_ (count + 1) right dot task (char :: out)
 
 
 strFromPosix : Zone -> Posix -> String

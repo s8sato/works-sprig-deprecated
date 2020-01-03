@@ -66,8 +66,6 @@ Task json
     isStarred           Bool
     link                Text Maybe
     startable           UTCTime Maybe
-    begin               UTCTime Maybe
-    end                 UTCTime Maybe
     deadline            UTCTime Maybe
     weight              Double Maybe
     title               Text Maybe
