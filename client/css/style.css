@@ -7,33 +7,31 @@
     display: none !important;
 }
 
-html, body {
+html {
+    font-size: 62.5%;
+}
+
+body {
     margin: 0;
-    height: 100%;
+    padding: 0;
 }
 
 div {
     font-family: Courier New,Courier,Lucida Sans Typewriter,Lucida Typewriter,monospace; 
-    font-size: 20px;
-
+    font-size: 2rem;
 }
 
-button, input, select, textarea {
-    font-family : inherit;
-    font-size : 100%;
-    }
-
 #container {
-    width : 100%;
-    height: 100%;
+    height: 100vh;
+    overflow: hidden;
     display: flex;
     flex-direction: column;
 }
 
 #header {
-    width : inherit;
     height: 64px;
     display: flex;
+    justify-content: space-between;
     background-color: #DDF0E4;
     border-bottom: #CEE2D9 solid 1px;
 }
@@ -42,24 +40,27 @@ button, input, select, textarea {
     width : 64px;
     height: inherit;
     background-size: contain;
+    /* background-image: url("../images/logo.png"); */
 }
 
 #inputBox {
     flex-grow: 1;
     width: 0;
     height: inherit;
-
+    z-index: 50;
 }
 
 #inputArea {
-    margin-top: 8px;
-    width: 98%;
-    max-width: 98%;
+    font-family : inherit;
+    font-size : 2rem;
     line-height: 1em;
-    max-height: 90vh;
+    margin-top: 8px;
+    width: calc(100% - 16px);
+    max-width: calc(100vw - 128px);
+    height: 42px;
+    max-height: calc(100vh - 24px);
     background-image: url("../images/guide.png");
-    background-size: 48.1px;
-    z-index: 50;
+    background-size: 2.404em;
 }
 
 #submission {
@@ -200,11 +201,15 @@ button, input, select, textarea {
     justify-content: center;
 }
 
+#taskHeader .scroll {
+    background-color: #DDF0E4;
+}
+
 #tasks {
     width : inherit;
     height: 0;
     flex-grow: 1;
-    overflow: auto;
+    overflow-y: scroll;
 }
 
 .task {
@@ -252,6 +257,10 @@ button, input, select, textarea {
     text-decoration: none;
 }
 
+.task .assign {
+    justify-content: left;
+}
+
 #mainBody .indicator {
     width : 3px;
     height: inherit;
@@ -295,8 +304,13 @@ button, input, select, textarea {
 #mainBody .assign {
     width : 84px;
     height: inherit;
+    padding-right: 6px;
 }
 
+#mainBody .scroll {
+    width : 16px;
+    height: inherit;
+}
 
 #footer {
     width : inherit;
@@ -415,7 +429,16 @@ button, input, select, textarea {
     background-image: url("../images/cmd_s_normal.png");
     background-size: contain;
 }
-/* #setDpy {
-    background-image: url("../images/cmd_v_normal.png");
-    background-size: contain;
-} */
+
+::-webkit-scrollbar {
+    width: 16px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #ccc;
+    border-radius: 16px;
+}
+
+#tasks::-webkit-scrollbar-track {
+    background: #DDF0E4;
+}

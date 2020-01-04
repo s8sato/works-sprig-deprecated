@@ -63,7 +63,6 @@ type alias Millis =
     Int
 
 
-
 type alias Schedule =
     { begin : Millis
     , end : Millis
@@ -1049,10 +1048,10 @@ view model =
                             (List.indexedMap Tuple.pair model.sub.tasks)
                         )
                     ]
+                , div [ id "fotter" ] []
                 ]
             , div [ id "rSideBar" ] []
             ]
-        , div [ id "fotter" ] []
         ]
 
 
@@ -1155,6 +1154,7 @@ viewTaskHeader m =
             [ text (viewDateTimeGuide m.dpy) ]
         , div [ class "weight" ] []
         , div [ class "assign" ] []
+        , div [ class "scroll" ] []
         ]
 
 

@@ -237,3 +237,8 @@ scheduleForward implemented!
 議論のためには、styleつきhtmlを用意すれば良かったですね
 作っていただいて、ありがとうございました
 2020-01-04 23:31:11
+
+revised css; scroll bar, font size, limit of textarea.
+2020-01-05 05:01:31
+
+

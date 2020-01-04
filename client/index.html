@@ -9039,6 +9039,13 @@ var $author$project$Main$viewTaskHeader = function (m) {
 					[
 						$elm$html$Html$Attributes$class('assign')
 					]),
+				_List_Nil),
+				A2(
+				$elm$html$Html$div,
+				_List_fromArray(
+					[
+						$elm$html$Html$Attributes$class('scroll')
+					]),
 				_List_Nil)
 			]));
 };
@@ -9345,7 +9352,14 @@ var $author$project$Main$view = function (model) {
 											$elm$core$List$map,
 											$author$project$Main$viewTask(model),
 											A2($elm$core$List$indexedMap, $elm$core$Tuple$pair, model.sub.tasks)))
-									]))
+									])),
+								A2(
+								$elm$html$Html$div,
+								_List_fromArray(
+									[
+										$elm$html$Html$Attributes$id('fotter')
+									]),
+								_List_Nil)
 							])),
 						A2(
 						$elm$html$Html$div,
@@ -9354,14 +9368,7 @@ var $author$project$Main$view = function (model) {
 								$elm$html$Html$Attributes$id('rSideBar')
 							]),
 						_List_Nil)
-					])),
-				A2(
-				$elm$html$Html$div,
-				_List_fromArray(
-					[
-						$elm$html$Html$Attributes$id('fotter')
-					]),
-				_List_Nil)
+					]))
 			]));
 };
 var $author$project$Main$main = $elm$browser$Browser$element(
