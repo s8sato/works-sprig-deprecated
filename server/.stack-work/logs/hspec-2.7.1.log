@@ -1,0 +1,11 @@
+Configuring hspec-2.7.1...
+Preprocessing library for hspec-2.7.1..
+Building library for hspec-2.7.1..
+[1 of 6] Compiling Paths_hspec      ( .stack-work\dist\e626a42b\build\autogen\Paths_hspec.hs, .stack-work\dist\e626a42b\build\Paths_hspec.o )
+[2 of 6] Compiling Test.Hspec.Formatters ( src\Test\Hspec\Formatters.hs, .stack-work\dist\e626a42b\build\Test\Hspec\Formatters.o )
+[3 of 6] Compiling Test.Hspec.Discover ( src\Test\Hspec\Discover.hs, .stack-work\dist\e626a42b\build\Test\Hspec\Discover.o )
+[4 of 6] Compiling Test.Hspec.Runner ( src\Test\Hspec\Runner.hs, .stack-work\dist\e626a42b\build\Test\Hspec\Runner.o )
+[5 of 6] Compiling Test.Hspec       ( src\Test\Hspec.hs, .stack-work\dist\e626a42b\build\Test\Hspec.o )
+[6 of 6] Compiling Test.Hspec.QuickCheck ( src\Test\Hspec\QuickCheck.hs, .stack-work\dist\e626a42b\build\Test\Hspec\QuickCheck.o )
+Installing library in C:\sr\snapshots\1b0bbf2a\lib\x86_64-windows-ghc-8.6.5\hspec-2.7.1-5Ya7WKn6uHaGEgzpsb0uhF
+Registering library for hspec-2.7.1..

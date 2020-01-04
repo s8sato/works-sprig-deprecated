@@ -1,0 +1,176 @@
+Configuring haskell-src-exts-1.21.1...
+Preprocessing library for haskell-src-exts-1.21.1..
+unused rules: 3
+Building library for haskell-src-exts-1.21.1..
+[ 1 of 18] Compiling Language.Haskell.Exts.Extension ( src\Language\Haskell\Exts\Extension.hs, .stack-work\dist\e626a42b\build\Language\Haskell\Exts\Extension.o )
+[ 2 of 18] Compiling Language.Haskell.Exts.ExtScheme ( src\Language\Haskell\Exts\ExtScheme.hs, .stack-work\dist\e626a42b\build\Language\Haskell\Exts\ExtScheme.o )
+[ 3 of 18] Compiling Language.Haskell.Exts.SrcLoc ( src\Language\Haskell\Exts\SrcLoc.hs, .stack-work\dist\e626a42b\build\Language\Haskell\Exts\SrcLoc.o )
+[ 4 of 18] Compiling Language.Haskell.Exts.Syntax ( src\Language\Haskell\Exts\Syntax.hs, .stack-work\dist\e626a42b\build\Language\Haskell\Exts\Syntax.o )
+[ 5 of 18] Compiling Language.Haskell.Exts.ParseSyntax ( src\Language\Haskell\Exts\ParseSyntax.hs, .stack-work\dist\e626a42b\build\Language\Haskell\Exts\ParseSyntax.o )
+[ 6 of 18] Compiling Language.Haskell.Exts.Pretty ( src\Language\Haskell\Exts\Pretty.hs, .stack-work\dist\e626a42b\build\Language\Haskell\Exts\Pretty.o )
+[ 7 of 18] Compiling Language.Haskell.Exts.Fixity ( src\Language\Haskell\Exts\Fixity.hs, .stack-work\dist\e626a42b\build\Language\Haskell\Exts\Fixity.o )
+[ 8 of 18] Compiling Language.Haskell.Exts.Comments ( src\Language\Haskell\Exts\Comments.hs, .stack-work\dist\e626a42b\build\Language\Haskell\Exts\Comments.o )
+[ 9 of 18] Compiling Language.Haskell.Exts.ParseMonad ( src\Language\Haskell\Exts\ParseMonad.hs, .stack-work\dist\e626a42b\build\Language\Haskell\Exts\ParseMonad.o )
+[10 of 18] Compiling Language.Haskell.Exts.ParseUtils ( src\Language\Haskell\Exts\ParseUtils.hs, .stack-work\dist\e626a42b\build\Language\Haskell\Exts\ParseUtils.o )
+[11 of 18] Compiling Language.Haskell.Exts.InternalLexer ( src\Language\Haskell\Exts\InternalLexer.hs, .stack-work\dist\e626a42b\build\Language\Haskell\Exts\InternalLexer.o )
+[12 of 18] Compiling Language.Haskell.Exts.Lexer ( src\Language\Haskell\Exts\Lexer.hs, .stack-work\dist\e626a42b\build\Language\Haskell\Exts\Lexer.o )
+[13 of 18] Compiling Language.Haskell.Exts.InternalParser ( .stack-work\dist\e626a42b\build\Language\Haskell\Exts\InternalParser.hs, .stack-work\dist\e626a42b\build\Language\Haskell\Exts\InternalParser.o )
+[14 of 18] Compiling Language.Haskell.Exts.Parser ( src\Language\Haskell\Exts\Parser.hs, .stack-work\dist\e626a42b\build\Language\Haskell\Exts\Parser.o )
+[15 of 18] Compiling Language.Haskell.Exts.ExactPrint ( src\Language\Haskell\Exts\ExactPrint.hs, .stack-work\dist\e626a42b\build\Language\Haskell\Exts\ExactPrint.o )
+[16 of 18] Compiling Language.Haskell.Exts.Build ( src\Language\Haskell\Exts\Build.hs, .stack-work\dist\e626a42b\build\Language\Haskell\Exts\Build.o )
+[17 of 18] Compiling Language.Preprocessor.Unlit ( src\Language\Preprocessor\Unlit.hs, .stack-work\dist\e626a42b\build\Language\Preprocessor\Unlit.o )
+
+[;1msrc\Language\Preprocessor\Unlit.hs:17:25: [;1m[35mwarning:[0m[0m[;1m [[;1m[35m-Wname-shadowing[0m[0m[;1m][0m[0m[;1m
+    This binding for ‘x’ shadows the existing binding
+      bound at src\Language\Preprocessor\Unlit.hs:14:17[0m[0m
+[;1m[34m   |[0m[0m
+[;1m[34m17 |[0m[0m          allProg (('\\':[;1m[35mx[0m[0m):xs) |  "end{code}"`isPrefixOf`x = Blank : classify xs
+[;1m[34m   |[0m[0m[;1m[35m                         ^[0m[0m
+[0m[0m[0m
+[;1msrc\Language\Preprocessor\Unlit.hs:17:28: [;1m[35mwarning:[0m[0m[;1m [[;1m[35m-Wname-shadowing[0m[0m[;1m][0m[0m[;1m
+    This binding for ‘xs’ shadows the existing binding
+      bound at src\Language\Preprocessor\Unlit.hs:14:20[0m[0m
+[;1m[34m   |[0m[0m
+[;1m[34m17 |[0m[0m          allProg (('\\':x):[;1m[35mxs[0m[0m) |  "end{code}"`isPrefixOf`x = Blank : classify xs
+[;1m[34m   |[0m[0m[;1m[35m                            ^^[0m[0m
+[0m[0m[0m
+[;1msrc\Language\Preprocessor\Unlit.hs:18:19: [;1m[35mwarning:[0m[0m[;1m [[;1m[35m-Wname-shadowing[0m[0m[;1m][0m[0m[;1m
+    This binding for ‘x’ shadows the existing binding
+      bound at src\Language\Preprocessor\Unlit.hs:14:17[0m[0m
+[;1m[34m   |[0m[0m
+[;1m[34m18 |[0m[0m          allProg ([;1m[35mx[0m[0m:xs) = Program x:allProg xs
+[;1m[34m   |[0m[0m[;1m[35m                   ^[0m[0m
+[0m[0m[0m
+[;1msrc\Language\Preprocessor\Unlit.hs:18:21: [;1m[35mwarning:[0m[0m[;1m [[;1m[35m-Wname-shadowing[0m[0m[;1m][0m[0m[;1m
+    This binding for ‘xs’ shadows the existing binding
+      bound at src\Language\Preprocessor\Unlit.hs:14:20[0m[0m
+[;1m[34m   |[0m[0m
+[;1m[34m18 |[0m[0m          allProg (x:[;1m[35mxs[0m[0m) = Program x:allProg xs
+[;1m[34m   |[0m[0m[;1m[35m                     ^^[0m[0m
+[0m[0m[0m
+[;1msrc\Language\Preprocessor\Unlit.hs:27:11: [;1m[35mwarning:[0m[0m[;1m [[;1m[35m-Wunused-matches[0m[0m[;1m][0m[0m[;1m
+    Defined but not used: ‘x’[0m[0m
+[;1m[34m   |[0m[0m
+[;1m[34m27 |[0m[0m classify ([;1m[35mx[0m[0m:xs)                 = Comment:classify xs
+[;1m[34m   |[0m[0m[;1m[35m           ^[0m[0m
+[0m[0m[0m
+[;1msrc\Language\Preprocessor\Unlit.hs:46:17: [;1m[35mwarning:[0m[0m[;1m [[;1m[35m-Wunused-matches[0m[0m[;1m][0m[0m[;1m
+    Defined but not used: ‘y’[0m[0m
+[;1m[34m   |[0m[0m
+[;1m[34m46 |[0m[0m adjacent file n [;1m[35my[0m[0m@(Program _) (x@Comment      :xs) = error (message file n "program" "comment")
+[;1m[34m   |[0m[0m[;1m[35m                 ^[0m[0m
+[0m[0m[0m
+[;1msrc\Language\Preprocessor\Unlit.hs:46:32: [;1m[35mwarning:[0m[0m[;1m [[;1m[35m-Wunused-matches[0m[0m[;1m][0m[0m[;1m
+    Defined but not used: ‘x’[0m[0m
+[;1m[34m   |[0m[0m
+[;1m[34m46 |[0m[0m adjacent file n y@(Program _) ([;1m[35mx[0m[0m@Comment      :xs) = error (message file n "program" "comment")
+[;1m[34m   |[0m[0m[;1m[35m                                ^[0m[0m
+[0m[0m[0m
+[;1msrc\Language\Preprocessor\Unlit.hs:46:48: [;1m[35mwarning:[0m[0m[;1m [[;1m[35m-Wunused-matches[0m[0m[;1m][0m[0m[;1m
+    Defined but not used: ‘xs’[0m[0m
+[;1m[34m   |[0m[0m
+[;1m[34m46 |[0m[0m adjacent file n y@(Program _) (x@Comment      :[;1m[35mxs[0m[0m) = error (message file n "program" "comment")
+[;1m[34m   |[0m[0m[;1m[35m                                                ^^[0m[0m
+[0m[0m[0m
+[;1msrc\Language\Preprocessor\Unlit.hs:47:10: [;1m[35mwarning:[0m[0m[;1m [[;1m[35m-Wunused-matches[0m[0m[;1m][0m[0m[;1m
+    Defined but not used: ‘file’[0m[0m
+[;1m[34m   |[0m[0m
+[;1m[34m47 |[0m[0m adjacent [;1m[35mfile[0m[0m n y@(Program _) (x@(Include i f):xs) = x: adjacent f    i     y xs
+[;1m[34m   |[0m[0m[;1m[35m          ^^^^[0m[0m
+[0m[0m[0m
+[;1msrc\Language\Preprocessor\Unlit.hs:47:15: [;1m[35mwarning:[0m[0m[;1m [[;1m[35m-Wunused-matches[0m[0m[;1m][0m[0m[;1m
+    Defined but not used: ‘n’[0m[0m
+[;1m[34m   |[0m[0m
+[;1m[34m47 |[0m[0m adjacent file [;1m[35mn[0m[0m y@(Program _) (x@(Include i f):xs) = x: adjacent f    i     y xs
+[;1m[34m   |[0m[0m[;1m[35m               ^[0m[0m
+[0m[0m[0m
+[;1msrc\Language\Preprocessor\Unlit.hs:49:17: [;1m[35mwarning:[0m[0m[;1m [[;1m[35m-Wunused-matches[0m[0m[;1m][0m[0m[;1m
+    Defined but not used: ‘y’[0m[0m
+[;1m[34m   |[0m[0m
+[;1m[34m49 |[0m[0m adjacent file n [;1m[35my[0m[0m@Comment     (x@(Program _)  :xs) = error (message file n "comment" "program")
+[;1m[34m   |[0m[0m[;1m[35m                 ^[0m[0m
+[0m[0m[0m
+[;1msrc\Language\Preprocessor\Unlit.hs:49:32: [;1m[35mwarning:[0m[0m[;1m [[;1m[35m-Wunused-matches[0m[0m[;1m][0m[0m[;1m
+    Defined but not used: ‘x’[0m[0m
+[;1m[34m   |[0m[0m
+[;1m[34m49 |[0m[0m adjacent file n y@Comment     ([;1m[35mx[0m[0m@(Program _)  :xs) = error (message file n "comment" "program")
+[;1m[34m   |[0m[0m[;1m[35m                                ^[0m[0m
+[0m[0m[0m
+[;1msrc\Language\Preprocessor\Unlit.hs:49:48: [;1m[35mwarning:[0m[0m[;1m [[;1m[35m-Wunused-matches[0m[0m[;1m][0m[0m[;1m
+    Defined but not used: ‘xs’[0m[0m
+[;1m[34m   |[0m[0m
+[;1m[34m49 |[0m[0m adjacent file n y@Comment     (x@(Program _)  :[;1m[35mxs[0m[0m) = error (message file n "comment" "program")
+[;1m[34m   |[0m[0m[;1m[35m                                                ^^[0m[0m
+[0m[0m[0m
+[;1msrc\Language\Preprocessor\Unlit.hs:50:10: [;1m[35mwarning:[0m[0m[;1m [[;1m[35m-Wunused-matches[0m[0m[;1m][0m[0m[;1m
+    Defined but not used: ‘file’[0m[0m
+[;1m[34m   |[0m[0m
+[;1m[34m50 |[0m[0m adjacent [;1m[35mfile[0m[0m n y@Comment     (x@(Include i f):xs) = x: adjacent f    i     y xs
+[;1m[34m   |[0m[0m[;1m[35m          ^^^^[0m[0m
+[0m[0m[0m
+[;1msrc\Language\Preprocessor\Unlit.hs:50:15: [;1m[35mwarning:[0m[0m[;1m [[;1m[35m-Wunused-matches[0m[0m[;1m][0m[0m[;1m
+    Defined but not used: ‘n’[0m[0m
+[;1m[34m   |[0m[0m
+[;1m[34m50 |[0m[0m adjacent file [;1m[35mn[0m[0m y@Comment     (x@(Include i f):xs) = x: adjacent f    i     y xs
+[;1m[34m   |[0m[0m[;1m[35m               ^[0m[0m
+[0m[0m[0m
+[;1msrc\Language\Preprocessor\Unlit.hs:52:10: [;1m[35mwarning:[0m[0m[;1m [[;1m[35m-Wunused-matches[0m[0m[;1m][0m[0m[;1m
+    Defined but not used: ‘file’[0m[0m
+[;1m[34m   |[0m[0m
+[;1m[34m52 |[0m[0m adjacent [;1m[35mfile[0m[0m n y@Blank       (x@(Include i f):xs) = x: adjacent f    i     y xs
+[;1m[34m   |[0m[0m[;1m[35m          ^^^^[0m[0m
+[0m[0m[0m
+[;1msrc\Language\Preprocessor\Unlit.hs:52:15: [;1m[35mwarning:[0m[0m[;1m [[;1m[35m-Wunused-matches[0m[0m[;1m][0m[0m[;1m
+    Defined but not used: ‘n’[0m[0m
+[;1m[34m   |[0m[0m
+[;1m[34m52 |[0m[0m adjacent file [;1m[35mn[0m[0m y@Blank       (x@(Include i f):xs) = x: adjacent f    i     y xs
+[;1m[34m   |[0m[0m[;1m[35m               ^[0m[0m
+[0m[0m[0m
+[;1msrc\Language\Preprocessor\Unlit.hs:54:34: [;1m[35mwarning:[0m[0m[;1m [[;1m[35m-Wunused-matches[0m[0m[;1m][0m[0m[;1m
+    Defined but not used: ‘next’[0m[0m
+[;1m[34m   |[0m[0m
+[;1m[34m54 |[0m[0m adjacent file n _             (x@[;1m[35mnext[0m[0m         :xs) = x: adjacent file (n+1) x xs
+[;1m[34m   |[0m[0m[;1m[35m                                  ^^^^[0m[0m
+[0m[0m[0m
+[;1msrc\Language\Preprocessor\Unlit.hs:55:10: [;1m[35mwarning:[0m[0m[;1m [[;1m[35m-Wunused-matches[0m[0m[;1m][0m[0m[;1m
+    Defined but not used: ‘file’[0m[0m
+[;1m[34m   |[0m[0m
+[;1m[34m55 |[0m[0m adjacent [;1m[35mfile[0m[0m n _             []                   = []
+[;1m[34m   |[0m[0m[;1m[35m          ^^^^[0m[0m
+[0m[0m[0m
+[;1msrc\Language\Preprocessor\Unlit.hs:55:15: [;1m[35mwarning:[0m[0m[;1m [[;1m[35m-Wunused-matches[0m[0m[;1m][0m[0m[;1m
+    Defined but not used: ‘n’[0m[0m
+[;1m[34m   |[0m[0m
+[;1m[34m55 |[0m[0m adjacent file [;1m[35mn[0m[0m _             []                   = []
+[;1m[34m   |[0m[0m[;1m[35m               ^[0m[0m
+[0m[0m[0m
+[;1msrc\Language\Preprocessor\Unlit.hs:69:22: [;1m[35mwarning:[0m[0m[;1m [[;1m[35m-Wname-shadowing[0m[0m[;1m][0m[0m[;1m
+    This binding for ‘s’ shadows the existing binding
+      bound at src\Language\Preprocessor\Unlit.hs:66:9[0m[0m
+[;1m[34m   |[0m[0m
+[;1m[34m69 |[0m[0m   lines' ('\^M':'\n':[;1m[35ms[0m[0m) acc = acc [] : lines' s id      -- DOS
+[;1m[34m   |[0m[0m[;1m[35m                      ^[0m[0m
+[0m[0m[0m
+[;1msrc\Language\Preprocessor\Unlit.hs:70:17: [;1m[35mwarning:[0m[0m[;1m [[;1m[35m-Wname-shadowing[0m[0m[;1m][0m[0m[;1m
+    This binding for ‘s’ shadows the existing binding
+      bound at src\Language\Preprocessor\Unlit.hs:66:9[0m[0m
+[;1m[34m   |[0m[0m
+[;1m[34m70 |[0m[0m   lines' ('\^M':[;1m[35ms[0m[0m)      acc = acc [] : lines' s id      -- MacOS
+[;1m[34m   |[0m[0m[;1m[35m                 ^[0m[0m
+[0m[0m[0m
+[;1msrc\Language\Preprocessor\Unlit.hs:71:16: [;1m[35mwarning:[0m[0m[;1m [[;1m[35m-Wname-shadowing[0m[0m[;1m][0m[0m[;1m
+    This binding for ‘s’ shadows the existing binding
+      bound at src\Language\Preprocessor\Unlit.hs:66:9[0m[0m
+[;1m[34m   |[0m[0m
+[;1m[34m71 |[0m[0m   lines' ('\n':[;1m[35ms[0m[0m)       acc = acc [] : lines' s id      -- Unix
+[;1m[34m   |[0m[0m[;1m[35m                ^[0m[0m
+[0m[0m[0m
+[;1msrc\Language\Preprocessor\Unlit.hs:72:13: [;1m[35mwarning:[0m[0m[;1m [[;1m[35m-Wname-shadowing[0m[0m[;1m][0m[0m[;1m
+    This binding for ‘s’ shadows the existing binding
+      bound at src\Language\Preprocessor\Unlit.hs:66:9[0m[0m
+[;1m[34m   |[0m[0m
+[;1m[34m72 |[0m[0m   lines' (c:[;1m[35ms[0m[0m)          acc = lines' s (acc . (c:))
+[;1m[34m   |[0m[0m[;1m[35m             ^[0m[0m
+[0m[0m[0m[18 of 18] Compiling Language.Haskell.Exts ( src\Language\Haskell\Exts.hs, .stack-work\dist\e626a42b\build\Language\Haskell\Exts.o )
+Installing library in C:\sr\snapshots\1b0bbf2a\lib\x86_64-windows-ghc-8.6.5\haskell-src-exts-1.21.1-9jRJjiNfrEsGAa1mAVgSEM
+Registering library for haskell-src-exts-1.21.1..

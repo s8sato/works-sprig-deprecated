@@ -1,0 +1,7 @@
+Configuring th-orphans-0.13.9...
+Preprocessing library for th-orphans-0.13.9..
+Building library for th-orphans-0.13.9..
+[1 of 2] Compiling Language.Haskell.TH.Instances.Internal ( src\Language\Haskell\TH\Instances\Internal.hs, .stack-work\dist\e626a42b\build\Language\Haskell\TH\Instances\Internal.o )
+[2 of 2] Compiling Language.Haskell.TH.Instances ( src\Language\Haskell\TH\Instances.hs, .stack-work\dist\e626a42b\build\Language\Haskell\TH\Instances.o )
+Installing library in C:\sr\snapshots\1b0bbf2a\lib\x86_64-windows-ghc-8.6.5\th-orphans-0.13.9-FWigQ8fLc3j7uD62fbi5v6
+Registering library for th-orphans-0.13.9..

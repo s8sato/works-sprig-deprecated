@@ -95,7 +95,7 @@ Schedule
     end                 UTCTime
     task                TaskId
     UniqueSchedule begin end task
-    deriving Show
+    deriving Show Eq
 |]
 
 migrateDb :: IO ()

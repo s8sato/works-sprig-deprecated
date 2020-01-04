@@ -1,0 +1,8 @@
+Configuring aeson-qq-0.8.3...
+Preprocessing library for aeson-qq-0.8.3..
+Building library for aeson-qq-0.8.3..
+[1 of 3] Compiling Data.JSON.QQ     ( src\Data\JSON\QQ.hs, .stack-work\dist\e626a42b\build\Data\JSON\QQ.o )
+[2 of 3] Compiling Data.Aeson.QQ    ( src\Data\Aeson\QQ.hs, .stack-work\dist\e626a42b\build\Data\Aeson\QQ.o )
+[3 of 3] Compiling Paths_aeson_qq   ( .stack-work\dist\e626a42b\build\autogen\Paths_aeson_qq.hs, .stack-work\dist\e626a42b\build\Paths_aeson_qq.o )
+Installing library in C:\sr\snapshots\1b0bbf2a\lib\x86_64-windows-ghc-8.6.5\aeson-qq-0.8.3-99FO640XSPj48xNe2liNwA
+Registering library for aeson-qq-0.8.3..

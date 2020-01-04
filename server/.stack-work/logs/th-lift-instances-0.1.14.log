@@ -1,0 +1,6 @@
+Configuring th-lift-instances-0.1.14...
+Preprocessing library for th-lift-instances-0.1.14..
+Building library for th-lift-instances-0.1.14..
+[1 of 1] Compiling Instances.TH.Lift ( src\Instances\TH\Lift.hs, .stack-work\dist\e626a42b\build\Instances\TH\Lift.o )
+Installing library in C:\sr\snapshots\1b0bbf2a\lib\x86_64-windows-ghc-8.6.5\th-lift-instances-0.1.14-9K3PVZaaYbI62ESEbw47Ze
+Registering library for th-lift-instances-0.1.14..

@@ -73,9 +73,10 @@ import qualified Database.Esqueleto as Q (Value (..), EntityField (..))
 import Data.Time.Clock (nominalDay)
 import Data.List (sort, maximumBy)
 import Data.Text.Format (fixed)
-import Data.List.Unique (allUnique)
+import Data.List.Unique (allUnique, sortUniq)
+import Data.Maybe (isNothing)
 
-
+import Debug.Trace
 
 -- type alias
 
@@ -301,7 +302,7 @@ textPostReload' (TextPost elmUser text) = do
                     let inserts' = preShift preds shift inserts 
                     insTasks . (shiftTaskNodes shift) $ inserts'
                     elmTasks <- getUndoneElmTasks uid
-                    let ElmMessage _ ok1 = buildOkMsg inserts' " tasks registered."
+                    let ElmMessage _ ok1 = buildOkMsg (filter (not . taskIsDummy) inserts') " tasks registered."
                     let ElmMessage _ ok2 = buildOkMsg updates " tasks updated."
                     let okMsg = ElmMessage 200 (intercalate " " [ok1, ok2])
                     return $ ElmSubModel elmUser elmTasks Nothing (Just okMsg)
@@ -529,6 +530,7 @@ reschedule uid = do
     let sch =
             if userIsLazy user then Left "Now implementing"  --TODO
             else scheduleForward user now durs tasks
+    print ("hoge" ++ show sch ++ "piyo")
     case sch of
         Left errMsg ->
             return $ Left errMsg
@@ -539,6 +541,44 @@ reschedule uid = do
             -- let newTasks = attachSchedule tasks schedule
             -- let okMsg = buildOkMsg newTasks " tasks rescheduled."
             -- return $ ElmSubModel elmUser newTasks Nothing (Just okMsg) 
+
+debugResche :: IO [TaskFrag]
+debugResche = do
+    pool <- pgPool
+    user <- Prelude.head <$> map entityVal <$> getUserById pool 1
+    now <- getCurrentTime
+    durs <- map entityVal <$> getDurationsByUserId pool 1
+    tasks <- getUndoneOwnTasksByUserId pool 1
+    -- return $ midnightBy now
+    -- return $ map toMillis durs
+    return $ map toTaskFrag (map entityVal tasks)
+
+
+
+debugUser :: IO User
+debugUser = do
+    pool <- pgPool
+    user <- Prelude.head <$> map entityVal <$> getUserById pool 1
+    return user
+
+debugNow :: IO UTCTime
+debugNow = do
+    now <- getCurrentTime
+    return now
+
+
+debugDurs :: IO [Duration]
+debugDurs = do
+    pool <- pgPool
+    durs <- map entityVal <$> getDurationsByUserId pool 1
+    return durs
+
+debugTasks :: IO [Entity Task]
+debugTasks = do
+    pool <- pgPool
+    tasks <- getUndoneOwnTasksByUserId pool 1
+    return tasks
+
 
 buildElmTaskByTaskId :: Key Task -> IO ElmTask
 buildElmTaskByTaskId tid = do
@@ -573,10 +613,9 @@ type Edge = ((Node, Node), [Attr])
 type Node  = Int
 data Attr  = 
       AttrTaskId    { attrTaskId    :: Int  }
+    | IsDummy
     | IsDone
-    -- | IsDone        { isDone        :: Char }
     | IsStarred
-    -- | IsStarred     { isStarred     :: Char }
     | HeadLink      { headLink      :: Text }
     | Title         { title         :: Text }
     | StartableDate { startableYea  :: Int, startableMon    :: Int, startableDay    :: Int }
@@ -616,6 +655,8 @@ taskFromEdge' (a:as) ((Task t i y d s ml ms md mw mt u), mid) =
     case a of
         AttrTaskId n ->
             taskFromEdge' as ((Task t i y d s ml ms md mw mt u), Just n)
+        IsDummy ->
+            taskFromEdge' as ((Task t i True d s ml ms md mw mt u), mid)
         IsDone ->
             taskFromEdge' as ((Task t i y True s ml ms md mw mt u), mid)
         IsStarred ->
@@ -786,7 +827,7 @@ keyMatch (a:as) (b:bs) ah = case a of
         keyMatch as (b:bs) ah
 
 spanDummy'' :: (Node, Node) -> (Node, Node) -> Graph -> Graph
-spanDummy'' (_,t) (i,_) g = ((t,i), [AttrTaskId 0, IsDone, Title "DUMMY"]) : g
+spanDummy'' (_,t) (i,_) g = ((t,i), [IsDummy, IsDone, Title "DUMMY"]) : g
 
 universalize :: User -> Task -> Task
 universalize user = timeShift minus
@@ -832,7 +873,7 @@ edgeFromTask (task, (id,an)) =
 edgeFromTask' :: Task -> [Attr] -> [Attr]
 edgeFromTask' (Task t i y d s ml ms md mw mt u) result
     | y =
-        edgeFromTask' (Task t i False d s ml ms md mw mt u) ((AttrTaskId 0) : result)
+        edgeFromTask' (Task t i False d s ml ms md mw mt u) (IsDummy : result)
     | d =
         edgeFromTask' (Task t i False False s ml ms md mw mt u) (IsDone : result)
     | s =
@@ -931,7 +972,7 @@ addHead terminal key =
 
 hasDummy :: [Attr] -> Bool
 hasDummy =
-    Prelude.any (\attr -> attr == AttrTaskId 0)
+    Prelude.any (\attr -> attr == IsDummy)
 
 remDupLink :: Graph -> Graph
 remDupLink =  map (\(p, as) -> (p, remDupLink' as as))
@@ -1154,7 +1195,7 @@ toMillis :: Duration -> MillisDuration
 toMillis (Duration l r _) = (fromTOD l, fromTOD r)
     where
         fromTOD :: TimeOfDay -> Millis
-        fromTOD t = floor $ (10^3)*(todSec t)
+        fromTOD t = floor $ (10^3)*(timeOfDayToTime t)
 
 millisFromUTC ::UTCTime -> Millis
 millisFromUTC u = floor . ((*) (10^3)) . utcTimeToPOSIXSeconds $ u
@@ -1289,23 +1330,25 @@ toElmSchedule :: Schedule -> ElmSchedule
 toElmSchedule (Schedule b e _) = 
     ElmSchedule (millisFromUTC b) (millisFromUTC e)
 
+
+
 scheduleForward :: User -> UTCTime -> [Duration] -> [Entity Task] -> Either Text [Schedule]
 scheduleForward user now ds tasks =
-    if  hasLoop (map entityVal tasks) then
-        Left "Not applicable to diagrams with loops."
-    else
+    -- if  hasLoop (map entityVal tasks) then
+    --     Left "Not applicable to diagrams with loops."
+    -- else
     let
-        today = midnightBy now
-        daily = map toMillis ds
+        today = trace "today" $ midnightBy now
+        daily = trace "daily" $ map toMillis ds
         pattern = stripedPattern (map (both $ (+) today) daily)
-        reso = 60 * (10^3) * (userResolutionMin user)
+        reso = trace "reso" $ 60 * (10^3) * (userResolutionMin user)
         -- queue = (queueOfPairs reso) . oneStrokes $ tasks
         -- roll = pianoRoll pattern queue reso (millisFromUTC now)
-        cursor = millisFromUTC now
-        frags = map toTaskFrag (map entityVal tasks)
-        roll = pianoRollF pattern reso cursor frags []
+        cursor = trace "cursor" $ millisFromUTC now
+        frags = trace "frags" $ map toTaskFrag (map entityVal tasks)
+        roll = trace "roll" $ pianoRollF pattern reso cursor frags []
     in
-        Right $ toSchedule tasks roll
+        trace ("scheduleForward" ++ show roll) $ Right $ toSchedule tasks roll
 
 hasLoop :: [Task] -> Bool
 hasLoop tasks =
@@ -1341,7 +1384,7 @@ data TaskFrag = TaskFrag
     , fStartable :: Maybe Millis
     , fDeadline :: Maybe Millis
     , fWeight :: Maybe Millis
-    } deriving (Eq, Show)
+    } deriving (Eq, Ord, Show)
 
 toTaskFrag :: Task -> TaskFrag
 toTaskFrag t =
@@ -1519,14 +1562,14 @@ pianoRollF pattern reso cursor frags out
             filter (hasDirectOrIndirectDeadline frags) .
             filter (hasWeight)
         filterS =
-            filter (isExecutable cursor frags) .
+            filter (isExecutableF cursor frags) .
             filterW
         entry =
             filterS frags
         winner =
-            maximumBy (\f g -> compare (urgency cursor frags f) (urgency cursor frags g)) entry
+            maximumBy (\f g -> compare (urgencyF cursor frags f) (urgencyF cursor frags g)) entry
         reward =
-            assignTime pattern reso cursor
+            assignTimeF pattern reso cursor
         next =
             Prelude.maximum $ map snd reward
         newFrags =
@@ -1534,7 +1577,7 @@ pianoRollF pattern reso cursor frags out
 
 hasDirectOrIndirectDeadline :: [TaskFrag] -> TaskFrag -> Bool
 hasDirectOrIndirectDeadline frags f =
-    Prelude.any (hasDeadline) (successor frags f)
+    Prelude.any (hasDeadline) (successor frags f) || hasDeadline f
 
 hasDeadline :: TaskFrag -> Bool
 hasDeadline f =
@@ -1542,7 +1585,7 @@ hasDeadline f =
 
 successor :: [TaskFrag] -> TaskFrag -> [TaskFrag]
 successor frags f =
-    successor' frags f []
+    sortUniq $ successor' frags f []
 
 successor' :: [TaskFrag] -> TaskFrag -> [TaskFrag] -> [TaskFrag]
 successor' frags f out 
@@ -1556,7 +1599,7 @@ successor' frags f out
 
 predecessor :: [TaskFrag] -> TaskFrag -> [TaskFrag]
 predecessor frags f =
-    predecessor' frags f []
+    sortUniq $ predecessor' frags f []
 
 predecessor' :: [TaskFrag] -> TaskFrag -> [TaskFrag] -> [TaskFrag]
 predecessor' frags f out 
@@ -1576,8 +1619,8 @@ hasWeight f =
         _ ->
             False
 
-isExecutable :: Millis -> [TaskFrag] -> TaskFrag -> Bool
-isExecutable cursor frags f =
+isExecutableF :: Millis -> [TaskFrag] -> TaskFrag -> Bool
+isExecutableF cursor frags f =
     (case fStartable f of
         Just s ->
             s <= cursor
@@ -1585,66 +1628,85 @@ isExecutable cursor frags f =
             True
     ) && Prelude.all (\frag -> not $ hasWeight frag) (predecessor frags f)
 
-urgency :: Millis -> [TaskFrag] -> TaskFrag -> Maybe Millis
-urgency cursor frags f =
+urgencyF :: Millis -> [TaskFrag] -> TaskFrag -> Maybe Millis
+urgencyF cursor frags f =
     let paths = routeFindF frags f
-    in  Prelude.maximum $ map (urgencyByPath cursor) paths
+    in  Prelude.maximum $ map (urgencyByPathF cursor) paths
 
 
-urgencyByPath :: Millis -> [TaskFrag] -> Maybe Millis
-urgencyByPath cursor path
+urgencyByPathF :: Millis -> [TaskFrag] -> Maybe Millis
+urgencyByPathF cursor path
     | Prelude.null $ filter (hasDeadline) path =
         Nothing
+    | isNothing $ grandDeadline path =
+        Nothing
+    | 0 >= totalWeight path =
+        Nothing
     | otherwise =
-        case grandDeadline path of
-            Just gd ->
-                Just $ cursor + (totalWeight path) - gd
-            _ ->
-                Nothing
-    where
-        grandDeadline =
-            Prelude.maximum . (map fDeadline) . (filter hasDeadline)
+        let Just gd = grandDeadline path
+        in  Just $ cursor + (totalWeight path) - gd
+
+grandDeadline :: [TaskFrag] -> Maybe Millis
+grandDeadline =
+    Prelude.maximum . (map fDeadline) . (filter hasDeadline)
 
 totalWeight :: [TaskFrag] -> Millis
-totalWeight path =
-    sum $ map   (\frag -> case fWeight frag of 
+totalWeight  =
+    sum . map   (\frag -> case fWeight frag of 
                     Nothing ->
                         0
                     Just w ->
                         w
-                ) path
+                ) 
 
 routeFindF :: [TaskFrag] -> TaskFrag -> [[TaskFrag]]
 routeFindF frags f =
-    routeFindF' f (nextFrags frags f) [] frags [] []
+    routeObserve f (nextFragsF frags f) [] (nextFragsF frags f) frags [f] []
 
-routeFindF' :: TaskFrag -> [TaskFrag] -> [TaskFrag] -> [TaskFrag] -> [TaskFrag] -> [[TaskFrag]] -> [[TaskFrag]]
-routeFindF' _ [] [] _ stack out =
+routeObserve :: TaskFrag -> [TaskFrag] -> [TaskFrag] -> [TaskFrag] -> [TaskFrag] -> [TaskFrag] -> [[TaskFrag]] -> [[TaskFrag]]
+routeObserve _ [] [] _ _ stack out =
     (reverse stack) : out
-routeFindF' current (x:xs) remain chart stack out =
-    routeFindF' x (nextFrags chart x) (current:remain) (filter (/= x) chart) (x:stack) out
-routeFindF' current [] (r:remain) chart stack out =
-    routeFindF' r (nextFrags chart r) remain chart (Prelude.dropWhile (/= r) stack) (stack:out)
+routeObserve current (x:[]) remain cha chart stack out =
+    routeExplore current (x:[]) remain (lightenNextF cha chart x) chart stack out
+routeObserve current (x:xs) remain cha chart stack out =
+    routeExplore current (x:xs) remain (lightenNextF cha chart x) chart stack out
+routeObserve current [] (r:remain) cha chart stack out =
+    routeExplore current [] (r:remain) cha chart stack out
 
-nextFrags :: [TaskFrag] -> TaskFrag -> [TaskFrag]
-nextFrags chart x =
-    filter (\frag -> snd (fPair frag) == fst (fPair x)) chart
+routeExplore :: TaskFrag -> [TaskFrag] -> [TaskFrag] -> [TaskFrag] -> [TaskFrag] -> [TaskFrag] -> [[TaskFrag]] -> [[TaskFrag]]
+routeExplore _ [] [] _ _ stack out =
+    (reverse stack) : out
+routeExplore current (x:[]) remain cha chart stack out =
+    routeObserve x (nextFragsF cha x) remain cha chart (x:stack) out
+routeExplore current (x:xs) remain cha chart stack out =
+    routeObserve x (nextFragsF cha x) (current:remain) cha chart (x:stack) out
+routeExplore current [] (r:remain) cha chart stack out =
+    routeObserve r (nextFragsF cha r) remain cha chart (Prelude.dropWhile (/= r) stack) ((reverse stack):out)
 
-assignTime :: [MillisDuration] -> Millis -> Millis -> [MillisDuration]
-assignTime pattern reso cursor =
-    assignTime' pattern reso cursor reso []
 
-assignTime' :: [MillisDuration] -> Millis -> Millis -> Millis -> [MillisDuration] -> [MillisDuration]
-assignTime' [] _ _ _ _ = []
-assignTime' ((l,r):(l',r'):pattern) reso cursor rest out
+nextFragsF :: [TaskFrag] -> TaskFrag -> [TaskFrag]
+nextFragsF cha x =
+    filter (\frag -> snd (fPair frag) == fst (fPair x)) cha
+
+lightenNextF :: [TaskFrag] -> [TaskFrag] -> TaskFrag -> [TaskFrag] 
+lightenNextF cha chart x =
+    Prelude.concat [filter (/= x) cha, nextFragsF chart x]
+
+assignTimeF :: [MillisDuration] -> Millis -> Millis -> [MillisDuration]
+assignTimeF pattern reso cursor =
+    assignTimeF' pattern reso cursor reso []
+
+assignTimeF' :: [MillisDuration] -> Millis -> Millis -> Millis -> [MillisDuration] -> [MillisDuration]
+assignTimeF' [] _ _ _ _ = []
+assignTimeF' ((l,r):(l',r'):pattern) reso cursor rest out
     | cursor < l =
-        assignTime' ((l,r):(l',r'):pattern) reso l rest out
+        assignTimeF' ((l,r):(l',r'):pattern) reso l rest out
     | l <= cursor && cursor < r && r < cursor + rest =
-        assignTime' ((l',r'):pattern) reso l' (cursor + rest - r) ((cursor,r):out)
+        assignTimeF' ((l',r'):pattern) reso l' (cursor + rest - r) ((cursor,r):out)
     |  l <= cursor && cursor < r =
         (cursor, cursor + reso) : out
     | otherwise =
-        assignTime' ((l',r'):pattern) reso cursor rest out
+        assignTimeF' ((l',r'):pattern) reso cursor rest out
 
 weightDown :: Millis -> [TaskFrag] -> TaskFrag -> [TaskFrag]
 weightDown reso frags winner =

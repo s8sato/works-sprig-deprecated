@@ -88,15 +88,15 @@
   (major1) == 2 && (major2) == 22 && (minor) <= 0)
 #endif /* MIN_TOOL_VERSION_haddock */
 
-/* tool happy-1.19.9 */
+/* tool happy-1.19.12 */
 #ifndef TOOL_VERSION_happy
-#define TOOL_VERSION_happy "1.19.9"
+#define TOOL_VERSION_happy "1.19.12"
 #endif /* TOOL_VERSION_happy */
 #ifndef MIN_TOOL_VERSION_happy
 #define MIN_TOOL_VERSION_happy(major1,major2,minor) (\
   (major1) <  1 || \
   (major1) == 1 && (major2) <  19 || \
-  (major1) == 1 && (major2) == 19 && (minor) <= 9)
+  (major1) == 1 && (major2) == 19 && (minor) <= 12)
 #endif /* MIN_TOOL_VERSION_happy */
 
 /* tool hpc-0.67 */
@@ -155,7 +155,7 @@
 #endif /* MIN_TOOL_VERSION_strip */
 
 #ifndef CURRENT_COMPONENT_ID
-#define CURRENT_COMPONENT_ID "server-0.1.0.0-8c9J2PQNa1tAUaNIGB3Dnj-server-exe"
+#define CURRENT_COMPONENT_ID "server-0.1.0.0-LIJd2dGWEQAHYzDlD0SQC5-server-exe"
 #endif /* CURRENT_COMPONENT_ID */
 #ifndef CURRENT_PACKAGE_VERSION
 #define CURRENT_PACKAGE_VERSION "0.1.0.0"

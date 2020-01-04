@@ -1,0 +1,7 @@
+Configuring hspec-wai-json-0.9.2...
+Preprocessing library for hspec-wai-json-0.9.2..
+Building library for hspec-wai-json-0.9.2..
+[1 of 2] Compiling Paths_hspec_wai_json ( .stack-work\dist\e626a42b\build\autogen\Paths_hspec_wai_json.hs, .stack-work\dist\e626a42b\build\Paths_hspec_wai_json.o )
+[2 of 2] Compiling Test.Hspec.Wai.JSON ( src\Test\Hspec\Wai\JSON.hs, .stack-work\dist\e626a42b\build\Test\Hspec\Wai\JSON.o )
+Installing library in C:\sr\snapshots\1b0bbf2a\lib\x86_64-windows-ghc-8.6.5\hspec-wai-json-0.9.2-1ow6Jhgdg7F3K9ZltqkTPF
+Registering library for hspec-wai-json-0.9.2..

@@ -1,11 +1,11 @@
 
 ==================== FINAL INTERFACE ====================
-2020-01-01 08:17:12.7071254 UTC
+2020-01-04 04:11:39.4419652 UTC
 
 interface main:Main 8065
-  interface hash: 0155d5fd134ebf54243a7b3ce921fea5
-  ABI hash: aba5f395c2974bbc240a6bc1ace3cda0
-  export-list hash: 8246b7ab5c1e201c500789010a6c8fa1
+  interface hash: 4e24e884a337ab089721204da1f7caba
+  ABI hash: 29939e4c40f8df1b1a8643f4ec65345e
+  export-list hash: e78ac79454c8c1fad61c8943259766f7
   orphan hash: 693e9af84d3dfcc71e640e005bdc5e2e
   flag hash: 3879b5ea4593287c78956f7e809781ab
   opt_hash: 6faf2de08de32d19db9870899d88e59a
@@ -205,7 +205,7 @@ family instance modules: Only-0.1:Data.Tuple.Only
                          zlib-0.6.2.1:Codec.Compression.Zlib.Stream
 import  -/  base-4.12.0.0:Prelude 80c668cb99fbafebd524c5e897f8c982
 import  -/  ghc-prim-0.5.3:GHC.Types 57064c9f957b09bc2e360061ad5cae0b
-import  -/  server-0.1.0.0:Controller 3f6f804aed8c30d7c6f086d79a0cf2e7
+import  -/  server-0.1.0.0:Controller dfdbe115f8e9ea4c8465f1f20c43b98a
 be86c9d078d3acbf19ba91fe74a24273
   $trModule :: GHC.Types.Module
   {- HasNoCafRefs, Strictness: m,
@@ -224,12 +224,12 @@ e5875966b74dad2d29772660b8a75e33
 d026be77cb9ced20e35a61514e0458aa
   $trModule4 :: GHC.Prim.Addr#
   {- HasNoCafRefs, Unfolding: ("main"#) -}
-10c69d77dc42d15185e48fcbb2051172
+1b01fc315c1ae1bcb2b69594bf4c3930
   main :: GHC.Types.IO ()
   {- Arity: 1, Strictness: <S,U>,
      Unfolding: InlineRule (0, True, True)
                 Controller.startApp1 `cast` (Sym (GHC.Types.N:IO[0] <()>_R)) -}
-9db9706741b085bf4183ef84bd7b2913
+f139d3bf981c2cf0f23255dba20852f4
   main1 ::
     GHC.Prim.State# GHC.Prim.RealWorld
     -> (# GHC.Prim.State# GHC.Prim.RealWorld, () #)

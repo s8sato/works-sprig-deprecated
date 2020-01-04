@@ -212,3 +212,20 @@ insDur (Duration (TimeOfDay 13 00 0) (TimeOfDay 17 30 0) (toSqlKey 1 :: UserId))
 jump -2020/1/10 $10
     step $10
         hop 2020/1/6- $10
+
+compile passed but RESCHEDULE does not work
+
+midnight
+1578096000000
+
+starMan-首 $6 -2020/01/16-
+    starMan-左肩 [hoge $6
+        ]piyo starMan-左手 $6
+    starMan-左脚 $6
+        ]fuga starMan-左足 $6 2020/01/06-
+    starMan-右脚 $6
+        ]hoge starMan-右足 $6
+    starMan-右肩 [piyo [fuga $6
+        starMan-右手 $6
+
+scheduleForward implemented!
