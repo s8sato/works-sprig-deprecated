@@ -784,8 +784,8 @@ aAttr = AttrTaskId    <$  char '#'  <*> decimal
     <|> DeadlineDate  <$  char '-'  <*> decimal  <* char '/' <*> decimal <* char '/' <*> decimal
     <|> DeadlineTime  <$  char '-'  <*> decimal  <* char ':' <*> decimal
     <|> Weight        <$  char '$'  <*> double
-    -- <|> HeadLink      <$> takeTill (==']') <* char ']'
-    <|> HeadLink      <$  char ']'  <*> takeText
+    <|> HeadLink      <$> takeTill (==']') <* char ']'
+    -- <|> HeadLink      <$  char ']'  <*> takeText
     <|> TailLink      <$  char '['  <*> takeText
     <|> Assign        <$  char '@'  <*> takeText
     <|> Title         <$> takeText
