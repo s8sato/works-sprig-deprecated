@@ -1,2 +1,6 @@
 *.exe
-!**/bin/server-exe.exe
+*.log
+*.out
+/log.txt
+.vagrant/
+.stack-work/

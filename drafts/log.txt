@@ -251,3 +251,10 @@ ALTER USER postgres WITH PASSWORD '';
     Hello World！
 </body>
 </html>
+
+WARNING: '/home/vagrant/.local/bin' is not on your PATH.
+    For best results, please add it to the beginning of PATH in your profile.  
+2020-01-10 23:11:30
+
+moved to ubuntu/bionic64 environment
+2020-01-11 00:53:50

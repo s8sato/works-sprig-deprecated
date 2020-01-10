@@ -3,4 +3,4 @@ module Config exposing (host)
 
 host : String
 host =
-    "localhost"
+    "192.168.33.50"

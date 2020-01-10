@@ -1,4 +1,4 @@
-user    : "_env:PG_USER:pfmxx"
+user    : "_env:PG_USER:vagrant"
 password: "_env:PG_PASS:pg"
 host    : "_env:PG_HOST:localhost"
 port    : "_env:PG_PORT:5432"
