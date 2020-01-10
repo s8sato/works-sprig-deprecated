@@ -155,7 +155,7 @@
 #endif /* MIN_TOOL_VERSION_strip */
 
 #ifndef CURRENT_COMPONENT_ID
-#define CURRENT_COMPONENT_ID "server-0.1.0.0-LIJd2dGWEQAHYzDlD0SQC5-server-exe"
+#define CURRENT_COMPONENT_ID "server-0.1.0.0-EX1WIiRIleUIphLcVUz8Pn-server-exe"
 #endif /* CURRENT_COMPONENT_ID */
 #ifndef CURRENT_PACKAGE_VERSION
 #define CURRENT_PACKAGE_VERSION "0.1.0.0"

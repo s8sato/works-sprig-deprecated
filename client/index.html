@@ -6668,6 +6668,7 @@ var $elm$http$Http$expectJson = F2(
 						A2($elm$json$Json$Decode$decodeString, decoder, string));
 				}));
 	});
+var $author$project$Config$host = 'localhost';
 var $elm$http$Http$jsonBody = function (value) {
 	return A2(
 		_Http_pair,
@@ -6832,7 +6833,7 @@ var $author$project$Main$postJson = F4(
 			{
 				body: $elm$http$Http$jsonBody(encoder),
 				expect: A2($elm$http$Http$expectJson, resulting, decoder),
-				url: 'http://localhost:8080/tasks/' + path
+				url: 'http://' + ($author$project$Config$host + (':8080/tasks/' + path))
 			});
 	});
 var $author$project$Main$SubModel = F4(
@@ -7629,7 +7630,7 @@ var $author$project$Main$switchStar = F2(
 						A2($author$project$Main$userTaskIdEncoder, m, task.id)),
 					expect: $elm$http$Http$expectWhatever(
 						$author$project$Main$StarSwitched(i)),
-					url: 'http://localhost:8080/tasks/star'
+					url: 'http://' + ($author$project$Config$host + ':8080/tasks/star')
 				});
 		}
 	});

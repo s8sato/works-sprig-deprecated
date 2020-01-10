@@ -1,11 +1,10 @@
-module Main exposing (..)
-
--- module Main exposing (main)
+module Main exposing (main)
 
 import Array exposing (fromList, get, set, toList)
 import Browser
 import Browser.Dom exposing (blur, focus)
 import Browser.Events exposing (onKeyDown, onKeyPress, onKeyUp)
+import Config
 import Html exposing (Html, a, div, text, textarea)
 import Html.Attributes exposing (class, classList, href, id, placeholder, value)
 import Html.Events exposing (onBlur, onClick, onFocus, onInput)
@@ -805,7 +804,7 @@ tasksShown model m =
 postJson : String -> Encode.Value -> (Result Http.Error a -> Msg) -> Decoder a -> Cmd Msg
 postJson path encoder resulting decoder =
     Http.post
-        { url = "http://localhost:8080/tasks/" ++ path
+        { url = "http://" ++ Config.host ++ ":8080/tasks/" ++ path
         , body = Http.jsonBody encoder
         , expect = Http.expectJson resulting decoder
         }
@@ -834,7 +833,7 @@ switchStar m i =
 
         Just task ->
             Http.post
-                { url = "http://localhost:8080/tasks/star"
+                { url = "http://" ++ Config.host ++ ":8080/tasks/star"
                 , body = Http.jsonBody (userTaskIdEncoder m task.id)
                 , expect = Http.expectWhatever (StarSwitched i)
                 }

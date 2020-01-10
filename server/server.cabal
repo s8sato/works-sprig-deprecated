@@ -48,6 +48,8 @@ library
                      -- CORS
                      , servant-options
                      , wai-cors
+                     --
+                     , yaml
   default-language:    Haskell2010
 
 executable server-exe

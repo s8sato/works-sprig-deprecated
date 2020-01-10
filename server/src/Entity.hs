@@ -30,18 +30,23 @@ import Database.Persist.TH          ( mkMigrate
 import Data.Text                    ( Text )
 import Data.Time                    ( UTCTime
                                     , TimeOfDay )
--- import Data.Int                     ( Int64 )
+import Data.Yaml.Config             ( loadYamlSettings
+                                    , useEnv
+                                    )
+
+pgConf :: IO PostgresConf
+pgConf = loadYamlSettings ["pgconf.yaml"] [] useEnv
 
 pgPool :: IO ConnectionPool
 pgPool = do
-    -- conf <- pgConf
-    let conf = PostgresConf "host=localhost port=5432 user=postgres dbname=postgres password=Pfg5NlqJ" 5
+    conf <- pgConf
+    -- let conf = PostgresConf "host=localhost port=5432 user=pfmxx dbname=sprig password=pg" 5
     runStdoutLoggingT $ createPostgresqlPool (pgConnStr conf) (pgPoolSize conf)
 
 doMigration :: Migration -> IO ()
 doMigration action = do
-    -- conf <- pgConf
-    let conf = PostgresConf "host=localhost port=5432 user=postgres dbname=postgres password=Pfg5NlqJ" 5
+    conf <- pgConf
+    -- let conf = PostgresConf "host=localhost port=5432 user=pfmxx dbname=sprig password=pg" 5
     runStdoutLoggingT $ runResourceT $ withPostgresqlConn (pgConnStr conf) $ runReaderT $ runMigration action
 
 share [mkPersist sqlSettings, mkMigrate "migrateAll"] [persistLowerCase|
