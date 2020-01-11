@@ -45,15 +45,6 @@ insSchedules pool schedules = do
 keyFromInt :: Integral a => a -> BackendKey SqlBackend
 keyFromInt = SqlBackendKey . fromIntegral
 
--- setTasksDone :: ConnectionPool -> [Int] -> IO ()
--- setTasksDone pool ids = flip runSqlPool pool $ do
---     update $ \task -> do
---         set
---             task [TaskIsDone =. val True]
---         where_ 
---             (   task ^. TaskId `in_` valList (map (TaskKey . keyFromInt ) ids)
---             )
-
 setTaskDoneOrUndone :: ConnectionPool -> Int -> IO ()
 setTaskDoneOrUndone pool id = flip runSqlPool pool $ do
     update $ \task -> do
@@ -84,7 +75,8 @@ setStarSwitched pool id = flip runSqlPool pool $ do
 
 getBeforeMeByTaskId :: ConnectionPool -> Key Task -> IO [Entity Task]
 getBeforeMeByTaskId pool me = flip runSqlPool pool $ do
-    select $ from $ \task -> do
+    select $ from $ \(task `LeftOuterJoin` schedule) -> do
+        on  (task ^. TaskId ==. schedule ^. ScheduleTask)
         let myInitial = sub_select $ from $ \task -> do
                 where_ 
                     (   task ^. TaskId ==. val me
@@ -93,10 +85,10 @@ getBeforeMeByTaskId pool me = flip runSqlPool pool $ do
         where_
             (   task ^. TaskTerminal ==. myInitial
             )
+        groupBy (task ^. TaskId)
         orderBy
             [ desc (task ^. TaskIsStarred)
-            , asc (task ^. TaskDeadline)
-            , asc (task ^. TaskStartable)
+            , asc (min_ (schedule ^. ScheduleBegin))
             ]
         return (task)
 
@@ -110,7 +102,8 @@ getMeByTaskId pool me = flip runSqlPool pool $ do
 
 getAfterMeByTaskId :: ConnectionPool -> Key Task -> IO [Entity Task]
 getAfterMeByTaskId pool me = flip runSqlPool pool $ do
-    select $ from $ \task -> do
+    select $ from $ \(task `LeftOuterJoin` schedule) -> do
+        on  (task ^. TaskId ==. schedule ^. ScheduleTask)
         let myTerminal = sub_select $ from $ \task -> do
                 where_ 
                     (   task ^. TaskId ==. val me
@@ -119,10 +112,10 @@ getAfterMeByTaskId pool me = flip runSqlPool pool $ do
         where_
             (   task ^. TaskInitial ==. myTerminal
             )
+        groupBy (task ^. TaskId)
         orderBy
             [ desc (task ^. TaskIsStarred)
-            , asc (task ^. TaskDeadline)
-            , asc (task ^. TaskStartable)
+            , asc (min_ (schedule ^. ScheduleBegin))
             ]
         return (task)
 
@@ -130,23 +123,6 @@ getMaxNode' :: ConnectionPool -> IO [(Value (Maybe Int), Value (Maybe Int))]
 getMaxNode' pool = flip runSqlPool pool $ do
     select $ from $ \task -> do
         return $ (max_ (task ^. TaskTerminal), max_ (task ^. TaskInitial))
-
-getUndoneTaskAssigns :: ConnectionPool -> Int -> IO [(Entity Task, Value Text)]
-getUndoneTaskAssigns pool uid = flip runSqlPool pool $ do
-    select $ from $ \(task `InnerJoin` user) -> do
-        on (task ^. TaskUser ==. user ^. UserId)
-        where_
-            (   task ^. TaskUser ==. val (UserKey . keyFromInt $ uid)
-            -- (   task ^. TaskUser ==. val (toSqlKey $ fromIntegral uid)
-            &&. not_ ( task ^. TaskIsDone )
-            )
-        orderBy
-            [ desc (task ^. TaskIsStarred)
-            , asc (task ^. TaskDeadline)
-            , asc (task ^. TaskStartable)
-            -- , asc (task ^. TaskTitle)
-            ]
-        return (task, user ^. UserName)
 
 getUserById :: ConnectionPool -> Int -> IO [Entity User]
 getUserById pool id = flip runSqlPool pool $ do
@@ -170,7 +146,7 @@ getDurationsByUserId pool uid = flip runSqlPool pool $ do
 getTaskAssignById :: ConnectionPool -> Int -> IO [(Entity Task, Value Text)]
 getTaskAssignById  pool id = flip runSqlPool pool $ do
     select $ from $ \(task `InnerJoin` user) -> do
-        on (task ^. TaskUser ==. user ^. UserId)
+        on  (task ^. TaskUser ==. user ^. UserId)
         where_
             (   task ^. TaskId ==. val (TaskKey . keyFromInt $ id)
             )
@@ -193,7 +169,8 @@ getDoneTasksByUserId pool uid = flip runSqlPool pool $ do
 
 getUndoneTrunksByUserId :: ConnectionPool -> Int -> IO [Entity Task]
 getUndoneTrunksByUserId pool uid = flip runSqlPool pool $ do
-    select $ from $ \task -> do
+    select $ from $ \(task `LeftOuterJoin` schedule) -> do
+        on  (task ^. TaskId ==. schedule ^. ScheduleTask)
         where_
             (   task ^. TaskUser ==. val (UserKey . keyFromInt $ uid)
             &&. (
@@ -204,16 +181,17 @@ getUndoneTrunksByUserId pool uid = flip runSqlPool pool $ do
                     )
                 )
             )
+        groupBy (task ^. TaskId)
         orderBy
             [ desc (task ^. TaskIsStarred)
-            , asc (task ^. TaskDeadline)
-            , asc (task ^. TaskStartable)
+            , asc (min_ (schedule ^. ScheduleBegin))
             ]
         return (task)
 
 getUndoneBudsByUserId :: ConnectionPool -> Int -> IO [Entity Task]
 getUndoneBudsByUserId pool uid = flip runSqlPool pool $ do
-    select $ from $ \task -> do
+    select $ from $ \(task `LeftOuterJoin` schedule) -> do
+        on  (task ^. TaskId ==. schedule ^. ScheduleTask)
         where_
             (   task ^. TaskUser ==. val (UserKey . keyFromInt $ uid)
             &&. (
@@ -224,10 +202,10 @@ getUndoneBudsByUserId pool uid = flip runSqlPool pool $ do
                     )
                 )
             )
+        groupBy (task ^. TaskId)
         orderBy
             [ desc (task ^. TaskIsStarred)
-            , asc (task ^. TaskDeadline)
-            , asc (task ^. TaskStartable)
+            , asc (min_ (schedule ^. ScheduleBegin))
             ]
         return (task)
 
@@ -240,11 +218,6 @@ getAllTrunkNode pool = flip runSqlPool pool $ do
                     (   self ^. TaskInitial ==. task ^. TaskTerminal
                     )
             )
-        orderBy
-            [ desc (task ^. TaskIsStarred)
-            , asc (task ^. TaskDeadline)
-            , asc (task ^. TaskStartable)
-            ]
         return (task ^. TaskTerminal)
 
 setTaskDone :: ConnectionPool -> Int -> IO ()
@@ -326,26 +299,15 @@ getUndoneOwnTasksByUserId pool uid = flip runSqlPool pool $ do
             (   task ^. TaskUser ==. val (UserKey . keyFromInt $ uid)
             &&. not_ ( task ^. TaskIsDone )
             )
-        orderBy
-            [ desc (task ^. TaskIsStarred)
-            , asc (task ^. TaskDeadline)
-            , asc (task ^. TaskStartable)
-            ]
         return (task)
 
 getTaskAssignByTaskId :: ConnectionPool -> Key Task -> IO [(Entity Task, Value Text)]
 getTaskAssignByTaskId pool tid = flip runSqlPool pool $ do
     select $ from $ \(task `InnerJoin` user) -> do
-        on (task ^. TaskUser ==. user ^. UserId)
+        on  (task ^. TaskUser ==. user ^. UserId)
         where_
             (   task ^. TaskId ==. val tid
-            -- &&. not_ ( task ^. TaskIsDone )
             )
-        orderBy
-            [ desc (task ^. TaskIsStarred)
-            , asc (task ^. TaskDeadline)
-            , asc (task ^. TaskStartable)
-            ]
         return (task, user ^. UserName)
 
 getSchedulesByTaskId :: ConnectionPool -> Key Task -> IO [Entity Schedule]
@@ -361,16 +323,18 @@ getSchedulesByTaskId pool tid = flip runSqlPool pool $ do
 
 getUndoneNonDummyTasksByUserId :: ConnectionPool -> Int -> IO [Entity Task]
 getUndoneNonDummyTasksByUserId pool uid = flip runSqlPool pool $ do
-    select $ from $ \task -> do
+    select $ from $ \(task `LeftOuterJoin` schedule) -> do
+        on  (task ^. TaskId ==. schedule ^. ScheduleTask)
         where_
             (   task ^. TaskUser ==. val (UserKey . keyFromInt $ uid)
             &&. not_ ( task ^. TaskIsDone )
             &&. not_ ( task ^. TaskIsDummy )
             )
+        groupBy
+            (task ^. TaskId) 
         orderBy
             [ desc (task ^. TaskIsStarred)
-            , asc (task ^. TaskDeadline)
-            , asc (task ^. TaskStartable)
+            , asc (min_ (schedule ^. ScheduleBegin))
             ]
         return (task)
 
@@ -379,11 +343,9 @@ delSchedulesByUserId pool uid = flip runSqlPool pool $ do
     delete $ from $ \schedule ->
         where_
             (   exists $ from $ \(task `InnerJoin` user) -> do
-                    on (task ^. TaskUser ==. user ^. UserId)
+                    on  (task ^. TaskUser ==. user ^. UserId)
                     where_
                         (   task ^. TaskUser ==. val (UserKey . keyFromInt $ uid)
                         &&. task ^. TaskId ==. schedule ^. ScheduleTask
                         )
             )
-
-

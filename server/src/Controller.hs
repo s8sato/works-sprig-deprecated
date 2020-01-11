@@ -519,18 +519,14 @@ reschedule uid = do
     now <- getCurrentTime
     durs <- map entityVal <$> getDurationsByUserId pool uid
     tasks <- getUndoneOwnTasksByUserId pool uid
-    print "resche"
     let sch =
             if userIsLazy user then Left "Now implementing"  --TODO
             else scheduleForward user now durs tasks
-    print "hoge"
     case sch of
         Left errMsg ->
             return $ Left errMsg
         Right schedules -> do
-            print $ "piyo" ++ show (Prelude.length schedules)
             resetSchedules uid schedules
-            print "fuga"
             return $ Right ()
 
 debugResche :: IO [TaskFrag]
@@ -1195,7 +1191,8 @@ scheduleForward user now ds tasks =
     else
     let
         today = midnightBy now
-        daily = map toMillis ds
+        universal = (-1)*60*60*(10^3)*(userTimeZone user)
+        daily = (map (both $ (+) universal)) . (map toMillis) $ ds
         pattern = stripedPattern (map (both $ (+) today) daily)
         reso = 60 * (10^3) * (userResolutionMin user)
         cursor = millisFromUTC now

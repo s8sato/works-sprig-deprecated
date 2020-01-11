@@ -276,3 +276,4 @@ starMan-首 $6 -2020/01/16
         starMan-右手 $6
 
 revised hasLoop
+ordered by min_ ScheduleBegin
