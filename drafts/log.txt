@@ -258,3 +258,21 @@ WARNING: '/home/vagrant/.local/bin' is not on your PATH.
 
 moved to ubuntu/bionic64 environment
 2020-01-11 00:53:50
+
+resetSchedules 1 [(Schedule ((read "2011-11-19 18:28:52.607875 UTC")::UTCTime) ((read "2011-11-19 18:58:52.607875 UTC")::UTCTime) (toSqlKey 12 :: TaskId))]
+
+首 -2020/01/22 $3
+    左肩 [key $3
+    key] 右脚 2020/01/12- $3
+
+starMan-首 $6 -2020/01/16
+    starMan-左肩 [hoge $6
+        piyo] starMan-左手 $6
+    starMan-左脚 $6
+        piyo] starMan-左足 $6 2020/01/06-
+    starMan-右脚 $6
+        hoge] starMan-右足 $6
+    starMan-右肩 [piyo $6
+        starMan-右手 $6
+
+revised hasLoop

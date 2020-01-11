@@ -68,7 +68,6 @@ import Foreign.C.Types (CTime (..))
 import Data.Time.Clock.POSIX (utcTimeToPOSIXSeconds, posixSecondsToUTCTime)
 -- import Data.Time.Clock.Internal.NominalDiffTime (nominalDiffTimeToSeconds)
 import qualified Database.Esqueleto as Q (Value (..), EntityField (..)) 
--- import Data.Int                     ( Int64 )
 
 import Data.Time.Clock (nominalDay)
 import Data.List (sort, maximumBy)
@@ -77,6 +76,8 @@ import Data.List.Unique (allUnique, sortUniq)
 import Data.Maybe (isNothing)
 
 import Debug.Trace
+
+
 
 -- type alias
 
@@ -124,8 +125,6 @@ data ElmTask = ElmTask
     , elmTaskTitle      :: Maybe Text
     , elmTaskLink       :: Maybe Text
     , elmTaskStartable  :: Maybe Millis
-    -- , elmTaskBegin      :: Maybe Millis
-    -- , elmTaskEnd        :: Maybe Millis
     , elmTaskDeadline   :: Maybe Millis
     , elmTaskWeight     :: Maybe Double
     , elmTaskUser       :: Text
@@ -249,21 +248,13 @@ devSubModel' uid = do
     user <- Prelude.head <$> getUserById pool uid
     durations <- getDurationsByUserId pool uid
     let elmUser = toElmUser user durations
-    elmTasks <- getUndoneElmTasks uid
+    elmTasks <- buildElmTasksByUserId uid
     return $ ElmSubModel elmUser elmTasks Nothing Nothing
 
 initialize' :: ElmUser -> IO ElmSubModel
 initialize' elmUser = do
     let uid = elmUserId elmUser
     devSubModel' uid
-
-getUndoneElmTasks :: Int -> IO [ElmTask]
-getUndoneElmTasks = 
-    buildElmTasksByUserId  -- TODO
--- getUndoneElmTasks uid = do
---     pool <- pgPool
---     taskAssigns <- getUndoneTaskAssigns pool uid
---     return $ map toElmTask taskAssigns 
 
 getMaxNode :: IO (Maybe Int)
 getMaxNode = do
@@ -301,7 +292,7 @@ textPostReload' (TextPost elmUser text) = do
                     maybeUpdate updates
                     let inserts' = preShift preds shift inserts 
                     insTasks . (shiftTaskNodes shift) $ inserts'
-                    elmTasks <- getUndoneElmTasks uid
+                    elmTasks <- buildElmTasksByUserId uid
                     let ElmMessage _ ok1 = buildOkMsg (filter (not . taskIsDummy) inserts') " tasks registered."
                     let ElmMessage _ ok2 = buildOkMsg updates " tasks updated."
                     let okMsg = ElmMessage 200 (intercalate " " [ok1, ok2])
@@ -316,7 +307,6 @@ insertOrUpdate xs =
         insertOrUpdate' xs (map fst xs) ([], [], [])
     else
         return $ Left "Duplicate use of #."
-
 
 insertOrUpdate' :: [(Task, Maybe Int)] -> [Task] -> ([Task], [(Int,Task)], [Predictor]) -> IO (Either Text ([Task], [(Int,Task)], [Predictor]))
 insertOrUpdate' [] _ out = return $ Right out
@@ -392,9 +382,9 @@ maybeUpdate' pool (tid, task)
 faultPost :: User -> [Task] -> IO (Maybe ElmMessage)
 faultPost user tasks = do
     faultPerms <- faultPostPermission user tasks
-    faultFormat <- faultPostFormat tasks
-    let faultList =  [ faultPerms
-                    , faultFormat
+    faultLoop <- faultPostLoop tasks
+    let faultList = [ faultPerms
+                    , faultLoop
                     ]
     if Prelude.all (== Nothing) faultList then
         return Nothing
@@ -407,10 +397,12 @@ faultPostPermission user tasks = do
     -- TODO
     return Nothing
 
-faultPostFormat :: [Task] -> IO (Maybe Text)
-faultPostFormat tasks = do
-    -- TODO
-    return $ Nothing
+faultPostLoop :: [Task] -> IO (Maybe Text)
+faultPostLoop tasks = do
+    if hasLoop tasks then
+        return $ Just "Posts with loops are not accepted."
+    else
+        return $ Nothing
 
 doneTasksReload' :: UserSelTasks -> IO ElmSubModel
 doneTasksReload' (UserSelTasks elmUser tids) = do
@@ -427,7 +419,7 @@ doneTasksReload' (UserSelTasks elmUser tids) = do
                 Left errMsg' ->
                     return $ ElmSubModel elmUser [] Nothing (Just $ ElmMessage 400 errMsg') 
                 _ -> do
-                    elmTasks <- getUndoneElmTasks uid
+                    elmTasks <- buildElmTasksByUserId uid
                     let okMsg = buildOkMsg tids " tasks done/undone."
                     return $ ElmSubModel elmUser elmTasks Nothing (Just okMsg)
 
@@ -505,7 +497,7 @@ showTrunk' elmUser = do
     pool <- pgPool
     let uid = elmUserId elmUser
     -- TODO check fault
-    tids <- map entityKey <$> getTrunkTasksByUserId pool uid
+    tids <- map entityKey <$> getUndoneTrunksByUserId pool uid
     elmTasks <- sequence (map buildElmTaskByTaskId tids) 
     let okMsg = buildOkMsg elmTasks " trunk here."
     return $ ElmSubModel elmUser elmTasks Nothing (Just okMsg) 
@@ -515,7 +507,7 @@ showBuds' elmUser = do
     pool <- pgPool
     let uid = elmUserId elmUser
     -- TODO check fault
-    tids <- map entityKey <$> getBudTasksByUserId pool uid
+    tids <- map entityKey <$> getUndoneBudsByUserId pool uid
     elmTasks <- sequence (map buildElmTaskByTaskId tids) 
     let okMsg = buildOkMsg elmTasks " buds here."
     return $ ElmSubModel elmUser elmTasks Nothing (Just okMsg) 
@@ -527,20 +519,19 @@ reschedule uid = do
     now <- getCurrentTime
     durs <- map entityVal <$> getDurationsByUserId pool uid
     tasks <- getUndoneOwnTasksByUserId pool uid
+    print "resche"
     let sch =
             if userIsLazy user then Left "Now implementing"  --TODO
             else scheduleForward user now durs tasks
-    print ("hoge" ++ show sch ++ "piyo")
+    print "hoge"
     case sch of
         Left errMsg ->
             return $ Left errMsg
         Right schedules -> do
+            print $ "piyo" ++ show (Prelude.length schedules)
             resetSchedules uid schedules
+            print "fuga"
             return $ Right ()
-            -- newTasks <- buildElmTasksByUserId uid
-            -- let newTasks = attachSchedule tasks schedule
-            -- let okMsg = buildOkMsg newTasks " tasks rescheduled."
-            -- return $ ElmSubModel elmUser newTasks Nothing (Just okMsg) 
 
 debugResche :: IO [TaskFrag]
 debugResche = do
@@ -549,11 +540,7 @@ debugResche = do
     now <- getCurrentTime
     durs <- map entityVal <$> getDurationsByUserId pool 1
     tasks <- getUndoneOwnTasksByUserId pool 1
-    -- return $ midnightBy now
-    -- return $ map toMillis durs
     return $ map toTaskFrag (map entityVal tasks)
-
-
 
 debugUser :: IO User
 debugUser = do
@@ -565,7 +552,6 @@ debugNow :: IO UTCTime
 debugNow = do
     now <- getCurrentTime
     return now
-
 
 debugDurs :: IO [Duration]
 debugDurs = do
@@ -579,7 +565,6 @@ debugTasks = do
     tasks <- getUndoneOwnTasksByUserId pool 1
     return tasks
 
-
 buildElmTaskByTaskId :: Key Task -> IO ElmTask
 buildElmTaskByTaskId tid = do
     pool <- pgPool
@@ -592,7 +577,7 @@ buildElmTasksByUserId :: Int -> IO [ElmTask]
 buildElmTasksByUserId uid = do
     pool <- pgPool
     -- TODO check fault
-    tids <- map entityKey <$> getUndoneTasksByUserId pool uid
+    tids <- map entityKey <$> getUndoneNonDummyTasksByUserId pool uid
     sequence $ map (buildElmTaskByTaskId) tids
 
 resetSchedules :: Int -> [Schedule] -> IO ()
@@ -819,15 +804,15 @@ keyMatch (a:as) [] ah = keyMatch as ah ah
 keyMatch (a:as) (b:bs) ah = case a of
     TailLink t ->
         case b of
-            HeadLink t ->
-                True
+            HeadLink h ->
+                t == h
             _ ->
                 keyMatch (a:as) bs ah
     _ ->
         keyMatch as (b:bs) ah
 
 spanDummy'' :: (Node, Node) -> (Node, Node) -> Graph -> Graph
-spanDummy'' (_,t) (i,_) g = ((t,i), [IsDummy, IsDone, Title "DUMMY"]) : g
+spanDummy'' (_,t) (i,_) g = ((t,i), [IsDummy, Title "DUMMY"]) : g
 
 universalize :: User -> Task -> Task
 universalize user = timeShift minus
@@ -1111,19 +1096,6 @@ toElmTask (task,assignName) schedules =
     in
         ElmTask i y d s mt ml ems emd mw eu esch
 
--- toElmTask :: (Entity Task, Q.Value Text) -> ElmTask
--- toElmTask (e, u) =
---     let
---         i  = idFromEntity e
---         Task _ _ y d s ml ms md mw mt _ = entityVal e
---         ems = toElmTime ms
---         emb = toElmTime mb
---         eme = toElmTime me
---         emd = toElmTime md
---         eu  = Q.unValue u
---     in
---         ElmTask i y d s mt ml ems emb eme emd mw eu
-
 toElmUser :: Entity User -> [Entity Duration] -> ElmUser
 toElmUser eu ers =
     let
@@ -1151,41 +1123,6 @@ shiftTaskNodes sh ts =
 timeZoneHour :: ElmUser -> TimeZoneHour
 timeZoneHour _ = 9  -- TODO
 
--- setBeginEnd :: User -> [Duration] -> [Task] -> [Task]
--- setBeginEnd u ds = 
---     map (setBeginEnd' u ds)
-
--- setBeginEnd' :: User -> [Duration] -> Task -> Task
--- setBeginEnd' user ds (Task t i y d s ml ms md mw mt u) =
---     case mw of
---         Nothing ->
---             Task t i y d s ml ms md mw mt u
---         Just w ->
---             let
---                 weight = millisFromWeight w
---             in
---             if  userIsLazy user then
---                 let
---                     end = md
---                     begin = case end of
---                         Just e ->
---                             beginFromEnd e ds weight
---                         _ ->
---                             Nothing
---                 in
---                 Task t i y d s ml ms begin end md mw mt u 
-                
---             else
---                 let
---                     begin = ms
---                     end = case begin of
---                         Just b ->
---                             endFromBegin b ds weight
---                         _ ->
---                             Nothing
---                 in
---                 Task t i y d s ml ms begin end md mw mt u 
-
 millisFromWeight :: Double -> Millis
 millisFromWeight w = floor $ 60 * 60 * 10^3 * w
 
@@ -1193,94 +1130,15 @@ type MillisDuration = (Millis, Millis)
 
 toMillis :: Duration -> MillisDuration
 toMillis (Duration l r _) = (fromTOD l, fromTOD r)
-    where
-        fromTOD :: TimeOfDay -> Millis
-        fromTOD t = floor $ (10^3)*(timeOfDayToTime t)
+
+fromTOD :: TimeOfDay -> Millis
+fromTOD t = floor $ (10^3) * (timeOfDayToTime t)
 
 millisFromUTC ::UTCTime -> Millis
 millisFromUTC u = floor . ((*) (10^3)) . utcTimeToPOSIXSeconds $ u
 
 utcFromMillis :: Millis -> UTCTime
 utcFromMillis = posixSecondsToUTCTime . fromIntegral. (`div` 10^3)  
-
--- endFromBegin :: UTCTime -> [Duration] -> Millis -> Maybe UTCTime
--- endFromBegin begin ds weight =
---     let
---         ds' = map toMillis ds
---         begin' = millisFromUTC begin
---         diff = posi ds' ds' begin' weight
---     in
---     utcFromMillis <$> ((+) <$> (Just begin') <*> diff)
-
--- beginFromEnd :: UTCTime -> [Duration] -> Millis -> Maybe UTCTime
--- beginFromEnd end ds weight = 
---     let
---         ds' = reverse $ map toMillis ds
---         end' = millisFromUTC end
---         diff = posi' [] ds' end' weight
---     in
---     utcFromMillis <$> ((+) <$> (Just end') <*> diff)
-
--- millisPerDay :: Millis
--- millisPerDay = floor $ 10^3 * nominalDay
-
--- isInDur :: Millis -> MillisDuration -> Bool
--- isInDur t (l,r) =
---     l <= t && t<= r 
-
--- dayPlus :: [MillisDuration] -> [MillisDuration]
--- dayPlus = map (both (+ millisPerDay) )
-
--- posi :: [MillisDuration] -> [MillisDuration] -> Millis -> Millis -> Maybe Millis
--- posi  _ [] _ _ = 
---     Nothing
--- posi [] seed left rest =
---     posi (dayPlus seed) (dayPlus seed) left rest
--- posi (d:ds) seed left rest
---     | left `isInDur` d && (left + rest) `isInDur` d =
---         Just (left + rest)
---     | left `isInDur` d =
---         nega ds seed (snd d) (rest - (snd d - left)) 
---     | otherwise =
---         nega (d:ds) seed left rest
-
--- nega :: [MillisDuration] -> [MillisDuration] -> Millis -> Millis -> Maybe Millis
--- nega  _ [] _ _ = 
---     Nothing
--- nega [] seed left rest =
---     nega (dayPlus seed) (dayPlus seed) left rest
--- nega (d:ds) seed left rest
---     | left `isInDur` d =
---         posi (d:ds) seed left rest
---     | otherwise =
---         posi (d:ds) seed (fst d) rest
-
--- dayMinus :: [MillisDuration] -> [MillisDuration]
--- dayMinus = map (both (\t -> t - millisPerDay))
-
--- posi' :: [MillisDuration] -> [MillisDuration] -> Millis -> Millis -> Maybe Millis
--- posi' _ [] _ _ = 
---     Nothing
--- posi' [] seed right rest =
---     posi' (dayMinus seed) (dayMinus seed) right rest
--- posi' (d:ds) seed right rest
---     | right `isInDur` d && (right - rest) `isInDur` d =
---         Just (right - rest)
---     | right `isInDur` d =
---         nega' ds seed (fst d) (rest - (right - fst d)) 
---     | otherwise =
---         nega' (d:ds) seed right rest
-
--- nega' :: [MillisDuration] -> [MillisDuration] -> Millis -> Millis -> Maybe Millis
--- nega' _ [] _ _ = 
---     Nothing
--- nega' [] seed right rest =
---     nega' (dayMinus seed) (dayMinus seed) right rest
--- nega' (d:ds) seed right rest
---     | right `isInDur` d =
---         posi' (d:ds) seed right rest
---     | otherwise =
---         posi' (d:ds) seed (snd d) rest
 
 buildOkMsg :: [a] -> String -> ElmMessage
 buildOkMsg xs str =
@@ -1330,46 +1188,58 @@ toElmSchedule :: Schedule -> ElmSchedule
 toElmSchedule (Schedule b e _) = 
     ElmSchedule (millisFromUTC b) (millisFromUTC e)
 
-
-
 scheduleForward :: User -> UTCTime -> [Duration] -> [Entity Task] -> Either Text [Schedule]
 scheduleForward user now ds tasks =
-    -- if  hasLoop (map entityVal tasks) then
-    --     Left "Not applicable to diagrams with loops."
-    -- else
+    if  hasLoop (map entityVal tasks) then
+        Left "Not applicable to diagrams with loops."
+    else
     let
-        today = trace "today" $ midnightBy now
-        daily = trace "daily" $ map toMillis ds
+        today = midnightBy now
+        daily = map toMillis ds
         pattern = stripedPattern (map (both $ (+) today) daily)
-        reso = trace "reso" $ 60 * (10^3) * (userResolutionMin user)
-        -- queue = (queueOfPairs reso) . oneStrokes $ tasks
-        -- roll = pianoRoll pattern queue reso (millisFromUTC now)
-        cursor = trace "cursor" $ millisFromUTC now
-        frags = trace "frags" $ map toTaskFrag (map entityVal tasks)
-        roll = trace "roll" $ pianoRollF pattern reso cursor frags []
+        reso = 60 * (10^3) * (userResolutionMin user)
+        cursor = millisFromUTC now
+        frags = map toTaskFrag (map entityVal tasks)
+        roll = pianoRollF pattern reso cursor frags []
     in
-        trace ("scheduleForward" ++ show roll) $ Right $ toSchedule tasks roll
+        Right $ toSchedule tasks roll
 
 hasLoop :: [Task] -> Bool
 hasLoop tasks =
     let 
         pairs = map pairFromTask tasks
-        buds = filter (isBudNode pairs) (map snd pairs)
-        goals = map (\b -> hasLoop' b (prevNodes b pairs) [] pairs) buds
+        trunks = filter (isTrunkNode pairs) (map fst pairs)
     in
-    Prelude.any (\g -> not $ isTrunkNode pairs g) goals
+    Prelude.any (\t -> hasLoop'observe t (nextNodes t pairs) [] (filter (\p -> fst p == t) pairs) pairs []) trunks
 
 pairFromTask :: Task -> (Node, Node)
 pairFromTask t = (taskTerminal t, taskInitial t)
 
-hasLoop' :: Node -> [Node] -> [Node] -> [(Node, Node)] -> Node
+hasLoop'observe :: Node -> [Node] -> [Node] -> [(Node, Node)] -> [(Node, Node)] -> [Node] -> Bool
 -- TODO
-hasLoop' current [] [] chart = 
-    current
-hasLoop' current (x:_) remain chart =
-    hasLoop' x (prevNodes x chart) (current:remain) (filter ((/=) (x, current)) chart)
-hasLoop' current [] (r:rs) chart  =
-    hasLoop' r (prevNodes r chart) rs chart 
+hasLoop'observe current [] [] cha chart stack = 
+    False
+hasLoop'observe current (x:xs) remain cha chart stack =
+    hasLoop'explore current (x:xs) remain (lightenNext cha chart current x) chart stack
+hasLoop'observe current [] (r:rs) cha chart stack  =
+    hasLoop'explore current [] (r:rs) cha chart stack
+
+hasLoop'explore :: Node -> [Node] -> [Node] -> [(Node, Node)] -> [(Node, Node)] -> [Node] -> Bool
+-- TODO
+hasLoop'explore current [] [] cha chart stack = 
+    False
+hasLoop'explore current (x:[]) remain cha chart stack =
+    if x `elem` stack then True else
+    hasLoop'observe x (nextNodes x cha) remain cha chart (x : stack)
+hasLoop'explore current (x:_) remain cha chart stack =
+    if x `elem` stack then True else
+    hasLoop'observe x (nextNodes x cha) (current:remain) cha chart (x : stack)
+hasLoop'explore current [] (r:rs) cha chart stack  =
+    hasLoop'observe r (nextNodes r cha) rs cha chart (Prelude.dropWhile (/= r) stack)
+
+lightenNext :: [(Node, Node)] -> [(Node, Node)] -> Node -> Node -> [(Node, Node)]
+lightenNext cha chart current x =
+    Prelude.concat [filter (/= (current, x)) cha, filter (\p -> fst p == x) chart]
 
 midnightBy :: UTCTime -> Millis
 midnightBy t = millisFromUTC $ addUTCTime  (fromRational $ (-1)*(toRational $ utctDayTime t)) t
@@ -1395,132 +1265,6 @@ toTaskFrag t =
         weight = millisFromWeight <$> (taskWeight t)
     in
         TaskFrag pair startable deadline weight
-
--- fragsFromNodes :: [Task] -> [Node] -> [TaskFrag]
--- fragsFromNodes ref nodes =
---     fragsFromNodes' ref nodes []
-    
--- fragsFromNodes' :: [Task] -> [Node] -> [TaskFrag] -> [TaskFrag]
--- fragsFromNodes'  _ [] out =
---     out
--- fragsFromNodes'  _ (i:[]) out =
---     out
--- fragsFromNodes' ref (i:t:ns) out =
---     case findTaskByPair ref (t,i) of
---         Nothing ->
---             fragsFromNodes' ref (t:ns) out
---         Just task ->
---             let frag = toTaskFrag now task
---             in  fragsFromNodes' ref (t:ns) (frag:out)
-
--- StartDeadSeqs :: UTCTime -> [Task] -> [[TaskFrag]]
--- StartDeadSeqs now tasks =
---     let 
---         pairs = map pairFromTask tasks
---         seqs = map (fragsFromNodes now tasks) (oneStrokes pairs)
---         seqs' = filter 
---                     (\seq -> case seq of
---                         (frag:frags) -> 
---                             let TaskFrag (_,i) ms _ _ = frag
---                             in  isNowBud i tasks || ms /= Nothing
---                         - ->
---                             False
---                     ) seqs
---     in
---         map (\(frag:frags) -> (orSetStartableAsNow now frag):frags) seqs'
-
--- orSetStartableAsNow :: UTCTime -> TaskFrag -> TaskFrag
--- orSetStartableAsNow now frag =
---     case fStartable frag of
---         Just s -> 
---             frag
---         Nothing ->
---             let TaskFrag p ms md mw = frag
---             in  TaskFrag p (Just $ millisFromUTC now) md mw
-
--- oneStrokes :: [(Node, Node)] -> [[Node]]
--- oneStrokes pairs =
---     let trunks = filter (isTrunkNode pairs) (map fst pairs)
---     in  concatMap (\trunk -> oneStrokes' trunk (nextNodes trunk pairs) [] [] pairs [] []) trunks
-
--- oneStrokes' :: Node -> [Node] -> [Node] -> [(Node, Node)] -> [(Node, Node)] -> [Node] -> [[Node]] -> [[Node]]
--- oneStrokes' current next remain cha chart stack out
--- oneStrokes' _ [] [] _ _ _ out =
---     out
--- oneStrokes' current (x:xs) remain cha chart stack out =
---     oneStrokes' x (nextNodes x cha) (current:remain) (lightenNext cha chart current x) chart (x:stack) ((x:stack):out) 
--- oneStrokes' current [] (r:remain) cha chart stack out =
---     oneStrokes' r  (nextNodes r cha) remain cha chart (dropWhile (/= r) stack) out
---     where
---         lightenNext cha chart current x =
---             Prelude.concat [filter (/= (current,x)) cha, filter (== (x,_)) chart]
-
--- queueOfFrags :: Millis -> [[TaskFrag]] -> [(Node, Node)]
--- queueOfFrags reso seqs = 
---     reverse $ queueOfFrags' reso seqs []
-
--- queueOfFrags' :: Millis -> [[TaskFrag]] -> [TaskFrag] -> [TaskFrag]
--- queueOfFrags' reso seqs out
---     | targetSeqs == [] =
---         out
---     | otherwise =
---         queueOfFrags' reso seqsUpdated (crt : out)
---     where
---         targetSeqs = filter (\seq -> seqWeight seq > 0) seqs
---         crt = criticalFrag targetSeqs
---         TaskSeq qN qS qD qW = crt
---         seqsUpdated =  map (\q -> if q == crt then (TaskSeq qN qS qD (qW - reso)) else q) targetSeqs
-
--- seqsUpdated :: [TaskFrag] -> [[TaskFrag]] -> [[TaskFrag]]
--- seqsUpdated _ [] = 
---     []
--- seqsUpdated [] entire =
---     entire
--- seqsUpdated ((TaskFrag _ _ _ Nothing):_) entire =
---     entire
--- seqsUpdated ((TaskFrag _ _ _ (Just fw)):fs) entire =
-
--- weightDown :: Millis -> [TaskFrag] -> [TaskFrag]
--- weightDown w [] =
---     []
--- weightDown w ((TaskFrag _ _ _ Nothing):fs) 
-
--- seqStartable :: [TaskFrag] -> Millis
-
--- seqWeight seq
-
--- margin :: [TaskFrag]-> Millis
--- margin (TaskSeq _ qs qd qw) =
---     qd - (qs + qw)
-
--- criticalFrag :: [[TaskFrag]] -> TaskSeq
--- criticalFrag targetSeqs =
---     minimumBy (\p q -> compare (margin p) (margin q))
-
--- pianoRoll :: [MillisDuration] -> [(Node, Node)] -> Millis -> Millis -> [((Node, Node), MillisDuration)]
--- pianoRoll pattern queue reso startable =
---     pianoRoll' pattern queue reso startable reso []
-
--- pianoRoll' :: [MillisDuration] -> [TaskFrag] -> Millis -> Millis -> Millis -> [((Node, Node), MillisDuration)] -> [((Node, Node), MillisDuration)]
--- pianoRoll'_ [] _ _ _ out = out
--- pianoRoll'((l,r):(l',r'):pattern) (q:queue) reso left rest out
---     | left < fStartable q
---         pianoRoll'((l,r):(l',r'):pattern) (q:queue) reso (fStartable q) rest out
---     | l <= left < r && r < left + rest =
---         let
---             right = r
---             rest' = left + rest - r
---         in 
---             pianoRoll' ((l',r'):pattern) (q:queue) reso l' rest' ((q,(left,right)):out)
---     | l <= left < r =
---         let
---             right = left + rest
---         in
---             pianoRoll' ((l',r'):pattern) queue reso right reso ((q,(left,right)):out)
---     | left < l =
---         pianoRoll'((l,r):(l',r'):pattern) (q:queue) reso l rest out
---     | otherwise =
---         pianoRoll'((l,r):(l',r'):pattern) (q:queue) reso l' rest out
 
 toSchedule :: [Entity Task] -> [(TaskFrag, [MillisDuration])] -> [Schedule]
 toSchedule ts ss =
@@ -1633,7 +1377,6 @@ urgencyF cursor frags f =
     let paths = routeFindF frags f
     in  Prelude.maximum $ map (urgencyByPathF cursor) paths
 
-
 urgencyByPathF :: Millis -> [TaskFrag] -> Maybe Millis
 urgencyByPathF cursor path
     | Prelude.null $ filter (hasDeadline) path =
@@ -1666,8 +1409,6 @@ routeFindF frags f =
 routeObserve :: TaskFrag -> [TaskFrag] -> [TaskFrag] -> [TaskFrag] -> [TaskFrag] -> [TaskFrag] -> [[TaskFrag]] -> [[TaskFrag]]
 routeObserve _ [] [] _ _ stack out =
     (reverse stack) : out
-routeObserve current (x:[]) remain cha chart stack out =
-    routeExplore current (x:[]) remain (lightenNextF cha chart x) chart stack out
 routeObserve current (x:xs) remain cha chart stack out =
     routeExplore current (x:xs) remain (lightenNextF cha chart x) chart stack out
 routeObserve current [] (r:remain) cha chart stack out =
@@ -1678,11 +1419,10 @@ routeExplore _ [] [] _ _ stack out =
     (reverse stack) : out
 routeExplore current (x:[]) remain cha chart stack out =
     routeObserve x (nextFragsF cha x) remain cha chart (x:stack) out
-routeExplore current (x:xs) remain cha chart stack out =
+routeExplore current (x:_) remain cha chart stack out =
     routeObserve x (nextFragsF cha x) (current:remain) cha chart (x:stack) out
 routeExplore current [] (r:remain) cha chart stack out =
     routeObserve r (nextFragsF cha r) remain cha chart (Prelude.dropWhile (/= r) stack) ((reverse stack):out)
-
 
 nextFragsF :: [TaskFrag] -> TaskFrag -> [TaskFrag]
 nextFragsF cha x =

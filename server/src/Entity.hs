@@ -40,13 +40,11 @@ pgConf = loadYamlSettings ["pgconf.yaml"] [] useEnv
 pgPool :: IO ConnectionPool
 pgPool = do
     conf <- pgConf
-    -- let conf = PostgresConf "host=localhost port=5432 user=pfmxx dbname=sprig password=pg" 5
     runStdoutLoggingT $ createPostgresqlPool (pgConnStr conf) (pgPoolSize conf)
 
 doMigration :: Migration -> IO ()
 doMigration action = do
     conf <- pgConf
-    -- let conf = PostgresConf "host=localhost port=5432 user=pfmxx dbname=sprig password=pg" 5
     runStdoutLoggingT $ runResourceT $ withPostgresqlConn (pgConnStr conf) $ runReaderT $ runMigration action
 
 share [mkPersist sqlSettings, mkMigrate "migrateAll"] [persistLowerCase|
@@ -59,7 +57,6 @@ User
     defaultDpy          Int Maybe
     lookUp              Int Maybe
     lookDown            Int Maybe
-    -- salt                Text
     encrypted           Text Maybe
     UniqueUser          name
     deriving Show
