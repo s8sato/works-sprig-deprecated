@@ -7870,11 +7870,17 @@ var $author$project$Main$tasksDoneOrUndone = F2(
 			{
 				message: m.message,
 				tasks: function () {
-					var _v0 = m.tasks;
-					if (!_v0.b) {
-						return sub.tasks;
+					var _v0 = m.message;
+					if (_v0.$ === 'Just') {
+						var me = _v0.a;
+						var _v1 = me.code;
+						if (_v1 === 200) {
+							return m.tasks;
+						} else {
+							return sub.tasks;
+						}
 					} else {
-						return m.tasks;
+						return sub.tasks;
 					}
 				}()
 			});
@@ -7972,6 +7978,14 @@ var $author$project$Main$textPosted = F2(
 			model,
 			{sub: newSub});
 	});
+var $author$project$Main$undoneTasks = function (m) {
+	return A4(
+		$author$project$Main$postJson,
+		'undone',
+		$author$project$Main$userSelTasksEncoder(m),
+		$author$project$Main$TasksDoneOrUndone,
+		$author$project$Main$subModelDecoder);
+};
 var $author$project$Main$update = F2(
 	function (msg, model) {
 		switch (msg.$) {
@@ -8013,6 +8027,10 @@ var $author$project$Main$update = F2(
 						return _Utils_Tuple2(
 							model,
 							$author$project$Main$doneTasks(model));
+					case 'u':
+						return _Utils_Tuple2(
+							model,
+							$author$project$Main$undoneTasks(model));
 					case 'f':
 						return _Utils_Tuple2(
 							model,

@@ -225,6 +225,9 @@ update msg model =
         CharacterKey 'e' ->
             ( model, doneTasks model )
 
+        CharacterKey 'u' ->
+            ( model, undoneTasks model )
+
         CharacterKey 'f' ->
             ( model, focusTask model model.indicator )
 
@@ -837,12 +840,17 @@ tasksDoneOrUndone model m =
         newSub =
             { sub
                 | tasks =
-                    case m.tasks of
-                        [] ->
-                            sub.tasks
+                    case m.message of
+                        Just me ->
+                            case me.code of
+                                200 ->
+                                    m.tasks
+
+                                _ ->
+                                    sub.tasks
 
                         _ ->
-                            m.tasks
+                            sub.tasks
                 , message = m.message
             }
     in
@@ -981,6 +989,11 @@ goHome m =
 doneTasks : Model -> Cmd Msg
 doneTasks m =
     postJson "done" (userSelTasksEncoder m) TasksDoneOrUndone subModelDecoder
+
+
+undoneTasks : Model -> Cmd Msg
+undoneTasks m =
+    postJson "undone" (userSelTasksEncoder m) TasksDoneOrUndone subModelDecoder
 
 
 cloneTasks : Model -> Cmd Msg

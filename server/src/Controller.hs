@@ -180,6 +180,7 @@ type API =  "dev"   :> "model"  :> Capture "user"  Int          :> Get  '[JSON] 
     :<|>    "tasks" :> "init"   :> ReqBody '[JSON] ElmUser      :> Post '[JSON] ElmSubModel
     :<|>    "tasks" :> "post"   :> ReqBody '[JSON] TextPost     :> Post '[JSON] ElmSubModel
     :<|>    "tasks" :> "done"   :> ReqBody '[JSON] UserSelTasks :> Post '[JSON] ElmSubModel
+    :<|>    "tasks" :> "undone" :> ReqBody '[JSON] UserSelTasks :> Post '[JSON] ElmSubModel
     :<|>    "tasks" :> "star"   :> ReqBody '[JSON] UserTaskId   :> Post '[JSON] ()
     :<|>    "tasks" :> "focus"  :> ReqBody '[JSON] UserTaskId   :> Post '[JSON] [ElmTask]
     :<|>    "tasks" :> "home"   :> ReqBody '[JSON] ElmUser      :> Post '[JSON] ElmSubModel
@@ -211,6 +212,7 @@ server = devSubModel
     :<|> initialize
     :<|> textPostReload
     :<|> doneTasksReload
+    :<|> undoneTasksReload
     :<|> switchStar
     :<|> focusTask
     :<|> goHome
@@ -227,6 +229,8 @@ server = devSubModel
         textPostReload = liftIO . textPostReload'
         doneTasksReload :: UserSelTasks -> Handler ElmSubModel
         doneTasksReload = liftIO . doneTasksReload'
+        undoneTasksReload :: UserSelTasks -> Handler ElmSubModel
+        undoneTasksReload = liftIO . undoneTasksReload'
         switchStar :: UserTaskId -> Handler ()
         switchStar = liftIO . switchStar'
         focusTask :: UserTaskId -> Handler [ElmTask]
@@ -245,10 +249,10 @@ server = devSubModel
 devSubModel' :: Int -> IO ElmSubModel
 devSubModel' uid = do
     pool <- pgPool
-    user <- Prelude.head <$> getUserById pool uid
-    durations <- getDurationsByUserId pool uid
+    user <- Prelude.head <$> getUser pool (keyFromId uid :: UserId)
+    durations <- getDurationsByUser pool (keyFromId uid :: UserId)
     let elmUser = toElmUser user durations
-    elmTasks <- buildElmTasksByUserId uid
+    elmTasks <- buildElmTasksByUser uid
     return $ ElmSubModel elmUser elmTasks Nothing Nothing
 
 initialize' :: ElmUser -> IO ElmSubModel
@@ -271,8 +275,8 @@ textPostReload' :: TextPost -> IO ElmSubModel
 textPostReload' (TextPost elmUser text) = do
     pool <- pgPool
     let uid = elmUserId elmUser
-    user <- Prelude.head <$> (map entityVal) <$> getUserById pool uid
-    durations <- (map entityVal) <$> getDurationsByUserId pool uid
+    user <- Prelude.head <$> (map entityVal) <$> getUser pool (keyFromId uid :: UserId)
+    durations <- (map entityVal) <$> getDurationsByUser pool (keyFromId uid :: UserId)
     let tasksMaybeIds = tasksFromText user durations text
     fault <- faultPost user (map fst tasksMaybeIds)
     case fault of
@@ -292,7 +296,7 @@ textPostReload' (TextPost elmUser text) = do
                     maybeUpdate updates
                     let inserts' = preShift preds shift inserts 
                     insTasks . (shiftTaskNodes shift) $ inserts'
-                    elmTasks <- buildElmTasksByUserId uid
+                    elmTasks <- buildElmTasksByUser uid
                     let ElmMessage _ ok1 = buildOkMsg (filter (not . taskIsDummy) inserts') " tasks registered."
                     let ElmMessage _ ok2 = buildOkMsg updates " tasks updated."
                     let okMsg = ElmMessage 200 (intercalate " " [ok1, ok2])
@@ -315,7 +319,7 @@ insertOrUpdate' ((ta,mid):tas) ref (ins, upd, pred) = case mid of
         insertOrUpdate' tas ref ((ta:ins), upd, pred)
     Just id -> do
         pool <- pgPool
-        get  <- getMeByTaskId pool (keyFromId id :: TaskId)
+        get  <- getMeByTask pool (keyFromId id :: TaskId)
         case get of
             [] -> 
                 return $ Left (intercalate " " ["Task ID", pack (show id), "does not exist."])
@@ -346,33 +350,33 @@ maybeUpdate updates = do
 maybeUpdate' :: ConnectionPool -> (Int,Task) -> IO ()
 maybeUpdate' pool (tid, task)
     | d /= False    = do
-        setTaskDone pool tid
+        setTaskDone pool (keyFromId tid :: TaskId)
         maybeUpdate' pool (tid, Task t i y False s ml ms md mw mt u )
     | s /= False    = do
-        setTaskStarred pool tid
+        setTaskStarred pool (keyFromId tid :: TaskId)
         maybeUpdate' pool (tid, Task t i y d False ml ms md mw mt u )
     | ml /= Nothing = do
         let (Just l) = ml
-        setTaskLink pool tid l
+        setTaskLink pool (keyFromId tid :: TaskId) l
         maybeUpdate' pool (tid, Task t i y d s Nothing ms md mw mt u)
     | ms /= Nothing = do
         let (Just ss) = ms
-        setTaskStartable pool tid ss
+        setTaskStartable pool (keyFromId tid :: TaskId) ss
         maybeUpdate' pool (tid, Task t i y d s ml Nothing md mw mt u)
     | md /= Nothing = do
         let (Just dd) = md
-        setTaskDeadline pool tid dd
+        setTaskDeadline pool (keyFromId tid :: TaskId) dd
         maybeUpdate' pool (tid, Task t i y d s ml ms Nothing mw mt u)
     | mw /= Nothing = do
         let (Just w) = mw
-        setTaskWeight pool tid w
+        setTaskWeight pool (keyFromId tid :: TaskId) w
         maybeUpdate' pool (tid, Task t i y d s ml ms md Nothing mt u)
     | mt /= Nothing = do
         let (Just tt) = mt
-        setTaskTitle pool tid tt
+        setTaskTitle pool (keyFromId tid :: TaskId) tt
         maybeUpdate' pool (tid, Task t i y d s ml ms md mw Nothing u)
     | u /= anonymousUser = do
-        setTaskUser pool tid u
+        setTaskUser pool (keyFromId tid :: TaskId) u
         maybeUpdate' pool (tid, Task t i y d s ml ms md mw mt anonymousUser)
     | otherwise = 
         return ()
@@ -413,31 +417,78 @@ doneTasksReload' (UserSelTasks elmUser tids) = do
         Just errMsg ->
             return $ ElmSubModel elmUser [] Nothing (Just errMsg) 
         Nothing -> do
-            sequence_ ( map (setTaskDoneOrUndone pool) tids)
+            (tKeys, mEntityNonDummies) <- usAndPredecessors uid tids
+            sequence_ ( map (setTaskDone pool) tKeys)
             re <- reschedule uid
             case re of
                 Left errMsg' ->
                     return $ ElmSubModel elmUser [] Nothing (Just $ ElmMessage 400 errMsg') 
                 _ -> do
-                    elmTasks <- buildElmTasksByUserId uid
-                    let okMsg = buildOkMsg tids " tasks done/undone."
+                    elmTasks <- buildElmTasksByUser uid
+                    let okMsg = buildOkMsg mEntityNonDummies " tasks done."
                     return $ ElmSubModel elmUser elmTasks Nothing (Just okMsg)
+
+usAndPredecessors :: Int -> [Int] -> IO ([Key Task], [Maybe (Entity Task)])
+usAndPredecessors uid tids = do
+    pool <- pgPool
+    selected <- sequence $ map (\tid -> Prelude.head <$> getMeByTask pool (keyFromId tid :: TaskId)) tids
+    allUndone <- getUndoneTasksByUser pool (keyFromId uid :: UserId)
+    let fSelected = map toTaskFrag $ map entityVal selected
+    let fAllUndone = map toTaskFrag $ map entityVal allUndone
+    let fPred = sortUniq $ Prelude.concatMap (predecessor fAllUndone) fSelected
+    let mEntityUsPred = filter (/= Nothing) $ map (findTaskByPair allUndone) (map fPair (fSelected ++ fPred))
+    let tKeys = map (\(Just e) -> entityKey e) mEntityUsPred
+    let mEntityNonDummies = filter (\(Just e) -> (not . taskIsDummy) (entityVal e)) mEntityUsPred
+    return $ (tKeys, mEntityNonDummies)
+
+undoneTasksReload' :: UserSelTasks -> IO ElmSubModel
+undoneTasksReload' (UserSelTasks elmUser tids) = do
+    pool <- pgPool
+    let uid = elmUserId elmUser
+    fault <- faultEditPermission uid tids
+    case fault of
+        Just errMsg ->
+            return $ ElmSubModel elmUser [] Nothing (Just errMsg) 
+        Nothing -> do
+            (tKeys, mEntityNonDummies) <- usAndSuccessors uid tids
+            sequence_ ( map (setTaskUndone pool) tKeys)
+            re <- reschedule uid
+            case re of
+                Left errMsg' ->
+                    return $ ElmSubModel elmUser [] Nothing (Just $ ElmMessage 400 errMsg') 
+                _ -> do
+                    elmTasks <- buildElmTasksByUser uid
+                    let okMsg = buildOkMsg mEntityNonDummies " tasks undone."
+                    return $ ElmSubModel elmUser elmTasks Nothing (Just okMsg)
+
+usAndSuccessors :: Int -> [Int] -> IO ([Key Task], [Maybe (Entity Task)])
+usAndSuccessors uid tids = do
+    pool <- pgPool
+    selected <- sequence $ map (\tid -> Prelude.head <$> getMeByTask pool (keyFromId tid :: TaskId)) tids
+    allDone <- getDoneTasksByUser pool (keyFromId uid :: UserId)
+    let fSelected = map toTaskFrag $ map entityVal selected
+    let fAllDone = map toTaskFrag $ map entityVal allDone
+    let fSucc = sortUniq $ Prelude.concatMap (successor fAllDone) fSelected
+    let mEntityUsSucc = filter (/= Nothing) $ map (findTaskByPair allDone) (map fPair (fSelected ++ fSucc))
+    let tKeys = map (\(Just e) -> entityKey e) mEntityUsSucc
+    let mEntityNonDummies = filter (\(Just e) -> (not . taskIsDummy) (entityVal e)) mEntityUsSucc
+    return $ (tKeys, mEntityNonDummies)
 
 switchStar' :: UserTaskId -> IO ()
 switchStar' (UserTaskId elmUser tid) = do
     pool <- pgPool
     -- TODO check fault
-    setStarSwitched pool tid
+    setStarSwitched pool (keyFromId tid :: TaskId)
 
 focusTask' :: UserTaskId -> IO [ElmTask]
 focusTask' (UserTaskId elmUser tid) = do
     pool        <- pgPool
     -- TODO check fault
-    before  <- map entityKey <$> getBeforeMeByTaskId pool (keyFromId tid :: TaskId)
-    me      <- map entityKey <$> getMeByTaskId pool (keyFromId tid :: TaskId)
-    after   <- map entityKey <$> getAfterMeByTaskId pool (keyFromId tid :: TaskId)
-    let tids = Prelude.concat [before, me, after]
-    elmTasks <- sequence (map buildElmTaskByTaskId tids) 
+    before  <- map entityKey <$> getBeforeMeByTask pool (keyFromId tid :: TaskId)
+    me      <- map entityKey <$> getMeByTask pool (keyFromId tid :: TaskId)
+    after   <- map entityKey <$> getAfterMeByTask pool (keyFromId tid :: TaskId)
+    let tKeys = Prelude.concat [before, me, after]
+    elmTasks <- sequence (map buildElmTaskByTask tKeys) 
     return $ elmTasks
 
 goHome' :: ElmUser -> IO ElmSubModel
@@ -454,8 +505,8 @@ cloneTasks' (UserSelTasks elmUser tids) = do
         Just errMsg ->
             return $ ElmSubModel elmUser [] Nothing (Just errMsg) 
         Nothing -> do
-            user <- Prelude.head <$> (map entityVal) <$> getUserById pool uid
-            taskAssigns <- (map (\(e,v) -> (entityVal e, (entityKey e, Q.unValue v)))) <$> getTaskAssignsByIds tids
+            user <- Prelude.head <$> (map entityVal) <$> getUser pool (keyFromId uid :: UserId)
+            taskAssigns <- (map (\(e,v) -> (entityVal e, (entityKey e, Q.unValue v)))) <$> getTaskAssigns tids
             let text = textFromTasks user taskAssigns
             let okMsg = buildOkMsg taskAssigns " tasks cloned."
             return $ ElmSubModel elmUser [] (Just text) (Just okMsg)
@@ -469,13 +520,13 @@ faultEditPermission uid (t:ts) = do
         faultEditPermission uid ts
     else do
         pool <- pgPool
-        taskAssign <- Prelude.head <$> getTaskAssignById pool t
+        taskAssign <- Prelude.head <$> getTaskAssign pool (keyFromId t :: TaskId)
         return $ Just (buildEditErrMsg taskAssign)
 
-getTaskAssignsByIds :: [Int] -> IO [(Entity Task, Q.Value Text)]
-getTaskAssignsByIds ids = do
+getTaskAssigns :: [Int] -> IO [(Entity Task, Q.Value Text)]
+getTaskAssigns tids = do
     pool <- pgPool
-    Prelude.concat <$> sequence ( map (getTaskAssignById pool) ids)
+    Prelude.concat <$> sequence ( map (\tid -> getTaskAssign pool (keyFromId tid :: TaskId)) tids )
     
 hasEditPerm :: Int -> Int -> IO (Bool)
 hasEditPerm uid tid =
@@ -487,8 +538,8 @@ showArchives' elmUser = do
     pool <- pgPool
     let uid = elmUserId elmUser
     -- TODO check fault
-    tids <- map entityKey <$> getDoneTasksByUserId pool uid
-    elmTasks <- sequence (map buildElmTaskByTaskId tids) 
+    tKeys <- map entityKey <$> getDoneNonDummyTasksByUser pool (keyFromId uid :: UserId)
+    elmTasks <- sequence (map buildElmTaskByTask tKeys) 
     let okMsg = buildOkMsg elmTasks " archives here."
     return $ ElmSubModel elmUser elmTasks Nothing (Just okMsg) 
 
@@ -497,8 +548,8 @@ showTrunk' elmUser = do
     pool <- pgPool
     let uid = elmUserId elmUser
     -- TODO check fault
-    tids <- map entityKey <$> getUndoneTrunksByUserId pool uid
-    elmTasks <- sequence (map buildElmTaskByTaskId tids) 
+    tKeys <- map entityKey <$> getUndoneTrunksByUser pool (keyFromId uid :: UserId)
+    elmTasks <- sequence (map buildElmTaskByTask tKeys) 
     let okMsg = buildOkMsg elmTasks " trunk here."
     return $ ElmSubModel elmUser elmTasks Nothing (Just okMsg) 
 
@@ -507,18 +558,18 @@ showBuds' elmUser = do
     pool <- pgPool
     let uid = elmUserId elmUser
     -- TODO check fault
-    tids <- map entityKey <$> getUndoneBudsByUserId pool uid
-    elmTasks <- sequence (map buildElmTaskByTaskId tids) 
+    tKeys <- map entityKey <$> getUndoneBudsByUser pool (keyFromId uid :: UserId)
+    elmTasks <- sequence (map buildElmTaskByTask tKeys) 
     let okMsg = buildOkMsg elmTasks " buds here."
     return $ ElmSubModel elmUser elmTasks Nothing (Just okMsg) 
 
 reschedule :: Int -> IO (Either Text ())
 reschedule uid = do
     pool <- pgPool
-    user <- Prelude.head <$> map entityVal <$> getUserById pool uid
+    user <- Prelude.head <$> map entityVal <$> getUser pool (keyFromId uid :: UserId)
     now <- getCurrentTime
-    durs <- map entityVal <$> getDurationsByUserId pool uid
-    tasks <- getUndoneOwnTasksByUserId pool uid
+    durs <- map entityVal <$> getDurationsByUser pool (keyFromId uid :: UserId)
+    tasks <- getUndoneOwnTasksByUser pool (keyFromId uid :: UserId)
     let sch =
             if userIsLazy user then Left "Now implementing"  --TODO
             else scheduleForward user now durs tasks
@@ -532,16 +583,16 @@ reschedule uid = do
 debugResche :: IO [TaskFrag]
 debugResche = do
     pool <- pgPool
-    user <- Prelude.head <$> map entityVal <$> getUserById pool 1
+    user <- Prelude.head <$> map entityVal <$> getUser pool (keyFromId 1 :: UserId)
     now <- getCurrentTime
-    durs <- map entityVal <$> getDurationsByUserId pool 1
-    tasks <- getUndoneOwnTasksByUserId pool 1
+    durs <- map entityVal <$> getDurationsByUser pool (keyFromId 1 :: UserId)
+    tasks <- getUndoneOwnTasksByUser pool (keyFromId 1 :: UserId)
     return $ map toTaskFrag (map entityVal tasks)
 
 debugUser :: IO User
 debugUser = do
     pool <- pgPool
-    user <- Prelude.head <$> map entityVal <$> getUserById pool 1
+    user <- Prelude.head <$> map entityVal <$> getUser pool (keyFromId 1 :: UserId)
     return user
 
 debugNow :: IO UTCTime
@@ -552,34 +603,34 @@ debugNow = do
 debugDurs :: IO [Duration]
 debugDurs = do
     pool <- pgPool
-    durs <- map entityVal <$> getDurationsByUserId pool 1
+    durs <- map entityVal <$> getDurationsByUser pool (keyFromId 1 :: UserId)
     return durs
 
 debugTasks :: IO [Entity Task]
 debugTasks = do
     pool <- pgPool
-    tasks <- getUndoneOwnTasksByUserId pool 1
+    tasks <- getUndoneOwnTasksByUser pool (keyFromId 1 :: UserId)
     return tasks
 
-buildElmTaskByTaskId :: Key Task -> IO ElmTask
-buildElmTaskByTaskId tid = do
+buildElmTaskByTask :: Key Task -> IO ElmTask
+buildElmTaskByTask tKey = do
     pool <- pgPool
     -- TODO check fault
-    taskAssign <- Prelude.head <$> getTaskAssignByTaskId pool tid
-    schedules <- map entityVal <$> getSchedulesByTaskId pool tid
+    taskAssign <- Prelude.head <$> getTaskAssignByTask pool tKey
+    schedules <- map entityVal <$> getSchedulesByTask pool tKey
     return $ toElmTask taskAssign schedules
 
-buildElmTasksByUserId :: Int -> IO [ElmTask] 
-buildElmTasksByUserId uid = do
+buildElmTasksByUser :: Int -> IO [ElmTask] 
+buildElmTasksByUser uid = do
     pool <- pgPool
     -- TODO check fault
-    tids <- map entityKey <$> getUndoneNonDummyTasksByUserId pool uid
-    sequence $ map (buildElmTaskByTaskId) tids
+    tKeys <- map entityKey <$> getUndoneNonDummyTasksByUser pool (keyFromId uid :: UserId)
+    sequence $ map (buildElmTaskByTask) tKeys
 
 resetSchedules :: Int -> [Schedule] -> IO ()
 resetSchedules uid schedules = do
     pool <- pgPool
-    delSchedulesByUserId pool uid
+    delSchedulesByUser pool (keyFromId uid :: UserId)
     insSchedules pool schedules
 
 

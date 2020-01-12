@@ -73,7 +73,7 @@ Task json
     title               Text Maybe
     user                UserId
     UniqueTask          terminal initial
-    deriving Show
+    deriving Show Eq
 Organization
     parent              UserId
     child               UserId

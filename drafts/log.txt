@@ -280,4 +280,9 @@ implemented following-scroll
 2020-01-12 11:21:54
 
 added hard-typing-mode to textarea
-added asOfShift
+added asOfShift (w and o key)
+2020-01-12 18:33:42
+
+illustrate W and O
+2020-01-12 18:47:21
+
