@@ -63,6 +63,11 @@ div {
     background-size: 2.404em;
 }
 
+#inputArea.hard {
+    width: calc(100vw - 128px);
+    height: calc(100vh - 24px);
+}
+
 #submission {
     width : 136px;
     height: inherit;

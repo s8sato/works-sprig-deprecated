@@ -42,6 +42,7 @@ type alias Model =
     , asOfTime : Posix
     , indicator : Index
     , underTyping : Bool
+    , underHardTyping : Bool
     , underControl : Bool
     , asOfCurrentTime : Bool
     , dpy : Int
@@ -114,6 +115,7 @@ init _ =
       , asOfTime = Time.millisToPosix 0
       , indicator = 0
       , underTyping = False
+      , underHardTyping = False
       , underControl = False
       , asOfCurrentTime = True
       , dpy = dayPerY
@@ -424,6 +426,24 @@ update msg model =
         ControlKeyUT "Escape" ->
             ( model
             , Task.attempt (\_ -> NoOp) (Dom.blur "inputArea")
+            )
+
+        ControlKeyUT "ArrowUp" ->
+            ( if model.underControl then
+                { model | underHardTyping = False }
+
+              else
+                model
+            , Cmd.none
+            )
+
+        ControlKeyUT "ArrowDown" ->
+            ( if model.underControl then
+                { model | underHardTyping = True }
+
+              else
+                model
+            , Cmd.none
             )
 
         ControlKeyUT _ ->
@@ -1015,6 +1035,9 @@ view model =
                     , placeholder textPlaceholder
                     , onFocus ReadyTyping
                     , onBlur ReleaseTyping
+                    , classList
+                        [ ( "hard", model.underHardTyping )
+                        ]
                     ]
                     []
                 ]

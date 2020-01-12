@@ -5458,6 +5458,7 @@ var $author$project$Main$init = function (_v0) {
 			selectedTasks: _List_Nil,
 			sub: initSub,
 			underControl: false,
+			underHardTyping: false,
 			underTyping: false,
 			zone: $elm$time$Time$utc
 		},
@@ -8120,6 +8121,18 @@ var $author$project$Main$update = F2(
 									return $author$project$Main$NoOp;
 								},
 								$elm$browser$Browser$Dom$blur('inputArea')));
+					case 'ArrowUp':
+						return _Utils_Tuple2(
+							model.underControl ? _Utils_update(
+								model,
+								{underHardTyping: false}) : model,
+							$elm$core$Platform$Cmd$none);
+					case 'ArrowDown':
+						return _Utils_Tuple2(
+							model.underControl ? _Utils_update(
+								model,
+								{underHardTyping: true}) : model,
+							$elm$core$Platform$Cmd$none);
 					default:
 						return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
 				}
@@ -8204,6 +8217,16 @@ var $elm$html$Html$Attributes$stringProperty = F2(
 			$elm$json$Json$Encode$string(string));
 	});
 var $elm$html$Html$Attributes$class = $elm$html$Html$Attributes$stringProperty('className');
+var $elm$html$Html$Attributes$classList = function (classes) {
+	return $elm$html$Html$Attributes$class(
+		A2(
+			$elm$core$String$join,
+			' ',
+			A2(
+				$elm$core$List$map,
+				$elm$core$Tuple$first,
+				A2($elm$core$List$filter, $elm$core$Tuple$second, classes))));
+};
 var $elm$html$Html$div = _VirtualDom_node('div');
 var $elm$html$Html$Attributes$id = $elm$html$Html$Attributes$stringProperty('id');
 var $elm$virtual_dom$VirtualDom$Normal = function (a) {
@@ -8376,16 +8399,6 @@ var $author$project$Main$barString = F2(
 					_Utils_chr('['),
 					A3($author$project$Main$preString, m.dpy, m.asOfTime, t))));
 	});
-var $elm$html$Html$Attributes$classList = function (classes) {
-	return $elm$html$Html$Attributes$class(
-		A2(
-			$elm$core$String$join,
-			' ',
-			A2(
-				$elm$core$List$map,
-				$elm$core$Tuple$first,
-				A2($elm$core$List$filter, $elm$core$Tuple$second, classes))));
-};
 var $elm$html$Html$Attributes$href = function (url) {
 	return A2(
 		$elm$html$Html$Attributes$stringProperty,
@@ -9104,7 +9117,12 @@ var $author$project$Main$view = function (model) {
 										$elm$html$Html$Events$onInput($author$project$Main$Input),
 										$elm$html$Html$Attributes$placeholder($author$project$Main$textPlaceholder),
 										$elm$html$Html$Events$onFocus($author$project$Main$ReadyTyping),
-										$elm$html$Html$Events$onBlur($author$project$Main$ReleaseTyping)
+										$elm$html$Html$Events$onBlur($author$project$Main$ReleaseTyping),
+										$elm$html$Html$Attributes$classList(
+										_List_fromArray(
+											[
+												_Utils_Tuple2('hard', model.underHardTyping)
+											]))
 									]),
 								_List_Nil)
 							])),
