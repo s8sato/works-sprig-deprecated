@@ -2,7 +2,7 @@ module Main exposing (main)
 
 import Array exposing (fromList, get, set, toList)
 import Browser
-import Browser.Dom exposing (blur, focus)
+import Browser.Dom as Dom exposing (blur, focus, getViewportOf, setViewportOf)
 import Browser.Events exposing (onKeyDown, onKeyPress, onKeyUp)
 import Config
 import Html exposing (Html, a, div, text, textarea)
@@ -13,7 +13,6 @@ import Json.Decode as Decode exposing (Decoder, bool, float, int, list, nullable
 import Json.Decode.Pipeline exposing (optional, required)
 import Json.Encode as Encode
 import Json.Encode.Extra exposing (maybe)
-import Maybe
 import Task
 import Time exposing (Month(..), Posix, Weekday(..), Zone, ZoneName(..), millisToPosix, posixToMillis)
 
@@ -182,7 +181,6 @@ secPerY =
 type Msg
     = NoOp
     | SubModelReceived (Result Http.Error SubModel)
-    | TasksReceived (Result Http.Error (List Task))
     | CharacterKey Char
     | ControlKey String
     | SwitchSelect Index
@@ -231,27 +229,6 @@ update msg model =
         SubModelReceived (Err httpError) ->
             ( messageEH model httpError, Cmd.none )
 
-        TasksReceived (Ok newTasks) ->
-            ( let
-                sub =
-                    model.sub
-
-                newSub =
-                    { sub
-                        | tasks = newTasks
-                        , inputText = Nothing
-                        , message = Nothing
-                    }
-              in
-              { model
-                | sub = newSub
-              }
-            , Cmd.none
-            )
-
-        TasksReceived (Err httpError) ->
-            ( messageEH model httpError, Cmd.none )
-
         CharacterKey 'k' ->
             ( { model
                 | indicator =
@@ -261,7 +238,7 @@ update msg model =
                     else
                         model.indicator
               }
-            , Cmd.none
+            , followUp model 40
             )
 
         CharacterKey 'j' ->
@@ -273,7 +250,7 @@ update msg model =
                     else
                         model.indicator
               }
-            , Cmd.none
+            , followDown model 40
             )
 
         CharacterKey 'e' ->
@@ -287,7 +264,7 @@ update msg model =
 
         CharacterKey '/' ->
             ( model
-            , Task.attempt (\_ -> NoOp) (focus "inputArea")
+            , Task.attempt (\_ -> NoOp) (Dom.focus "inputArea")
             )
 
         CharacterKey 's' ->
@@ -446,7 +423,7 @@ update msg model =
 
         ControlKeyUT "Escape" ->
             ( model
-            , Task.attempt (\_ -> NoOp) (blur "inputArea")
+            , Task.attempt (\_ -> NoOp) (Dom.blur "inputArea")
             )
 
         ControlKeyUT _ ->
@@ -463,7 +440,7 @@ update msg model =
 
         TasksCloned (Ok newSubModel) ->
             ( tasksCloned model newSubModel
-            , Task.attempt (\_ -> NoOp) (focus "inputArea")
+            , Task.attempt (\_ -> NoOp) (Dom.focus "inputArea")
             )
 
         TasksCloned (Err httpError) ->
@@ -490,6 +467,42 @@ update msg model =
 
 
 -- HELPER FUNCTIONS
+
+
+followUp : Model -> Float -> Cmd Msg
+followUp m tH =
+    let
+        indPosY =
+            tH * toFloat m.indicator
+    in
+    Dom.getViewportOf "tasks"
+        |> Task.andThen
+            (\info ->
+                if indPosY < info.viewport.y + tH then
+                    Dom.setViewportOf "tasks" 0 (indPosY - (info.viewport.height / 2))
+
+                else
+                    Dom.blur ""
+            )
+        |> Task.attempt (\_ -> NoOp)
+
+
+followDown : Model -> Float -> Cmd Msg
+followDown m tH =
+    let
+        indPosY =
+            tH * toFloat m.indicator
+    in
+    Dom.getViewportOf "tasks"
+        |> Task.andThen
+            (\info ->
+                if info.viewport.y + info.viewport.height - 3 * tH < indPosY then
+                    Dom.setViewportOf "tasks" 0 (indPosY - (info.viewport.height / 2) + 2 * tH)
+
+                else
+                    Dom.blur ""
+            )
+        |> Task.attempt (\_ -> NoOp)
 
 
 returnedHome : Model -> SubModel -> Model
@@ -1047,10 +1060,10 @@ view model =
                             (List.indexedMap Tuple.pair model.sub.tasks)
                         )
                     ]
-                , div [ id "fotter" ] []
                 ]
             , div [ id "rSideBar" ] []
             ]
+        , div [ id "footer" ] []
         ]
 
 
@@ -1351,28 +1364,9 @@ viewTimeByDpy dpy z mt =
                 min ++ "'" ++ sec
 
 
-fillR : Int -> String -> String -> String
-fillR n putty target =
-    String.left n <| target ++ String.repeat n putty
-
-
 fillL : Int -> String -> String -> String
 fillL n putty target =
     String.right n <| String.repeat n putty ++ target
-
-
-millisFromWeight : Float -> Millis
-millisFromWeight w =
-    floor (60 * 60 * 10 ^ 3 * w)
-
-
-millisUntil : Maybe Millis -> Posix -> Maybe Millis
-millisUntil target now =
-    let
-        nowMillis =
-            now |> posixToMillis
-    in
-    Maybe.map (\t -> t - nowMillis) target
 
 
 barString : Model -> Task -> String

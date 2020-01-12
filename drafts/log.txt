@@ -277,3 +277,6 @@ starMan-首 $6 -2020/01/16
 
 revised hasLoop
 ordered by min_ ScheduleBegin
+
+implemented following-scroll
+2020-01-12 11:21:54

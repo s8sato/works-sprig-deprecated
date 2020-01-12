@@ -126,17 +126,13 @@ div {
     flex-direction: column;
 }
 
-#rSideBar {
-    width : 64px;
-    height: inherit;
-}
-
 #mainHeader {
     width : inherit;
     height: 48px;
     display: flex;
     background-color: #DDF0E4;
 }
+
 #selectionCmdBox {
     width : 288px;
     height: inherit;
@@ -158,6 +154,7 @@ div {
     justify-content: center;
     align-items: center;
 }
+
 #viewCmdBox {
     width : 240px;
     height: inherit;
@@ -173,7 +170,7 @@ div {
 }
 
 #rSideBar {
-    width : 72px;
+    width : 64px;
     height: inherit;
     background-color: #DDF0E4;
 }
@@ -314,7 +311,7 @@ div {
 
 #footer {
     width : inherit;
-    height: 86px;
+    height: 8px;
     background-color: #DDF0E4;
 }
 
@@ -421,10 +418,12 @@ div {
     background-image: url("../images/cmd_jk_normal.png");
     background-size: contain;
 }
+
 #setSelected {
     background-image: url("../images/cmd_x_normal.png");
     background-size: contain;
 }
+
 #setStarred {
     background-image: url("../images/cmd_s_normal.png");
     background-size: contain;

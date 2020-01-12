@@ -7274,6 +7274,38 @@ var $author$project$Main$focusTask = F2(
 				$author$project$Main$tasksDecoder);
 		}
 	});
+var $elm$browser$Browser$Dom$getViewportOf = _Browser_getViewportOf;
+var $elm$browser$Browser$Dom$setViewportOf = _Browser_setViewportOf;
+var $author$project$Main$followDown = F2(
+	function (m, tH) {
+		var indPosY = tH * m.indicator;
+		return A2(
+			$elm$core$Task$attempt,
+			function (_v0) {
+				return $author$project$Main$NoOp;
+			},
+			A2(
+				$elm$core$Task$andThen,
+				function (info) {
+					return (_Utils_cmp((info.viewport.y + info.viewport.height) - (3 * tH), indPosY) < 0) ? A3($elm$browser$Browser$Dom$setViewportOf, 'tasks', 0, (indPosY - (info.viewport.height / 2)) + (2 * tH)) : $elm$browser$Browser$Dom$blur('');
+				},
+				$elm$browser$Browser$Dom$getViewportOf('tasks')));
+	});
+var $author$project$Main$followUp = F2(
+	function (m, tH) {
+		var indPosY = tH * m.indicator;
+		return A2(
+			$elm$core$Task$attempt,
+			function (_v0) {
+				return $author$project$Main$NoOp;
+			},
+			A2(
+				$elm$core$Task$andThen,
+				function (info) {
+					return (_Utils_cmp(indPosY, info.viewport.y + tH) < 0) ? A3($elm$browser$Browser$Dom$setViewportOf, 'tasks', 0, indPosY - (info.viewport.height / 2)) : $elm$browser$Browser$Dom$blur('');
+				},
+				$elm$browser$Browser$Dom$getViewportOf('tasks')));
+	});
 var $elm$time$Time$getZoneName = _Time_getZoneName(_Utils_Tuple0);
 var $author$project$Main$ReturnedHome = function (a) {
 	return {$: 'ReturnedHome', a: a};
@@ -7839,26 +7871,6 @@ var $author$project$Main$update = F2(
 						A2($author$project$Main$messageEH, model, httpError),
 						$elm$core$Platform$Cmd$none);
 				}
-			case 'TasksReceived':
-				if (msg.a.$ === 'Ok') {
-					var newTasks = msg.a.a;
-					return _Utils_Tuple2(
-						function () {
-							var sub = model.sub;
-							var newSub = _Utils_update(
-								sub,
-								{inputText: $elm$core$Maybe$Nothing, message: $elm$core$Maybe$Nothing, tasks: newTasks});
-							return _Utils_update(
-								model,
-								{sub: newSub});
-						}(),
-						$elm$core$Platform$Cmd$none);
-				} else {
-					var httpError = msg.a.a;
-					return _Utils_Tuple2(
-						A2($author$project$Main$messageEH, model, httpError),
-						$elm$core$Platform$Cmd$none);
-				}
 			case 'CharacterKey':
 				switch (msg.a.valueOf()) {
 					case 'k':
@@ -7868,7 +7880,7 @@ var $author$project$Main$update = F2(
 								{
 									indicator: (model.indicator > 0) ? (model.indicator - 1) : model.indicator
 								}),
-							$elm$core$Platform$Cmd$none);
+							A2($author$project$Main$followUp, model, 40));
 					case 'j':
 						return _Utils_Tuple2(
 							_Utils_update(
@@ -7878,7 +7890,7 @@ var $author$project$Main$update = F2(
 										model.indicator,
 										$elm$core$List$length(model.sub.tasks) - 1) < 0) ? (model.indicator + 1) : model.indicator
 								}),
-							$elm$core$Platform$Cmd$none);
+							A2($author$project$Main$followDown, model, 40));
 					case 'e':
 						return _Utils_Tuple2(
 							model,
@@ -9353,14 +9365,7 @@ var $author$project$Main$view = function (model) {
 											$elm$core$List$map,
 											$author$project$Main$viewTask(model),
 											A2($elm$core$List$indexedMap, $elm$core$Tuple$pair, model.sub.tasks)))
-									])),
-								A2(
-								$elm$html$Html$div,
-								_List_fromArray(
-									[
-										$elm$html$Html$Attributes$id('fotter')
-									]),
-								_List_Nil)
+									]))
 							])),
 						A2(
 						$elm$html$Html$div,
@@ -9369,7 +9374,14 @@ var $author$project$Main$view = function (model) {
 								$elm$html$Html$Attributes$id('rSideBar')
 							]),
 						_List_Nil)
-					]))
+					])),
+				A2(
+				$elm$html$Html$div,
+				_List_fromArray(
+					[
+						$elm$html$Html$Attributes$id('footer')
+					]),
+				_List_Nil)
 			]));
 };
 var $author$project$Main$main = $elm$browser$Browser$element(
