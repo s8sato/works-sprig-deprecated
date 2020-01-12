@@ -31,10 +31,6 @@ main =
 -- MODEL
 
 
-type alias Index =
-    Int
-
-
 type alias Model =
     { sub : SubModel
     , zone : Zone
@@ -45,9 +41,13 @@ type alias Model =
     , underHardTyping : Bool
     , underControl : Bool
     , asOfCurrentTime : Bool
-    , dpy : Int
+    , dpy : Dpy
     , selectedTasks : List Int
     }
+
+
+type alias Index =
+    Int
 
 
 type alias SubModel =
@@ -58,13 +58,9 @@ type alias SubModel =
     }
 
 
-type alias Millis =
-    Int
-
-
-type alias Schedule =
-    { begin : Millis
-    , end : Millis
+type alias Message =
+    { code : Int
+    , body : String
     }
 
 
@@ -72,7 +68,7 @@ type alias User =
     { id : Int
     , name : String
     , admin : Bool
-    , defaultDpy : Maybe Int
+    , defaultDpy : Maybe String
     , zoneName : Maybe String
     , zoneOffset : Maybe Int
     }
@@ -93,10 +89,32 @@ type alias Task =
     }
 
 
-type alias Message =
-    { code : Int
-    , body : String
+type alias Millis =
+    Int
+
+
+type alias Schedule =
+    { begin : Millis
+    , end : Millis
     }
+
+
+type Signature
+    = Plus
+    | Minus
+
+
+type Dpy
+    = Yea
+    | Qua
+    | Mnt
+    | Wee
+    | Day
+    | Sxh
+    | Hou
+    | Twm
+    | Min
+    | Sec
 
 
 init : () -> ( Model, Cmd Msg )
@@ -118,62 +136,11 @@ init _ =
       , underHardTyping = False
       , underControl = False
       , asOfCurrentTime = True
-      , dpy = dayPerY
+      , dpy = Day
       , selectedTasks = []
       }
-      -- , Cmd.none
     , Task.perform AdjustTimeZone Time.here
     )
-
-
-yeaPerY : Int
-yeaPerY =
-    1
-
-
-quaPerY : Int
-quaPerY =
-    4
-
-
-monPerY : Int
-monPerY =
-    12
-
-
-weePerY : Int
-weePerY =
-    52
-
-
-dayPerY : Int
-dayPerY =
-    365
-
-
-sxhPerY : Int
-sxhPerY =
-    1460
-
-
-houPerY : Int
-houPerY =
-    8760
-
-
-tnmPerY : Int
-tnmPerY =
-    52560
-
-
-minPerY : Int
-minPerY =
-    525600
-
-
-secPerY : Int
-secPerY =
-    31536000
 
 
 
@@ -276,31 +243,31 @@ update msg model =
             ( switchSelect model model.indicator, Cmd.none )
 
         CharacterKey '1' ->
-            ( changeDpy model yeaPerY, Cmd.none )
+            ( changeDpy model Yea, Cmd.none )
 
         CharacterKey '2' ->
-            ( changeDpy model quaPerY, Cmd.none )
+            ( changeDpy model Qua, Cmd.none )
 
         CharacterKey '3' ->
-            ( changeDpy model monPerY, Cmd.none )
+            ( changeDpy model Mnt, Cmd.none )
 
         CharacterKey '4' ->
-            ( changeDpy model weePerY, Cmd.none )
+            ( changeDpy model Wee, Cmd.none )
 
         CharacterKey '5' ->
-            ( changeDpy model dayPerY, Cmd.none )
+            ( changeDpy model Day, Cmd.none )
 
         CharacterKey '6' ->
-            ( changeDpy model sxhPerY, Cmd.none )
+            ( changeDpy model Sxh, Cmd.none )
 
         CharacterKey '7' ->
-            ( changeDpy model houPerY, Cmd.none )
+            ( changeDpy model Hou, Cmd.none )
 
         CharacterKey '8' ->
-            ( changeDpy model tnmPerY, Cmd.none )
+            ( changeDpy model Twm, Cmd.none )
 
         CharacterKey '9' ->
-            ( changeDpy model minPerY, Cmd.none )
+            ( changeDpy model Min, Cmd.none )
 
         CharacterKey 'a' ->
             ( model, showArchives model )
@@ -328,6 +295,12 @@ update msg model =
         CharacterKey 'l' ->
             -- TODO
             ( model, Cmd.none )
+
+        CharacterKey 'w' ->
+            ( asOfShift model Minus, Cmd.none )
+
+        CharacterKey 'o' ->
+            ( asOfShift model Plus, Cmd.none )
 
         CharacterKey _ ->
             ( model, Cmd.none )
@@ -489,6 +462,50 @@ update msg model =
 -- HELPER FUNCTIONS
 
 
+eval : Signature -> Int
+eval sign =
+    case sign of
+        Plus ->
+            1
+
+        Minus ->
+            -1
+
+
+fromDpy : Dpy -> Int
+fromDpy dpy =
+    case dpy of
+        Yea ->
+            1
+
+        Qua ->
+            4
+
+        Mnt ->
+            12
+
+        Wee ->
+            52
+
+        Day ->
+            365
+
+        Sxh ->
+            1460
+
+        Hou ->
+            8760
+
+        Twm ->
+            43800
+
+        Min ->
+            525600
+
+        Sec ->
+            31536000
+
+
 followUp : Model -> Float -> Cmd Msg
 followUp m tH =
     let
@@ -541,14 +558,42 @@ returnedHome model m =
             { model
                 | sub = newSub
                 , selectedTasks = []
+                , asOfCurrentTime = True
             }
     in
     case model.sub.user.defaultDpy of
-        Nothing ->
-            newModel
+        Just "Yea" ->
+            changeDpy newModel Yea
 
-        Just dpy ->
-            changeDpy newModel dpy
+        Just "Qua" ->
+            changeDpy newModel Qua
+
+        Just "Mnt" ->
+            changeDpy newModel Mnt
+
+        Just "Wee" ->
+            changeDpy newModel Wee
+
+        Just "Day" ->
+            changeDpy newModel Day
+
+        Just "Sxh" ->
+            changeDpy newModel Sxh
+
+        Just "Hou" ->
+            changeDpy newModel Hou
+
+        Just "Twm" ->
+            changeDpy newModel Twm
+
+        Just "Min" ->
+            changeDpy newModel Min
+
+        Just "Sec" ->
+            changeDpy newModel Sec
+
+        _ ->
+            newModel
 
 
 setZoneName : Model -> ZoneName -> Model
@@ -691,7 +736,7 @@ buildMessageEH httpError =
             errorMessage
 
 
-changeDpy : Model -> Int -> Model
+changeDpy : Model -> Dpy -> Model
 changeDpy model dpy =
     let
         sub =
@@ -699,7 +744,7 @@ changeDpy model dpy =
 
         newSub =
             { sub
-                | message = Just <| Message 200 (String.fromInt dpy ++ " dpy")
+                | message = Just <| Message 200 (String.fromInt (fromDpy dpy) ++ " dpy")
             }
     in
     { model
@@ -830,6 +875,52 @@ tasksShown model m =
     }
 
 
+asOfShift : Model -> Signature -> Model
+asOfShift model sign =
+    let
+        shifted =
+            if model.dpy == Yea then
+                dailyShift model.asOfTime sign 365
+
+            else if model.dpy == Qua then
+                dailyShift model.asOfTime sign 90
+
+            else if model.dpy == Mnt then
+                dailyShift model.asOfTime sign 30
+
+            else
+                let
+                    diff =
+                        eval sign * (10 ^ 3) * fromDpy Sec // fromDpy model.dpy
+                in
+                posixToMillis model.asOfTime
+                    + diff
+                    |> millisToPosix
+    in
+    { model
+        | asOfTime = shifted
+        , asOfCurrentTime = False
+    }
+
+
+dailyShift : Posix -> Signature -> Int -> Posix
+dailyShift asof sign days =
+    dailyShift_ sign 0 days asof
+
+
+dailyShift_ : Signature -> Int -> Int -> Posix -> Posix
+dailyShift_ sign count days out =
+    if count >= days then
+        out
+
+    else
+        let
+            daily =
+                eval sign * (10 ^ 3) * fromDpy Sec // fromDpy Day
+        in
+        dailyShift_ sign (count + 1) days (millisToPosix <| daily + posixToMillis out)
+
+
 
 -- COMMANDS
 
@@ -930,9 +1021,7 @@ userEncoder u =
         [ ( "elmUserId", Encode.int u.id )
         , ( "elmUserName", Encode.string u.name )
         , ( "elmUserAdmin", Encode.bool u.admin )
-
-        -- , ( "elmUserDurations", Encode.list durationEncoder u.durs )
-        , ( "elmUserDefaultDpy", maybe Encode.int u.defaultDpy )
+        , ( "elmUserDefaultDpy", maybe Encode.string u.defaultDpy )
         , ( "elmUserZoneName", maybe Encode.string u.zoneName )
         , ( "elmUserZoneOffset", maybe Encode.int u.zoneOffset )
         ]
@@ -973,7 +1062,7 @@ userDecoder =
         |> required "elmUserId" int
         |> required "elmUserName" string
         |> required "elmUserAdmin" bool
-        |> optional "elmUserDefaultDpy" (nullable int) Nothing
+        |> optional "elmUserDefaultDpy" (nullable string) Nothing
         |> optional "elmUserZoneName" (nullable string) Nothing
         |> optional "elmUserZoneOffset" (nullable int) Nothing
 
@@ -1100,54 +1189,57 @@ viewInputValue model =
             str
 
 
-viewDateTimeUnit : Int -> String
+viewDateTimeUnit : Dpy -> String
 viewDateTimeUnit dpy =
-    if dpy == yeaPerY then
+    if dpy == Yea then
         "Y"
 
-    else if dpy == quaPerY then
+    else if dpy == Qua then
         "Q"
 
-    else if dpy == monPerY then
+    else if dpy == Mnt then
         "M"
 
-    else if dpy == weePerY then
+    else if dpy == Wee then
         "W"
 
-    else if dpy == dayPerY then
+    else if dpy == Day then
         "D"
 
-    else if dpy == sxhPerY then
+    else if dpy == Sxh then
         "6h"
 
-    else if dpy == houPerY then
+    else if dpy == Hou then
         "h"
 
-    else if dpy == tnmPerY then
-        "10m"
+    else if dpy == Twm then
+        "12m"
 
-    else if dpy == minPerY then
+    else if dpy == Min then
         "m"
+
+    else if dpy == Sec then
+        "s"
 
     else
         "CSTM"
 
 
-viewDateTimeGuide : Int -> String
+viewDateTimeGuide : Dpy -> String
 viewDateTimeGuide dpy =
-    if dpy <= yeaPerY then
+    if List.member dpy [ Yea ] then
         "Y"
 
-    else if dpy <= monPerY then
+    else if List.member dpy [ Qua, Mnt ] then
         "Y/M"
 
-    else if dpy <= dayPerY then
+    else if List.member dpy [ Wee, Day ] then
         "M/D"
 
-    else if dpy <= houPerY then
+    else if List.member dpy [ Sxh, Hou ] then
         "/D h:"
 
-    else if dpy <= minPerY then
+    else if List.member dpy [ Twm, Min ] then
         "h:m"
 
     else
@@ -1339,7 +1431,7 @@ viewWeight task =
                 String.fromFloat w
 
 
-viewTimeByDpy : Int -> Zone -> Maybe Millis -> String
+viewTimeByDpy : Dpy -> Zone -> Maybe Millis -> String
 viewTimeByDpy dpy z mt =
     case mt of
         Nothing ->
@@ -1368,19 +1460,19 @@ viewTimeByDpy dpy z mt =
                 sec =
                     String.fromInt <| Time.toSecond z p
             in
-            if dpy <= yeaPerY then
+            if List.member dpy [ Yea ] then
                 yea
 
-            else if dpy <= monPerY then
+            else if List.member dpy [ Qua, Mnt ] then
                 String.right 2 yea ++ "/" ++ mon
 
-            else if dpy <= dayPerY then
+            else if List.member dpy [ Wee, Day ] then
                 mon ++ "/" ++ day
 
-            else if dpy <= houPerY then
+            else if List.member dpy [ Sxh, Hou ] then
                 "/" ++ day ++ " " ++ hou ++ ":"
 
-            else if dpy <= minPerY then
+            else if List.member dpy [ Twm, Min ] then
                 hou ++ ":" ++ min
 
             else
@@ -1407,7 +1499,7 @@ barString m t =
         |> String.fromList
 
 
-position : Int -> Posix -> Maybe Millis -> Int
+position : Dpy -> Posix -> Maybe Millis -> Int
 position dpy asof mt =
     case mt of
         Nothing ->
@@ -1422,8 +1514,8 @@ position dpy asof mt =
                 -1
 
             else
-                (dpy * millis)
-                    // (secPerY * 10 ^ 3)
+                (fromDpy dpy * millis)
+                    // (fromDpy Sec * 10 ^ 3)
 
 
 replace : Int -> Char -> List Char -> List Char
@@ -1434,14 +1526,14 @@ replace pos char target =
         |> Array.toList
 
 
-preString : Int -> Posix -> Task -> List Char
+preString : Dpy -> Posix -> Task -> List Char
 preString dpy asofP task =
     let
         asofM =
             Time.posixToMillis asofP
 
         dot =
-            (10 ^ 3) * secPerY // dpy
+            (10 ^ 3) * fromDpy Sec // fromDpy dpy
     in
     List.reverse <| preString_ 0 asofM dot task []
 
@@ -1583,8 +1675,6 @@ subscriptions model =
         Sub.batch
             [ Time.every 1000 Tick
             , onKeyPress keyDecoder
-
-            -- , onClick (Decode.succeed MouseClick)
             ]
 
 

@@ -54,7 +54,7 @@ User
     timeZone            Int
     isLazy              Bool
     resolutionMin       Int
-    defaultDpy          Int Maybe
+    defaultDpy          Text Maybe
     lookUp              Int Maybe
     lookDown            Int Maybe
     encrypted           Text Maybe

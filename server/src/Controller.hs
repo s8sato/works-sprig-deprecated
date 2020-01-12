@@ -110,7 +110,7 @@ data ElmUser = ElmUser
     { elmUserId         :: Int
     , elmUserName       :: Text
     , elmUserAdmin      :: Bool
-    , elmUserDefaultDpy :: Maybe Int
+    , elmUserDefaultDpy :: Maybe Text
     , elmUserZoneName   :: Maybe Text
     , elmUserZoneOffset :: Maybe Minutes
     } deriving (Eq, Show)
