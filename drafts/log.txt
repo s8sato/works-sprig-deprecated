@@ -286,3 +286,6 @@ added asOfShift (w and o key)
 illustrate W and O
 2020-01-12 18:47:21
 
+implemented cascade done/undone.
+
+Slash commands now implementing

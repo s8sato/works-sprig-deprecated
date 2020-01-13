@@ -1,4 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TypeFamilies      #-}
+
 
 module Query where
 
@@ -17,19 +19,17 @@ import Data.Text                    ( Text )
 
 
 
-insUser :: User -> IO ()
+insUser :: User -> IO (Key User)
 insUser user = do
     pool <- pgPool
     flip runSqlPool pool $ do
         insert $ user
-        return ()
 
-insDur :: Duration -> IO ()
+insDur :: Duration -> IO (Key Duration)
 insDur duration = do
     pool <- pgPool
     flip runSqlPool pool $ do
         insert $ duration
-        return ()
 
 insTasks :: [Task] -> IO ()
 insTasks ts = do
@@ -59,6 +59,24 @@ setStarSwitched pool tKey = flip runSqlPool pool $ do
             (   task ^. TaskId ==. val tKey
             )
 
+-- setStarSwitched :: ConnectionPool -> Key Task -> IO ()
+-- setStarSwitched pool tKey = flip runSqlPool pool $ do
+--     update $ \task -> do
+--         let mIsStarred = subSelect $ from $ \task -> do
+--                 where_ 
+--                     (   task ^. TaskId ==. val tKey
+--                     )
+--                 return $ task ^. TaskIsStarred
+--         case mIsStarred of
+--             Just isStarred -> do
+--                 set
+--                     task [TaskIsStarred =. not_ isStarred]
+--                 where_ 
+--                     (   task ^. TaskId ==. val tKey
+--                     )
+--             _ -> 
+--                 return ()
+
 getBeforeMeByTask :: ConnectionPool -> Key Task -> IO [Entity Task]
 getBeforeMeByTask pool me = flip runSqlPool pool $ do
     select $ from $ \(task `LeftOuterJoin` schedule) -> do
@@ -77,6 +95,30 @@ getBeforeMeByTask pool me = flip runSqlPool pool $ do
             , asc (min_ (schedule ^. ScheduleBegin))
             ]
         return (task)
+ 
+
+-- getBeforeMeByTask :: ConnectionPool -> Key Task -> IO [Entity Task]
+-- getBeforeMeByTask pool me = flip runSqlPool pool $ do
+--     select $ from $ \(task `LeftOuterJoin` schedule) -> do
+--         on  (task ^. TaskId ==. schedule ^. ScheduleTask)
+--         let mMyInitial = subSelect $ from $ \task -> do
+--                 where_ 
+--                     (   task ^. TaskId ==. val me
+--                     )
+--                 return $ task ^. TaskInitial
+--         case mMyInitial of
+--             Just myInitial -> do
+--                 where_
+--                     (   task ^. TaskTerminal ==. myInitial
+--                     )
+--                 groupBy (task ^. TaskId)
+--                 orderBy
+--                     [ desc (task ^. TaskIsStarred)
+--                     , asc (min_ (schedule ^. ScheduleBegin))
+--                     ]
+--                 return (task)
+--             _ ->
+--                 return [] 
 
 getMeByTask :: ConnectionPool -> Key Task -> IO [Entity Task]
 getMeByTask pool me = flip runSqlPool pool $ do
@@ -104,6 +146,30 @@ getAfterMeByTask pool me = flip runSqlPool pool $ do
             , asc (min_ (schedule ^. ScheduleBegin))
             ]
         return (task)
+
+
+-- getAfterMeByTask :: ConnectionPool -> Key Task -> IO [Entity Task]
+-- getAfterMeByTask pool me = flip runSqlPool pool $ do
+--     select $ from $ \(task `LeftOuterJoin` schedule) -> do
+--         on  (task ^. TaskId ==. schedule ^. ScheduleTask)
+--         let mMyTerminal = subSelect $ from $ \task -> do
+--                 where_ 
+--                     (   task ^. TaskId ==. val me
+--                     )
+--                 return $ task ^. TaskTerminal
+--         case mMyTerminal of
+--             Just myTerminal -> do
+--                 where_
+--                     (   task ^. TaskInitial ==. myTerminal
+--                     )
+--                 groupBy (task ^. TaskId)
+--                 orderBy
+--                     [ desc (task ^. TaskIsStarred)
+--                     , asc (min_ (schedule ^. ScheduleBegin))
+--                     ]
+--                 return (task)
+--             _ ->
+--                 return []
 
 getMaxNode' :: ConnectionPool -> IO [(Value (Maybe Int), Value (Maybe Int))]
 getMaxNode' pool = flip runSqlPool pool $ do
@@ -331,6 +397,37 @@ getSchedulesByTask pool tid = flip runSqlPool pool $ do
             ]
         return (schedule)
 
+getTasksByUser :: ConnectionPool -> Key User -> IO [Entity Task]
+getTasksByUser pool uKey = flip runSqlPool pool $ do
+    select $ from $ \(task `LeftOuterJoin` schedule) -> do
+        on  (task ^. TaskId ==. schedule ^. ScheduleTask)
+        where_
+            (   task ^. TaskUser ==. val uKey
+            )
+        groupBy
+            (task ^. TaskId) 
+        orderBy
+            [ desc (task ^. TaskIsStarred)
+            , asc (min_ (schedule ^. ScheduleBegin))
+            ]
+        return (task)
+
+getNonDummyTasksByUser :: ConnectionPool -> Key User -> IO [Entity Task]
+getNonDummyTasksByUser pool uKey = flip runSqlPool pool $ do
+    select $ from $ \(task `LeftOuterJoin` schedule) -> do
+        on  (task ^. TaskId ==. schedule ^. ScheduleTask)
+        where_
+            (   task ^. TaskUser ==. val uKey
+            &&. not_ ( task ^. TaskIsDummy )
+            )
+        groupBy
+            (task ^. TaskId) 
+        orderBy
+            [ desc (task ^. TaskIsStarred)
+            , asc (min_ (schedule ^. ScheduleBegin))
+            ]
+        return (task)
+
 getUndoneNonDummyTasksByUser :: ConnectionPool -> Key User -> IO [Entity Task]
 getUndoneNonDummyTasksByUser pool uKey = flip runSqlPool pool $ do
     select $ from $ \(task `LeftOuterJoin` schedule) -> do
@@ -376,3 +473,117 @@ delSchedulesByUser pool uKey = flip runSqlPool pool $ do
                         &&. task ^. TaskId ==. schedule ^. ScheduleTask
                         )
             )
+
+selLike :: ConnectionPool -> Key User -> Text -> IO [Entity Task]
+selLike pool uKey l = flip runSqlPool pool $ do
+    select $ from $ \task -> do
+        where_
+            (   task ^. TaskUser ==. val uKey
+            &&. (task ^. TaskTitle `like` just ((%) ++. val l ++. (%)))
+            )
+        return (task)
+
+selStartableL :: ConnectionPool -> Key User -> UTCTime -> IO [Entity Task]
+selStartableL pool uKey utc = flip runSqlPool pool $ do
+    select $ from $ \task -> do
+        where_
+            (   task ^. TaskUser ==. val uKey
+            &&. task ^. TaskStartable >. just (val utc)
+            )
+        return (task)
+
+
+setDot :: ConnectionPool -> Key User -> Text -> IO ()
+setDot pool uKey unit = flip runSqlPool pool $ do
+    update $ \user -> do
+        set
+            user [UserDefaultDpy =. val (Just unit)]
+        where_
+            (   user ^. UserId ==. val uKey
+            )
+
+setCare :: ConnectionPool -> Key User -> Int -> Int -> IO ()
+setCare pool uKey up down = flip runSqlPool pool $ do
+    update $ \user -> do
+        set
+            user [ UserLookUp   =. val (Just up)
+                 , UserLookDown =. val (Just down)]
+        where_
+            (   user ^. UserId ==. val uKey
+            )
+
+insUnqPerm :: ConnectionPool -> Permission -> IO (Maybe (Key Permission))
+insUnqPerm pool perm = flip runSqlPool pool $ do
+    insertUnique perm
+
+setAllowView :: ConnectionPool -> Key User -> Key User -> IO ()
+setAllowView pool sbj obj = flip runSqlPool pool $ do
+    update $ \permission -> do
+        set
+            permission [PermissionView =. val True]
+        where_
+            (   permission ^. PermissionSubject ==. val sbj
+            &&. permission ^. PermissionObject ==. val obj
+            )
+
+setAllowEdit :: ConnectionPool -> Key User -> Key User -> IO ()
+setAllowEdit pool sbj obj = flip runSqlPool pool $ do
+    update $ \permission -> do
+        set
+            permission [ PermissionView =. val True
+                       , PermissionEdit =. val True]
+        where_
+            (   permission ^. PermissionSubject ==. val sbj
+            &&. permission ^. PermissionObject ==. val obj
+            )
+
+setBanView :: ConnectionPool -> Key User -> Key User -> IO ()
+setBanView pool sbj obj = flip runSqlPool pool $ do
+    update $ \permission -> do
+        set
+            permission [ PermissionView =. val False
+                       , PermissionEdit =. val False]
+        where_
+            (   permission ^. PermissionSubject ==. val sbj
+            &&. permission ^. PermissionObject ==. val obj
+            )
+
+setBanEdit :: ConnectionPool -> Key User -> Key User -> IO ()
+setBanEdit pool sbj obj = flip runSqlPool pool $ do
+    update $ \permission -> do
+        set
+            permission [PermissionEdit =. val False]
+        where_
+            (   permission ^. PermissionSubject ==. val sbj
+            &&. permission ^. PermissionObject ==. val obj
+            )
+
+-- upsAllowView :: ConnectionPool -> Permission -> IO (Entity Permission)
+-- upsAllowView pool perm = flip runSqlPool pool $ do
+--     upsert perm [PermissionView =. val True])
+
+-- upsAllowEdit :: ConnectionPool -> Permission -> IO (Entity Permission)
+-- upsAllowEdit pool perm = flip runSqlPool pool $ do
+--     upsert perm [ PermissionView =. val True
+--                 , PermissionEdit =. val True ]
+
+-- upsBanView :: ConnectionPool -> Permission -> IO (Entity Permission)
+-- upsBanView pool perm = flip runSqlPool pool $ do
+--     upsert perm [ PermissionView =. val False
+--                 , PermissionEdit =. val False ]
+
+-- upsBanEdit :: ConnectionPool -> Permission -> IO (Entity Permission)
+-- upsBanEdit pool perm = flip runSqlPool pool $ do
+--     upsert perm [PermissionEdit =. val False]
+
+insUnqConnect :: ConnectionPool -> Organization -> IO (Maybe (Key Organization))
+insUnqConnect pool organ = flip runSqlPool pool $ do
+    insertUnique organ
+
+getUserByName :: ConnectionPool -> Text -> IO [Entity User]
+getUserByName pool name = flip runSqlPool pool $ do
+    select $ from $ \user -> do
+        where_
+            (   user ^. UserName ==. val name
+            )
+        return (user)

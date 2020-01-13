@@ -83,29 +83,20 @@ YOU CAN ALSO ENTER ONE OF THE FOLLOWING SLASH COMMANDS:
 
 
 
-/dpy 1
-Set default dpy (dots per year) to 1, that is, a dot represents a year.
+/dot h
+Set the default time unit represented by a dot to an hour.
 
-/asof 2020/01/01 12:0
-Set the time corresponding to the left edge of dots to noon on January 1, 2020.
+/sel -t word 
+Select tasks whose title contains 'word'.
 
-/pause
-Fix the chart.
+/sel -nt word
+Select tasks whose title does not contains 'word'.
 
-/tick
-Update the chart every second (default).
-
-/sel -l foo 
-Select tasks whose title LIKEs 'foo'.
-
-/sel -nl %b_a_r%
-Select tasks whose title does NOT LIKE '%b_a_r%'.
-
-/sel -s 2020/1/1< 12:0< <2020/1/2
+/sel -s 2020/1/1_12:0< <2020/1/2_0:0
 Select tasks whose startable is in the afternoon of January 1, 2020.
 
-/sel -d <23:59
-Select tasks whose deadline is today's end.
+/sel -d 2020/1/1_12:0< <2020/1/2_0:0
+Select tasks whose deadline is in the afternoon of January 1, 2020.
 
 /sel -w 30< <300
 Select tasks whose weight is between 30 and 300 hours.
@@ -125,10 +116,10 @@ Select trunks, namely, tasks with no successor.
 /sel -bud
 Select buds, namely, tasks with no predecessor.
 
-/sel #777< <#888
-Select intersection of #777's successor and #888's predecessor.
+/sel -r #777< <#888
+Select the intersection of #777's successors and #888's predecessors.
 
-/sel -l %baz% -s 2020/1/1< -d <23:59 -w 30< <300 -arch -star
+/sel -t word -s 2020/1/1_12:0< <2020/1/2_0:0 -w 30< <300 -arch -star
 Specify multiple conditions.
 
 /care 1 2

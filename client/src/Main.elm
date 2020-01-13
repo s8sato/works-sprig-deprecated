@@ -553,7 +553,8 @@ returnedHome model m =
 
         newSub =
             { sub
-                | tasks = m.tasks
+                | user = m.user
+                , tasks = m.tasks
                 , message = m.message
             }
 
@@ -564,35 +565,35 @@ returnedHome model m =
                 , asOfCurrentTime = True
             }
     in
-    case model.sub.user.defaultDpy of
-        Just "Yea" ->
+    case m.user.defaultDpy of
+        Just "Y" ->
             changeDpy newModel Yea
 
-        Just "Qua" ->
+        Just "Q" ->
             changeDpy newModel Qua
 
-        Just "Mnt" ->
+        Just "M" ->
             changeDpy newModel Mnt
 
-        Just "Wee" ->
+        Just "W" ->
             changeDpy newModel Wee
 
-        Just "Day" ->
+        Just "D" ->
             changeDpy newModel Day
 
-        Just "Sxh" ->
+        Just "6h" ->
             changeDpy newModel Sxh
 
-        Just "Hou" ->
+        Just "h" ->
             changeDpy newModel Hou
 
-        Just "Twm" ->
+        Just "12m" ->
             changeDpy newModel Twm
 
-        Just "Min" ->
+        Just "m" ->
             changeDpy newModel Min
 
-        Just "Sec" ->
+        Just "s" ->
             changeDpy newModel Sec
 
         _ ->
@@ -817,6 +818,9 @@ textPosted model m =
                         Just me ->
                             case me.code of
                                 200 ->
+                                    Nothing
+
+                                300 ->
                                     Nothing
 
                                 _ ->
@@ -1668,7 +1672,7 @@ strFromWeekday weekday =
 
 textPlaceholder : String
 textPlaceholder =
-    "ENTER TASKS OR A COMMAND:\n\n\n\njump\n    step\n        hop\n\nA task to complete by the end of 2020 -2020/12/31\n    A task expected to take 300 hours $300\n        A task you can start in the beginning of 2020 2020/1/1-\n\nA time-critical task 2020/01/1- 23:59- $0.1 -0:5 -2020/1/02\n\ntrunk\n    branch Alice\n        bud \n    branch Bob\n        bud\n        bud\n\njump\n    step\n        hop2 dependent on hop1 [key\n    step\n        key] hop1\n\n% A task to register as completed\n* A task to register as starred\n\nA linked task e.g. slack permalink &https://\n\nA task to be registered being assigned to Bob, if allowed @Bob\n\n#777 The task with ID 777 whose weight will be updated to 30 $30\n\n#777 The complex task\n    A simpler task\n    A simpler task\n\nA new emerging task dependent on existing #777 and #888\n    #777\n    #888\n\n\n\nFOLLOW THESE 3 RULES WHEN USING THE # SIGN:\n\n\n\n1.\n    Each #ID can only be used once per post:\n\n        NG1\n            step\n                hop2\n                    #400 duplicate\n            step\n                #400 duplicate\n        OK1\n            step\n                hop2 [key\n            step\n                key] #200 unique\n\n2.\n    #IDs can only be placed as trunks or buds:\n\n        NG2\n            #400 NOT a trunk NOR a bud\n                hop\n\n3.\n    If placed as a bud, it must be an existing trunk:\n\n        NG3\n            #200 OK existing as a trunk\n            #400 NG existing NOT as a trunk\n\n\n\nYOU CAN ALSO ENTER ONE OF THE FOLLOWING SLASH COMMANDS:\n\n\n\n/dpy 1\nSet default dpy (dots per year) to 1, that is, a dot represents a year.\n\n/asof 2020/01/01 12:0\nSet the time corresponding to the left edge of dots to noon on January 1, 2020.\n\n/pause\nFix the chart.\n\n/tick\nUpdate the chart every second (default).\n\n/sel -l foo \nSelect tasks whose title LIKEs 'foo'.\n\n/sel -nl %b_a_r%\nSelect tasks whose title does NOT LIKE '%b_a_r%'.\n\n/sel -s 2020/1/1< 12:0< <2020/1/2\nSelect tasks whose startable is in the afternoon of January 1, 2020.\n\n/sel -d <23:59\nSelect tasks whose deadline is today's end.\n\n/sel -w 30< <300\nSelect tasks whose weight is between 30 and 300 hours.\n\n/sel -a Bob\nSelect tasks assigned to Bob.\n\n/sel -arch\nSelect archived tasks.\n\n/sel -star\nSelect starred tasks.\n\n/sel -trunk\nSelect trunks, namely, tasks with no successor.\n\n/sel -bud\nSelect buds, namely, tasks with no predecessor.\n\n/sel #777< <#888\nSelect intersection of #777's successor and #888's predecessor.\n\n/sel -l %baz% -s 2020/1/1< -d <23:59 -w 30< <300 -arch -star\nSpecify multiple conditions.\n\n/care 1 2\nCare from parents to grandchildren, namely, watch their tasks too,\nprovided you have permission for each.\n\n\n\nCOMMANDS FOR ADMINISTRATORS:\n\n\n\n/allow Albert edit sci_team\nAllow Albert to edit sci_team tasks; create, update, and perform.\nAutomatically allow to view.\n\n/ban pisces_dep view Albert\nBan pisces_dep from viewing Albert tasks.\nAutomatically ban from editing.\n\n/connect zodiac_inc pisces_dep\nGive zodiac_inc and pisces_dep a parent-child relationship.\nYou can, by default,\nview direct parents and all descendants and\nedit direct children.\n\n\n\nTHANK YOU FOR READING!\n"
+    "ENTER TASKS OR A COMMAND:\n\n\n\njump\n    step\n        hop\n\nA task to complete by the end of 2020 -2020/12/31\n    A task expected to take 300 hours $300\n        A task you can start in the beginning of 2020 2020/1/1-\n\nA time-critical task 2020/01/1- 23:59- $0.1 -0:5 -2020/1/02\n\ntrunk\n    branch Alice\n        bud \n    branch Bob\n        bud\n        bud\n\njump\n    step\n        hop2 dependent on hop1 [key\n    step\n        key] hop1\n\n% A task to register as completed\n* A task to register as starred\n\nA linked task e.g. slack permalink &https://\n\nA task to be registered being assigned to Bob, if allowed @Bob\n\n#777 The task with ID 777 whose weight will be updated to 30 $30\n\n#777 The complex task\n    A simpler task\n    A simpler task\n\nA new emerging task dependent on existing #777 and #888\n    #777\n    #888\n\n\n\nFOLLOW THESE 3 RULES WHEN USING THE # SIGN:\n\n\n\n1.\n    Each #ID can only be used once per post:\n\n        NG1\n            step\n                hop2\n                    #400 duplicate\n            step\n                #400 duplicate\n        OK1\n            step\n                hop2 [key\n            step\n                key] #200 unique\n\n2.\n    #IDs can only be placed as trunks or buds:\n\n        NG2\n            #400 NOT a trunk NOR a bud\n                hop\n\n3.\n    If placed as a bud, it must be an existing trunk:\n\n        NG3\n            #200 OK existing as a trunk\n            #400 NG existing NOT as a trunk\n\n\n\nYOU CAN ALSO ENTER ONE OF THE FOLLOWING SLASH COMMANDS:\n\n\n\n/dot h\nSet the default time unit represented by a dot to an hour.\n\n/sel -t word \nSelect tasks whose title contains 'word'.\n\n/sel -nt word\nSelect tasks whose title does not contains 'word'.\n\n/sel -s 2020/1/1_12:0< <2020/1/2_0:0\nSelect tasks whose startable is in the afternoon of January 1, 2020.\n\n/sel -d 2020/1/1_12:0< <2020/1/2_0:0\nSelect tasks whose deadline is in the afternoon of January 1, 2020.\n\n/sel -w 30< <300\nSelect tasks whose weight is between 30 and 300 hours.\n\n/sel -a Bob\nSelect tasks assigned to Bob.\n\n/sel -arch\nSelect archived tasks.\n\n/sel -star\nSelect starred tasks.\n\n/sel -trunk\nSelect trunks, namely, tasks with no successor.\n\n/sel -bud\nSelect buds, namely, tasks with no predecessor.\n\n/sel -r #777< <#888\nSelect the intersection of #777's successors and #888's predecessors.\n\n/sel -t word -s 2020/1/1_12:0< <2020/1/2_0:0 -w 30< <300 -arch -star\nSpecify multiple conditions.\n\n/care 1 2\nCare from parents to grandchildren, namely, watch their tasks too,\nprovided you have permission for each.\n\n\n\nCOMMANDS FOR ADMINISTRATORS:\n\n\n\n/allow Albert edit sci_team\nAllow Albert to edit sci_team tasks; create, update, and perform.\nAutomatically allow to view.\n\n/ban pisces_dep view Albert\nBan pisces_dep from viewing Albert tasks.\nAutomatically ban from editing.\n\n/connect zodiac_inc pisces_dep\nGive zodiac_inc and pisces_dep a parent-child relationship.\nYou can, by default,\nview direct parents and all descendants and\nedit direct children.\n\n\n\nTHANK YOU FOR READING!\n"
 
 
 

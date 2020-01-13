@@ -70,7 +70,7 @@ import Data.Time.Clock.POSIX (utcTimeToPOSIXSeconds, posixSecondsToUTCTime)
 import qualified Database.Esqueleto as Q (Value (..), EntityField (..)) 
 
 import Data.Time.Clock (nominalDay)
-import Data.List (sort, maximumBy)
+import Data.List (sort, maximumBy, intersect)
 import Data.Text.Format (fixed)
 import Data.List.Unique (allUnique, sortUniq)
 import Data.Maybe (isNothing)
@@ -170,6 +170,35 @@ data UserTaskId = UserTaskId
 
 $(deriveJSON defaultOptions ''UserTaskId)
 
+data SlashCmd
+    = SlashSel Text
+    | SlashDot Text
+    | SlashCare Int Int
+    | SlashAllow Text Text Text
+    | SlashBan Text Text Text
+    | SlashConnect Text Text
+
+data Condition
+    = SelLike Text
+    | SelNotLike Text 
+    | SelStartableL Int Int Int Int Int
+    | SelStartableR Int Int Int Int Int
+    | SelStartableLR Int Int Int Int Int Int Int Int Int Int
+    | SelDeadLineL Int Int Int Int Int
+    | SelDeadLineR Int Int Int Int Int
+    | SelDeadLineLR Int Int Int Int Int Int Int Int Int Int
+    | SelWeightL Double
+    | SelWeightR Double
+    | SelWeightLR Double Double
+    | SelAssign Text
+    | SelArchived
+    | SelStarred
+    | SelTrunks
+    | SelBuds
+    | SelRelationL Int 
+    | SelRelationR Int
+    | SelRelationLR Int Int
+  
 
 
 -- API DEFINITION
@@ -273,6 +302,7 @@ getMaxNode = do
 
 textPostReload' :: TextPost -> IO ElmSubModel
 textPostReload' (TextPost elmUser text) = do
+    if isCommand text then commandPostReload (TextPost elmUser text) else do
     pool <- pgPool
     let uid = elmUserId elmUser
     user <- Prelude.head <$> (map entityVal) <$> getUser pool (keyFromId uid :: UserId)
@@ -296,11 +326,16 @@ textPostReload' (TextPost elmUser text) = do
                     maybeUpdate updates
                     let inserts' = preShift preds shift inserts 
                     insTasks . (shiftTaskNodes shift) $ inserts'
-                    elmTasks <- buildElmTasksByUser uid
-                    let ElmMessage _ ok1 = buildOkMsg (filter (not . taskIsDummy) inserts') " tasks registered."
-                    let ElmMessage _ ok2 = buildOkMsg updates " tasks updated."
-                    let okMsg = ElmMessage 200 (intercalate " " [ok1, ok2])
-                    return $ ElmSubModel elmUser elmTasks Nothing (Just okMsg)
+                    re <- reschedule uid
+                    case re of
+                        Left errMsg'' ->
+                            return $ ElmSubModel elmUser [] Nothing (Just $ ElmMessage 400 errMsg'') 
+                        _ -> do
+                            elmTasks <- buildElmTasksByUser uid
+                            let ElmMessage _ ok1 = buildOkMsg (filter (not . taskIsDummy) inserts') " tasks registered."
+                            let ElmMessage _ ok2 = buildOkMsg updates " tasks updated."
+                            let okMsg = ElmMessage 200 (intercalate " " [ok1, ok2])
+                            return $ ElmSubModel elmUser elmTasks Nothing (Just okMsg)
 
 data Predictor =    PredTerm { predTermTarget :: Node, predTermToBe :: Node }
                 |   PredInit { predInitTarget :: Node, predInitToBe :: Node }
@@ -417,29 +452,32 @@ doneTasksReload' (UserSelTasks elmUser tids) = do
         Just errMsg ->
             return $ ElmSubModel elmUser [] Nothing (Just errMsg) 
         Nothing -> do
-            (tKeys, mEntityNonDummies) <- usAndPredecessors uid tids
-            sequence_ ( map (setTaskDone pool) tKeys)
+            (tKeys, mEntitiesNonDummy) <- usAndPredecessors uid tids
+            allUndone <- getUndoneTasksByUser pool (keyFromId uid :: UserId)
+            let tKeysUndone = tKeys `intersect` (map entityKey allUndone)
+            let tKeysUndoneNonDummy = (map (\(Just e) -> entityKey e) mEntitiesNonDummy) `intersect` (map entityKey allUndone)
+            sequence_ ( map (setTaskDone pool) tKeysUndone)
             re <- reschedule uid
             case re of
                 Left errMsg' ->
                     return $ ElmSubModel elmUser [] Nothing (Just $ ElmMessage 400 errMsg') 
                 _ -> do
                     elmTasks <- buildElmTasksByUser uid
-                    let okMsg = buildOkMsg mEntityNonDummies " tasks done."
+                    let okMsg = buildOkMsg tKeysUndoneNonDummy " tasks done."
                     return $ ElmSubModel elmUser elmTasks Nothing (Just okMsg)
 
 usAndPredecessors :: Int -> [Int] -> IO ([Key Task], [Maybe (Entity Task)])
 usAndPredecessors uid tids = do
     pool <- pgPool
     selected <- sequence $ map (\tid -> Prelude.head <$> getMeByTask pool (keyFromId tid :: TaskId)) tids
-    allUndone <- getUndoneTasksByUser pool (keyFromId uid :: UserId)
+    all <- getTasksByUser pool (keyFromId uid :: UserId)
     let fSelected = map toTaskFrag $ map entityVal selected
-    let fAllUndone = map toTaskFrag $ map entityVal allUndone
-    let fPred = sortUniq $ Prelude.concatMap (predecessor fAllUndone) fSelected
-    let mEntityUsPred = filter (/= Nothing) $ map (findTaskByPair allUndone) (map fPair (fSelected ++ fPred))
+    let fAll = map toTaskFrag $ map entityVal all
+    let fPred = sortUniq $ Prelude.concatMap (predecessor fAll) fSelected
+    let mEntityUsPred = filter (/= Nothing) $ map (findTaskByPair all) (map fPair (fSelected ++ fPred))
     let tKeys = map (\(Just e) -> entityKey e) mEntityUsPred
-    let mEntityNonDummies = filter (\(Just e) -> (not . taskIsDummy) (entityVal e)) mEntityUsPred
-    return $ (tKeys, mEntityNonDummies)
+    let mEntitiesNonDummy = filter (\(Just e) -> (not . taskIsDummy) (entityVal e)) mEntityUsPred
+    return $ (tKeys, mEntitiesNonDummy)
 
 undoneTasksReload' :: UserSelTasks -> IO ElmSubModel
 undoneTasksReload' (UserSelTasks elmUser tids) = do
@@ -450,29 +488,32 @@ undoneTasksReload' (UserSelTasks elmUser tids) = do
         Just errMsg ->
             return $ ElmSubModel elmUser [] Nothing (Just errMsg) 
         Nothing -> do
-            (tKeys, mEntityNonDummies) <- usAndSuccessors uid tids
-            sequence_ ( map (setTaskUndone pool) tKeys)
+            (tKeys, mEntitiesNonDummy) <- usAndSuccessors uid tids
+            allDone <- getDoneTasksByUser pool (keyFromId uid :: UserId)
+            let tKeysDone = tKeys `intersect` (map entityKey allDone)
+            let tKeysDoneNonDummy = (map (\(Just e) -> entityKey e) mEntitiesNonDummy) `intersect` (map entityKey allDone)
+            sequence_ ( map (setTaskUndone pool) tKeysDone)
             re <- reschedule uid
             case re of
                 Left errMsg' ->
                     return $ ElmSubModel elmUser [] Nothing (Just $ ElmMessage 400 errMsg') 
                 _ -> do
                     elmTasks <- buildElmTasksByUser uid
-                    let okMsg = buildOkMsg mEntityNonDummies " tasks undone."
+                    let okMsg = buildOkMsg tKeysDoneNonDummy " tasks undone."
                     return $ ElmSubModel elmUser elmTasks Nothing (Just okMsg)
 
 usAndSuccessors :: Int -> [Int] -> IO ([Key Task], [Maybe (Entity Task)])
 usAndSuccessors uid tids = do
     pool <- pgPool
     selected <- sequence $ map (\tid -> Prelude.head <$> getMeByTask pool (keyFromId tid :: TaskId)) tids
-    allDone <- getDoneTasksByUser pool (keyFromId uid :: UserId)
+    all <- getTasksByUser pool (keyFromId uid :: UserId)
     let fSelected = map toTaskFrag $ map entityVal selected
-    let fAllDone = map toTaskFrag $ map entityVal allDone
-    let fSucc = sortUniq $ Prelude.concatMap (successor fAllDone) fSelected
-    let mEntityUsSucc = filter (/= Nothing) $ map (findTaskByPair allDone) (map fPair (fSelected ++ fSucc))
+    let fAll = map toTaskFrag $ map entityVal all
+    let fSucc = sortUniq $ Prelude.concatMap (successor fAll) fSelected
+    let mEntityUsSucc = filter (/= Nothing) $ map (findTaskByPair all) (map fPair (fSelected ++ fSucc))
     let tKeys = map (\(Just e) -> entityKey e) mEntityUsSucc
-    let mEntityNonDummies = filter (\(Just e) -> (not . taskIsDummy) (entityVal e)) mEntityUsSucc
-    return $ (tKeys, mEntityNonDummies)
+    let mEntitiesNonDummy = filter (\(Just e) -> (not . taskIsDummy) (entityVal e)) mEntityUsSucc
+    return $ (tKeys, mEntitiesNonDummy)
 
 switchStar' :: UserTaskId -> IO ()
 switchStar' (UserTaskId elmUser tid) = do
@@ -633,6 +674,196 @@ resetSchedules uid schedules = do
     delSchedulesByUser pool (keyFromId uid :: UserId)
     insSchedules pool schedules
 
+commandPostReload :: TextPost -> IO ElmSubModel
+commandPostReload (TextPost elmUser cmd) = do
+    case parseOnly aSlashCmd cmd of
+        Right (SlashSel conditions) ->
+            slashSel elmUser conditions
+        Right (SlashDot unit) ->
+            slashDot elmUser unit
+        Right (SlashCare up down) ->
+            slashCare elmUser up down
+        Right (SlashAllow sbj act obj) ->
+            slashAllow elmUser sbj act obj
+        Right (SlashBan sbj act obj) ->
+            slashBan elmUser sbj act obj
+        Right (SlashConnect parent child) ->
+            slashConnect elmUser parent child
+        _ ->
+            return $ ElmSubModel elmUser [] Nothing (Just $ ElmMessage 400 "Invalid command.")
+
+slashSel :: ElmUser -> Text -> IO ElmSubModel
+slashSel elmUser conditions = do
+    pool <- pgPool
+    let uid = elmUserId elmUser
+    let cons = filter (/= "") (splitOn "-" conditions)
+    tKeys <- map entityKey <$> getNonDummyTasksByUser pool (keyFromId uid :: UserId)
+    tKeys' <- slashSel' uid cons tKeys
+    elmTasks <- sequence (map buildElmTaskByTask tKeys')
+    let okMsg = buildOkMsg (filter (not . elmTaskIsDummy) elmTasks) " tasks selected."
+    return $ ElmSubModel elmUser elmTasks Nothing (Just okMsg)
+
+slashSel' :: Int -> [Text] -> [Key Task] -> IO [Key Task]
+slashSel' _ [] tKeys =
+    return tKeys
+slashSel' uid (con:cons) tKeys = do
+    pool <- pgPool
+    case parseOnly aCondition con of 
+        Right (SelLike        l) -> do
+            sel <- selLike pool (keyFromId uid :: UserId) l
+            slashSel' uid cons (tKeys `intersect` (map entityKey sel))
+        -- Right $ SelNotLike     nl ->
+
+        Right (SelStartableL  yy mm dd h m) -> do
+            let date = fromGregorian (fromIntegral yy) mm dd
+            let clock = secondsToDiffTime . fromIntegral $ 60 * (m + 60 * h)
+            sel <- selStartableL pool (keyFromId uid :: UserId) (UTCTime date clock)
+            slashSel' uid cons (tKeys `intersect` (map entityKey sel))
+
+        -- Right (SelStartableR  yy mm dd h m) ->
+
+        -- Right (SelStartableLR lY lM lD lh lm rY rM rD rh rm) ->
+
+        -- Right (SelDeadLineL   yy mm dd h m) ->
+
+        -- Right (SelDeadLineR   yy mm dd h m) ->
+
+        -- Right (SelDeadLineLR  lY lM lD lh lm rY rM rD rh rm) ->
+
+        -- Right (SelWeightL     w) ->
+
+        -- Right (SelWeightR     w) ->
+
+        -- Right (SelWeightLR    lw rw) ->
+
+        -- Right (SelAssign      a) ->
+
+        -- Right (SelArchived    ) ->
+
+        -- Right (SelStarred     ) ->
+
+        -- Right (SelTrunks      ) ->
+
+        -- Right (SelBuds        ) ->
+
+        Right (SelRelationL   tid) -> do
+            (succKeys, _) <- usAndSuccessors uid [tid]
+            slashSel' uid cons (tKeys `intersect` succKeys)
+
+        -- Right (SelRelationR   tid) ->
+
+        -- Right (SelRelationLR  tidL tidR) ->
+
+        _ ->
+            slashSel' uid cons tKeys
+
+slashDot :: ElmUser -> Text -> IO ElmSubModel
+slashDot elmUser unit
+    | unit `elem` ["Y", "Q", "M", "W", "D", "6h", "h", "12m", "m", "s"] = do
+        pool <- pgPool
+        let uid = elmUserId elmUser
+        setDot pool (keyFromId uid :: UserId) unit
+        return $ ElmSubModel elmUser [] Nothing (Just $ ElmMessage 300 (Data.Text.concat ["Default time unit: ", unit]))
+    | otherwise =
+        return $ ElmSubModel elmUser [] Nothing (Just $ ElmMessage 400 (Data.Text.concat ["Invalid time unit: ", unit]))
+
+slashCare :: ElmUser -> Int -> Int -> IO ElmSubModel
+slashCare elmUser up down
+    | 0 < up && 0 < down = do
+        pool <- pgPool
+        let uid = elmUserId elmUser
+        setCare pool (keyFromId uid :: UserId) up down
+        return $ ElmSubModel elmUser [] Nothing (Just $ ElmMessage 300 (Data.Text.concat ["Look up ", pack $ show up, ", Look down ", pack $ show down, "."]))
+    | otherwise =
+        return $ ElmSubModel elmUser [] Nothing (Just $ ElmMessage 400 "Invalid numbers.")
+
+slashAllow :: ElmUser -> Text -> Text -> Text -> IO ElmSubModel
+slashAllow elmUser sbj act obj = do
+    pool <- pgPool
+    (existS, eSs) <- existsUser sbj
+    (existO, eOs) <- existsUser obj
+    if Prelude.and [existS, existO] then do
+        let sKey = entityKey . Prelude.head $ eSs
+        let oKey = entityKey . Prelude.head $ eOs
+        case act of
+            "view" -> do
+                let perm = Permission sKey oKey True False
+                ins <- insUnqPerm pool perm
+                case ins of
+                    Nothing -> do
+                        setAllowView pool sKey oKey
+                        return $ ElmSubModel elmUser [] Nothing (Just $ ElmMessage 300 (Data.Text.concat [sbj, " -> ", obj, " : view OK edit NG"]))
+                    _ ->
+                        return $ ElmSubModel elmUser [] Nothing (Just $ ElmMessage 300 (Data.Text.concat [sbj, " -> ", obj, " : view OK edit NG"]))
+            "edit" -> do
+                let perm = Permission sKey oKey True True
+                ins <- insUnqPerm pool perm
+                case ins of
+                    Nothing -> do
+                        setAllowEdit pool sKey oKey
+                        return $ ElmSubModel elmUser [] Nothing (Just $ ElmMessage 300 (Data.Text.concat [sbj, " -> ", obj, " : view OK edit OK"]))
+                    _ ->
+                        return $ ElmSubModel elmUser [] Nothing (Just $ ElmMessage 300 (Data.Text.concat [sbj, " -> ", obj, " : view OK edit OK"]))
+            a ->
+                return $ ElmSubModel elmUser [] Nothing (Just $ ElmMessage 400 (Data.Text.concat ["Invalid action: ", a]))
+    else
+        return $ ElmSubModel elmUser [] Nothing (Just $ ElmMessage 400 "User does not exist.")
+
+slashBan :: ElmUser -> Text -> Text -> Text -> IO ElmSubModel
+slashBan elmUser sbj act obj = do
+    pool <- pgPool
+    (existS, eSs) <- existsUser sbj
+    (existO, eOs) <- existsUser obj
+    if Prelude.and [existS, existO] then do
+        let sKey = entityKey . Prelude.head $ eSs
+        let oKey = entityKey . Prelude.head $ eOs
+        case act of
+            "view" -> do
+                let perm = Permission sKey oKey False False
+                ins <- insUnqPerm pool perm
+                case ins of
+                    Nothing -> do
+                        setBanView pool sKey oKey
+                        return $ ElmSubModel elmUser [] Nothing (Just $ ElmMessage 300 (Data.Text.concat [sbj, " -> ", obj, " : view NG edit NG"]))
+                    _ ->            
+                        return $ ElmSubModel elmUser [] Nothing (Just $ ElmMessage 300 (Data.Text.concat [sbj, " -> ", obj, " : view NG edit NG"]))            
+            "edit" -> do
+                let perm = Permission sKey oKey True False
+                ins <- insUnqPerm pool perm
+                case ins of
+                    Nothing -> do
+                        setBanEdit pool sKey oKey
+                        return $ ElmSubModel elmUser [] Nothing (Just $ ElmMessage 300 (Data.Text.concat [sbj, " -> ", obj, " : view OK edit NG"]))
+                    _ ->            
+                        return $ ElmSubModel elmUser [] Nothing (Just $ ElmMessage 300 (Data.Text.concat [sbj, " -> ", obj, " : view OK edit NG"]))
+            a ->
+                return $ ElmSubModel elmUser [] Nothing (Just $ ElmMessage 400 (Data.Text.concat ["Invalid action: ", a]))
+    else
+        return $ ElmSubModel elmUser [] Nothing (Just $ ElmMessage 400 "User does not exist.")
+
+slashConnect :: ElmUser -> Text -> Text -> IO ElmSubModel
+slashConnect elmUser parent child = do
+    pool <- pgPool
+    (existP, ePs) <- existsUser parent
+    (existC, eCs) <- existsUser child
+    if Prelude.and [existP, existC] then do
+        let pKey = entityKey . Prelude.head $ ePs
+        let cKey = entityKey . Prelude.head $ eCs
+        let organ = Organization pKey cKey
+        out <- insUnqConnect pool organ
+        case out of
+            Just _ ->
+                return $ ElmSubModel elmUser [] Nothing (Just $ ElmMessage 300 (Data.Text.concat ["Built ", parent, " - ", child, " relationship."]))
+            _ ->
+                return $ ElmSubModel elmUser [] Nothing (Just $ ElmMessage 400 "Relationship already exists.")
+    else
+        return $ ElmSubModel elmUser [] Nothing (Just $ ElmMessage 400 "User does not exist.")
+
+existsUser :: Text -> IO (Bool, [Entity User])
+existsUser name = do
+    pool <- pgPool
+    users <- getUserByName pool name
+    return $ (not . Prelude.null $ users, users)
 
 
 
@@ -1504,3 +1735,38 @@ weightDown reso frags winner =
         else
             frag
         ) frags
+
+isCommand :: Text -> Bool
+isCommand "" = False
+isCommand t = Data.Text.head t == '/'
+
+aSlashCmd :: Parser SlashCmd
+aSlashCmd = 
+        SlashSel     <$ string "/sel "     <*> takeText
+    <|> SlashDot     <$ string "/dot "     <*> takeText
+    <|> SlashCare    <$ string "/care "    <*> decimal          <* char ' ' <*> decimal
+    <|> SlashAllow   <$ string "/allow "   <*> takeTill (==' ') <* char ' ' <*> takeTill (==' ') <* char ' ' <*> takeText
+    <|> SlashBan     <$ string "/ban "     <*> takeTill (==' ') <* char ' ' <*> takeTill (==' ') <* char ' ' <*> takeText
+    <|> SlashConnect <$ string "/connect " <*> takeTill (==' ') <* char ' ' <*> takeText
+
+aCondition :: Parser Condition
+aCondition = 
+        SelLike         <$ string "t "     <*> takeText
+    <|> SelNotLike      <$ string "nt "    <*> takeText
+    <|> SelStartableL   <$ string "s "     <*> decimal <* char '/' <*> decimal <* char '/' <*> decimal <* char '_' <*> decimal <* char ':' <*> decimal <* char '<'
+    <|> SelStartableR   <$ string "s "     <* char '<' <*> decimal <* char '/' <*> decimal <* char '/' <*> decimal <* char '_' <*> decimal <* char ':' <*> decimal
+    <|> SelStartableLR  <$ string "s "     <*> decimal <* char '/' <*> decimal <* char '/' <*> decimal <* char '_' <*> decimal <* char ':' <*> decimal <* char '<' <* char ' ' <* char '<' <*> decimal <* char '/' <*> decimal <* char '/' <*> decimal <* char '_' <*> decimal <* char ':' <*> decimal
+    <|> SelDeadLineL    <$ string "d "     <*> decimal <* char '/' <*> decimal <* char '/' <*> decimal <* char '_' <*> decimal <* char ':' <*> decimal <* char '<'
+    <|> SelDeadLineR    <$ string "d "     <* char '<' <*> decimal <* char '/' <*> decimal <* char '/' <*> decimal <* char '_' <*> decimal <* char ':' <*> decimal
+    <|> SelDeadLineLR   <$ string "d "     <*> decimal <* char '/' <*> decimal <* char '/' <*> decimal <* char '_' <*> decimal <* char ':' <*> decimal <* char '<' <* char ' ' <* char '<' <*> decimal <* char '/' <*> decimal <* char '/' <*> decimal <* char '_' <*> decimal <* char ':' <*> decimal
+    <|> SelWeightL      <$ string "w "     <*> double <* char '<'
+    <|> SelWeightR      <$ string "w "     <* char '<' <*> double
+    <|> SelWeightLR     <$ string "w "     <*> double <* char '<' <* char ' ' <* char '<' <*> double
+    <|> SelAssign       <$ string "a "     <*> takeText
+    <|> SelArchived     <$ string "arch"   
+    <|> SelStarred      <$ string "star"   
+    <|> SelTrunks       <$ string "trunk"  
+    <|> SelBuds         <$ string "bud"    
+    <|> SelRelationL    <$ string "r "     <* char '#' <*> decimal <* char '<'
+    <|> SelRelationR    <$ string "r "     <* char '<' <* char '#' <*> decimal
+    <|> SelRelationLR   <$ string "r "     <* char '#' <*> decimal <* char '<' <* char ' ' <* char '<' <* char '#' <*> decimal
