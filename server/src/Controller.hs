@@ -303,39 +303,39 @@ getMaxNode = do
 textPostReload' :: TextPost -> IO ElmSubModel
 textPostReload' (TextPost elmUser text) = do
     if isCommand text then commandPostReload (TextPost elmUser text) else do
-    pool <- pgPool
-    let uid = elmUserId elmUser
-    user <- Prelude.head <$> (map entityVal) <$> getUser pool (keyFromId uid :: UserId)
-    durations <- (map entityVal) <$> getDurationsByUser pool (keyFromId uid :: UserId)
-    let tasksMaybeIds = tasksFromText user durations text
-    fault <- faultPost user (map fst tasksMaybeIds)
-    case fault of
-        Just errMsg ->
-            return $ ElmSubModel elmUser [] Nothing (Just errMsg) 
-        Nothing -> do
-            mn <- getMaxNode
-            let maxNode = case mn of
-                    Nothing -> 0
-                    Just n  -> n
-            let shift = maxNode + 2
-            prediction <- insertOrUpdate tasksMaybeIds
-            case prediction of
-                Left errMsg' ->
-                    return $ ElmSubModel elmUser [] Nothing (Just $ ElmMessage 400 errMsg')
-                Right (inserts, updates, preds) -> do
-                    maybeUpdate updates
-                    let inserts' = preShift preds shift inserts 
-                    insTasks . (shiftTaskNodes shift) $ inserts'
-                    re <- reschedule uid
-                    case re of
-                        Left errMsg'' ->
-                            return $ ElmSubModel elmUser [] Nothing (Just $ ElmMessage 400 errMsg'') 
-                        _ -> do
-                            elmTasks <- buildElmTasksByUser uid
-                            let ElmMessage _ ok1 = buildOkMsg (filter (not . taskIsDummy) inserts') " tasks registered."
-                            let ElmMessage _ ok2 = buildOkMsg updates " tasks updated."
-                            let okMsg = ElmMessage 200 (intercalate " " [ok1, ok2])
-                            return $ ElmSubModel elmUser elmTasks Nothing (Just okMsg)
+        pool <- pgPool
+        let uid = elmUserId elmUser
+        user <- Prelude.head <$> (map entityVal) <$> getUser pool (keyFromId uid :: UserId)
+        durations <- (map entityVal) <$> getDurationsByUser pool (keyFromId uid :: UserId)
+        let tasksMaybeIds = tasksFromText user durations text
+        fault <- faultPost user (map fst tasksMaybeIds)
+        case fault of
+            Just errMsg ->
+                return $ ElmSubModel elmUser [] Nothing (Just errMsg) 
+            Nothing -> do
+                mn <- getMaxNode
+                let maxNode = case mn of
+                        Nothing -> 0
+                        Just n  -> n
+                let shift = maxNode + 2
+                prediction <- insertOrUpdate tasksMaybeIds
+                case prediction of
+                    Left errMsg' ->
+                        return $ ElmSubModel elmUser [] Nothing (Just $ ElmMessage 400 errMsg')
+                    Right (inserts, updates, preds) -> do
+                        maybeUpdate updates
+                        let inserts' = preShift preds shift inserts 
+                        insTasks . (shiftTaskNodes shift) $ inserts'
+                        re <- reschedule uid
+                        case re of
+                            Left errMsg'' ->
+                                return $ ElmSubModel elmUser [] Nothing (Just $ ElmMessage 400 errMsg'') 
+                            _ -> do
+                                elmTasks <- buildElmTasksByUser uid
+                                let ElmMessage _ ok1 = buildOkMsg (filter (not . taskIsDummy) inserts') " tasks registered."
+                                let ElmMessage _ ok2 = buildOkMsg updates " tasks updated."
+                                let okMsg = ElmMessage 200 (intercalate " " [ok1, ok2])
+                                return $ ElmSubModel elmUser elmTasks Nothing (Just okMsg)
 
 data Predictor =    PredTerm { predTermTarget :: Node, predTermToBe :: Node }
                 |   PredInit { predInitTarget :: Node, predInitToBe :: Node }
