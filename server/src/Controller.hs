@@ -184,9 +184,9 @@ data Condition
     | SelStartableL Int Int Int Int Int
     | SelStartableR Int Int Int Int Int
     | SelStartableLR Int Int Int Int Int Int Int Int Int Int
-    | SelDeadLineL Int Int Int Int Int
-    | SelDeadLineR Int Int Int Int Int
-    | SelDeadLineLR Int Int Int Int Int Int Int Int Int Int
+    | SelDeadlineL Int Int Int Int Int
+    | SelDeadlineR Int Int Int Int Int
+    | SelDeadlineLR Int Int Int Int Int Int Int Int Int Int
     | SelWeightL Double
     | SelWeightR Double
     | SelWeightLR Double Double
@@ -433,7 +433,7 @@ faultPost user tasks = do
 
 faultPostPermission :: User -> [Task] -> IO (Maybe Text)
 faultPostPermission user tasks = do
-    -- TODO
+    -- TODO edit perm.
     return Nothing
 
 faultPostLoop :: [Task] -> IO (Maybe Text)
@@ -518,13 +518,12 @@ usAndSuccessors uid tids = do
 switchStar' :: UserTaskId -> IO ()
 switchStar' (UserTaskId elmUser tid) = do
     pool <- pgPool
-    -- TODO check fault
+    -- TODO edit perm.
     setStarSwitched pool (keyFromId tid :: TaskId)
 
 focusTask' :: UserTaskId -> IO [ElmTask]
 focusTask' (UserTaskId elmUser tid) = do
-    pool        <- pgPool
-    -- TODO check fault
+    pool    <- pgPool
     before  <- map entityKey <$> getBeforeMeByTask pool (keyFromId tid :: TaskId)
     me      <- map entityKey <$> getMeByTask pool (keyFromId tid :: TaskId)
     after   <- map entityKey <$> getAfterMeByTask pool (keyFromId tid :: TaskId)
@@ -561,13 +560,13 @@ faultEditPermission uid (t:ts) = do
         faultEditPermission uid ts
     else do
         pool <- pgPool
-        taskAssign <- Prelude.head <$> getTaskAssign pool (keyFromId t :: TaskId)
+        taskAssign <- Prelude.head <$> getTaskAssignByTask pool (keyFromId t :: TaskId)
         return $ Just (buildEditErrMsg taskAssign)
 
 getTaskAssigns :: [Int] -> IO [(Entity Task, Q.Value Text)]
 getTaskAssigns tids = do
     pool <- pgPool
-    Prelude.concat <$> sequence ( map (\tid -> getTaskAssign pool (keyFromId tid :: TaskId)) tids )
+    Prelude.concat <$> sequence ( map (\tid -> getTaskAssignByTask pool (keyFromId tid :: TaskId)) tids )
     
 hasEditPerm :: Int -> Int -> IO (Bool)
 hasEditPerm uid tid =
@@ -578,7 +577,7 @@ showArchives' :: ElmUser -> IO ElmSubModel
 showArchives' elmUser = do
     pool <- pgPool
     let uid = elmUserId elmUser
-    -- TODO check fault
+    -- TODO view perm.
     tKeys <- map entityKey <$> getDoneNonDummyTasksByUser pool (keyFromId uid :: UserId)
     elmTasks <- sequence (map buildElmTaskByTask tKeys) 
     let okMsg = buildOkMsg elmTasks " archives here."
@@ -588,7 +587,7 @@ showTrunk' :: ElmUser -> IO ElmSubModel
 showTrunk' elmUser = do
     pool <- pgPool
     let uid = elmUserId elmUser
-    -- TODO check fault
+    -- TODO view perm.
     tKeys <- map entityKey <$> getUndoneTrunksByUser pool (keyFromId uid :: UserId)
     elmTasks <- sequence (map buildElmTaskByTask tKeys) 
     let okMsg = buildOkMsg elmTasks " trunk here."
@@ -598,7 +597,7 @@ showBuds' :: ElmUser -> IO ElmSubModel
 showBuds' elmUser = do
     pool <- pgPool
     let uid = elmUserId elmUser
-    -- TODO check fault
+    -- TODO view perm.
     tKeys <- map entityKey <$> getUndoneBudsByUser pool (keyFromId uid :: UserId)
     elmTasks <- sequence (map buildElmTaskByTask tKeys) 
     let okMsg = buildOkMsg elmTasks " buds here."
@@ -612,7 +611,7 @@ reschedule uid = do
     durs <- map entityVal <$> getDurationsByUser pool (keyFromId uid :: UserId)
     tasks <- getUndoneOwnTasksByUser pool (keyFromId uid :: UserId)
     let sch =
-            if userIsLazy user then Left "Now implementing"  --TODO
+            if userIsLazy user then Left "Now implementing"  --TODO scheduleBackward
             else scheduleForward user now durs tasks
     case sch of
         Left errMsg ->
@@ -656,7 +655,7 @@ debugTasks = do
 buildElmTaskByTask :: Key Task -> IO ElmTask
 buildElmTaskByTask tKey = do
     pool <- pgPool
-    -- TODO check fault
+    -- TODO view perm.
     taskAssign <- Prelude.head <$> getTaskAssignByTask pool tKey
     schedules <- map entityVal <$> getSchedulesByTask pool tKey
     return $ toElmTask taskAssign schedules
@@ -664,7 +663,7 @@ buildElmTaskByTask tKey = do
 buildElmTasksByUser :: Int -> IO [ElmTask] 
 buildElmTasksByUser uid = do
     pool <- pgPool
-    -- TODO check fault
+    -- TODO view perm.
     tKeys <- map entityKey <$> getUndoneNonDummyTasksByUser pool (keyFromId uid :: UserId)
     sequence $ map (buildElmTaskByTask) tKeys
 
@@ -709,50 +708,88 @@ slashSel' _ [] tKeys =
 slashSel' uid (con:cons) tKeys = do
     pool <- pgPool
     case parseOnly aCondition con of 
-        Right (SelLike        l) -> do
-            sel <- selLike pool (keyFromId uid :: UserId) l
-            slashSel' uid cons (tKeys `intersect` (map entityKey sel))
-        -- Right $ SelNotLike     nl ->
-
-        Right (SelStartableL  yy mm dd h m) -> do
-            let date = fromGregorian (fromIntegral yy) mm dd
-            let clock = secondsToDiffTime . fromIntegral $ 60 * (m + 60 * h)
-            sel <- selStartableL pool (keyFromId uid :: UserId) (UTCTime date clock)
+        Right (SelLike        pattern) -> do
+            sel <- selLike pool (keyFromId uid :: UserId) pattern
             slashSel' uid cons (tKeys `intersect` (map entityKey sel))
 
-        -- Right (SelStartableR  yy mm dd h m) ->
+        Right (SelNotLike     pattern) -> do
+            sel <- selNotLike pool (keyFromId uid :: UserId) pattern
+            slashSel' uid cons (tKeys `intersect` (map entityKey sel))
 
-        -- Right (SelStartableLR lY lM lD lh lm rY rM rD rh rm) ->
+        Right (SelStartableL  lY lM lD lh lm) -> do
+            let dateL = fromGregorian (fromIntegral lY) lM lD
+            let clockL = secondsToDiffTime . fromIntegral $ 60 * (lm + 60 * lh)
+            selL <- selStartableL pool (keyFromId uid :: UserId) (UTCTime dateL clockL)
+            slashSel' uid cons (tKeys `intersect` (map entityKey selL))
 
-        -- Right (SelDeadLineL   yy mm dd h m) ->
+        Right (SelStartableR  rY rM rD rh rm) -> do
+            let dateR = fromGregorian (fromIntegral rY) rM rD
+            let clockR = secondsToDiffTime . fromIntegral $ 60 * (rm + 60 * rh)
+            selR <- selStartableR pool (keyFromId uid :: UserId) (UTCTime dateR clockR)
+            slashSel' uid cons (tKeys `intersect` (map entityKey selR))
 
-        -- Right (SelDeadLineR   yy mm dd h m) ->
+        Right (SelStartableLR lY lM lD lh lm rY rM rD rh rm) -> do
+            let dateL = fromGregorian (fromIntegral lY) lM lD
+            let clockL = secondsToDiffTime . fromIntegral $ 60 * (lm + 60 * lh)
+            selL <- selStartableL pool (keyFromId uid :: UserId) (UTCTime dateL clockL)
+            let dateR = fromGregorian (fromIntegral rY) rM rD
+            let clockR = secondsToDiffTime . fromIntegral $ 60 * (rm + 60 * rh)
+            selR <- selStartableR pool (keyFromId uid :: UserId) (UTCTime dateR clockR)
+            slashSel' uid cons (tKeys `intersect` (map entityKey selL) `intersect` (map entityKey selR))
 
-        -- Right (SelDeadLineLR  lY lM lD lh lm rY rM rD rh rm) ->
+        Right (SelDeadlineL   lY lM lD lh lm) -> do
+            let dateL = fromGregorian (fromIntegral lY) lM lD
+            let clockL = secondsToDiffTime . fromIntegral $ 60 * (lm + 60 * lh)
+            selL <- selDeadlineL pool (keyFromId uid :: UserId) (UTCTime dateL clockL)
+            slashSel' uid cons (tKeys `intersect` (map entityKey selL))
 
-        -- Right (SelWeightL     w) ->
+        Right (SelDeadlineR   rY rM rD rh rm) -> do
+            let dateR = fromGregorian (fromIntegral rY) rM rD
+            let clockR = secondsToDiffTime . fromIntegral $ 60 * (rm + 60 * rh)
+            selR <- selDeadlineR pool (keyFromId uid :: UserId) (UTCTime dateR clockR)
+            slashSel' uid cons (tKeys `intersect` (map entityKey selR))
 
-        -- Right (SelWeightR     w) ->
+        Right (SelDeadlineLR  lY lM lD lh lm rY rM rD rh rm) -> do
+            let dateL = fromGregorian (fromIntegral lY) lM lD
+            let clockL = secondsToDiffTime . fromIntegral $ 60 * (lm + 60 * lh)
+            selL <- selDeadlineL pool (keyFromId uid :: UserId) (UTCTime dateL clockL)
+            let dateR = fromGregorian (fromIntegral rY) rM rD
+            let clockR = secondsToDiffTime . fromIntegral $ 60 * (rm + 60 * rh)
+            selR <- selDeadlineR pool (keyFromId uid :: UserId) (UTCTime dateR clockR)
+            slashSel' uid cons (tKeys `intersect` (map entityKey selL) `intersect` (map entityKey selR))
 
-        -- Right (SelWeightLR    lw rw) ->
+        Right (SelWeightL     wL) -> do
+            selL <- selWeightL pool (keyFromId uid :: UserId) wL
+            slashSel' uid cons (tKeys `intersect` (map entityKey selL))
 
-        -- Right (SelAssign      a) ->
+        Right (SelWeightR     wR) -> do
+            selR <- selWeightR pool (keyFromId uid :: UserId) wR
+            slashSel' uid cons (tKeys `intersect` (map entityKey selR))
 
-        -- Right (SelArchived    ) ->
+        Right (SelWeightLR    wL wR) -> do
+            selL <- selWeightL pool (keyFromId uid :: UserId) wL
+            selR <- selWeightR pool (keyFromId uid :: UserId) wR
+            slashSel' uid cons (tKeys `intersect` (map entityKey selL) `intersect` (map entityKey selR))
 
-        -- Right (SelStarred     ) ->
+        Right (SelAssign      a) -> do
+            sel <- selAssign pool a
+            slashSel' uid cons (tKeys `intersect` (map entityKey sel))
 
-        -- Right (SelTrunks      ) ->
+        -- Right (SelArchived    ) -> do
 
-        -- Right (SelBuds        ) ->
+        -- Right (SelStarred     ) -> do
 
-        Right (SelRelationL   tid) -> do
-            (succKeys, _) <- usAndSuccessors uid [tid]
+        -- Right (SelTrunks      ) -> do
+
+        -- Right (SelBuds        ) -> do
+
+        Right (SelRelationL   tidL) -> do
+            (succKeys, _) <- usAndSuccessors uid [tidL]
             slashSel' uid cons (tKeys `intersect` succKeys)
 
-        -- Right (SelRelationR   tid) ->
+        -- Right (SelRelationR   tidR) -> do
 
-        -- Right (SelRelationLR  tidL tidR) ->
+        -- Right (SelRelationLR  tidL tidR) -> do
 
         _ ->
             slashSel' uid cons tKeys
@@ -769,7 +806,7 @@ slashDot elmUser unit
 
 slashCare :: ElmUser -> Int -> Int -> IO ElmSubModel
 slashCare elmUser up down
-    | 0 < up && 0 < down = do
+    | 0 <= up && 0 <= down = do
         pool <- pgPool
         let uid = elmUserId elmUser
         setCare pool (keyFromId uid :: UserId) up down
@@ -970,7 +1007,7 @@ taskFromEdge' (a:as) ((Task t i y d s ml ms md mw mt u), mid) =
                             taskFromEdge' as ((Task t i y d s ml ms (Just (UTCTime nd nt)) mw mt u), mid)
         Weight w ->
             taskFromEdge' as ((Task t i y d s ml ms md (Just w) mt u), mid)
-        -- Assign an ->  --TODO
+        -- Assign an ->  --TODO the@sign
         Title tt' ->
             case mt of
                 Just tt ->
@@ -1064,7 +1101,6 @@ assemble' mem ((t,i), a:as)  =
         Right r -> assemble' (r:mem) ((t,i), as)
 
 spanDummy :: Graph -> Graph
--- TODO
 spanDummy g = spanDummy' g g g
 
 spanDummy' :: [Edge] -> [Edge] -> Graph -> Graph
@@ -1399,7 +1435,7 @@ shiftTaskNodes sh ts =
         ) ts
 
 timeZoneHour :: ElmUser -> TimeZoneHour
-timeZoneHour _ = 9  -- TODO
+timeZoneHour _ = 9  -- TODO timeZoneHour
 
 millisFromWeight :: Double -> Millis
 millisFromWeight w = floor $ 60 * 60 * 10^3 * w
@@ -1495,7 +1531,6 @@ pairFromTask :: Task -> (Node, Node)
 pairFromTask t = (taskTerminal t, taskInitial t)
 
 hasLoop'observe :: Node -> [Node] -> [Node] -> [(Node, Node)] -> [(Node, Node)] -> [Node] -> Bool
--- TODO
 hasLoop'observe current [] [] cha chart stack = 
     False
 hasLoop'observe current (x:xs) remain cha chart stack =
@@ -1504,7 +1539,6 @@ hasLoop'observe current [] (r:rs) cha chart stack  =
     hasLoop'explore current [] (r:rs) cha chart stack
 
 hasLoop'explore :: Node -> [Node] -> [Node] -> [(Node, Node)] -> [(Node, Node)] -> [Node] -> Bool
--- TODO
 hasLoop'explore current [] [] cha chart stack = 
     False
 hasLoop'explore current (x:[]) remain cha chart stack =
@@ -1756,9 +1790,9 @@ aCondition =
     <|> SelStartableL   <$ string "s "     <*> decimal <* char '/' <*> decimal <* char '/' <*> decimal <* char '_' <*> decimal <* char ':' <*> decimal <* char '<'
     <|> SelStartableR   <$ string "s "     <* char '<' <*> decimal <* char '/' <*> decimal <* char '/' <*> decimal <* char '_' <*> decimal <* char ':' <*> decimal
     <|> SelStartableLR  <$ string "s "     <*> decimal <* char '/' <*> decimal <* char '/' <*> decimal <* char '_' <*> decimal <* char ':' <*> decimal <* char '<' <* char ' ' <* char '<' <*> decimal <* char '/' <*> decimal <* char '/' <*> decimal <* char '_' <*> decimal <* char ':' <*> decimal
-    <|> SelDeadLineL    <$ string "d "     <*> decimal <* char '/' <*> decimal <* char '/' <*> decimal <* char '_' <*> decimal <* char ':' <*> decimal <* char '<'
-    <|> SelDeadLineR    <$ string "d "     <* char '<' <*> decimal <* char '/' <*> decimal <* char '/' <*> decimal <* char '_' <*> decimal <* char ':' <*> decimal
-    <|> SelDeadLineLR   <$ string "d "     <*> decimal <* char '/' <*> decimal <* char '/' <*> decimal <* char '_' <*> decimal <* char ':' <*> decimal <* char '<' <* char ' ' <* char '<' <*> decimal <* char '/' <*> decimal <* char '/' <*> decimal <* char '_' <*> decimal <* char ':' <*> decimal
+    <|> SelDeadlineL    <$ string "d "     <*> decimal <* char '/' <*> decimal <* char '/' <*> decimal <* char '_' <*> decimal <* char ':' <*> decimal <* char '<'
+    <|> SelDeadlineR    <$ string "d "     <* char '<' <*> decimal <* char '/' <*> decimal <* char '/' <*> decimal <* char '_' <*> decimal <* char ':' <*> decimal
+    <|> SelDeadlineLR   <$ string "d "     <*> decimal <* char '/' <*> decimal <* char '/' <*> decimal <* char '_' <*> decimal <* char ':' <*> decimal <* char '<' <* char ' ' <* char '<' <*> decimal <* char '/' <*> decimal <* char '/' <*> decimal <* char '_' <*> decimal <* char ':' <*> decimal
     <|> SelWeightL      <$ string "w "     <*> double <* char '<'
     <|> SelWeightR      <$ string "w "     <* char '<' <*> double
     <|> SelWeightLR     <$ string "w "     <*> double <* char '<' <* char ' ' <* char '<' <*> double

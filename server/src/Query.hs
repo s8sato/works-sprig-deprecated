@@ -193,15 +193,6 @@ getDurationsByUser pool uKey = flip runSqlPool pool $ do
             ]
         return (duration)
 
-getTaskAssign :: ConnectionPool -> Key Task -> IO [(Entity Task, Value Text)]
-getTaskAssign  pool tKey = flip runSqlPool pool $ do
-    select $ from $ \(task `InnerJoin` user) -> do
-        on  (task ^. TaskUser ==. user ^. UserId)
-        where_
-            (   task ^. TaskId ==. val tKey
-            )
-        return (task, user ^. UserName)
-
 getDoneTasksByUser :: ConnectionPool -> Key User -> IO [Entity Task]
 getDoneTasksByUser pool uKey = flip runSqlPool pool $ do
     select $ from $ \(task `LeftOuterJoin` schedule) -> do
@@ -238,11 +229,11 @@ getUndoneTrunksByUser pool uKey = flip runSqlPool pool $ do
         on  (task ^. TaskId ==. schedule ^. ScheduleTask)
         where_
             (   task ^. TaskUser ==. val uKey
+            &&. not_ ( task ^. TaskIsDone )
             &&. (
                 notExists $ from $ \self ->
                 where_
                     (   self ^. TaskInitial ==. task ^. TaskTerminal
-                    &&. not_ ( task ^. TaskIsDone )
                     )
                 )
             )
@@ -259,11 +250,11 @@ getUndoneBudsByUser pool uKey = flip runSqlPool pool $ do
         on  (task ^. TaskId ==. schedule ^. ScheduleTask)
         where_
             (   task ^. TaskUser ==. val uKey
+            &&. not_ ( task ^. TaskIsDone )
             &&. (
                 notExists $ from $ \self ->
                 where_
                     (   self ^. TaskTerminal ==. task ^. TaskInitial
-                    &&. not_ ( task ^. TaskIsDone )
                     )
                 )
             )
@@ -473,11 +464,20 @@ delSchedulesByUser pool uKey = flip runSqlPool pool $ do
             )
 
 selLike :: ConnectionPool -> Key User -> Text -> IO [Entity Task]
-selLike pool uKey l = flip runSqlPool pool $ do
+selLike pool uKey pattern = flip runSqlPool pool $ do
     select $ from $ \task -> do
         where_
             (   task ^. TaskUser ==. val uKey
-            &&. (task ^. TaskTitle `like` just ((%) ++. val l ++. (%)))
+            &&. (task ^. TaskTitle `like` just ((%) ++. val pattern ++. (%)))
+            )
+        return (task)
+
+selNotLike :: ConnectionPool -> Key User -> Text -> IO [Entity Task]
+selNotLike pool uKey pattern = flip runSqlPool pool $ do
+    select $ from $ \task -> do
+        where_
+            (   task ^. TaskUser ==. val uKey
+            &&. not_ (task ^. TaskTitle `like` just ((%) ++. val pattern ++. (%)))
             )
         return (task)
 
@@ -490,6 +490,59 @@ selStartableL pool uKey utc = flip runSqlPool pool $ do
             )
         return (task)
 
+selStartableR :: ConnectionPool -> Key User -> UTCTime -> IO [Entity Task]
+selStartableR pool uKey utc = flip runSqlPool pool $ do
+    select $ from $ \task -> do
+        where_
+            (   task ^. TaskUser ==. val uKey
+            &&. task ^. TaskStartable <. just (val utc)
+            )
+        return (task)
+
+selDeadlineL :: ConnectionPool -> Key User -> UTCTime -> IO [Entity Task]
+selDeadlineL pool uKey utc = flip runSqlPool pool $ do
+    select $ from $ \task -> do
+        where_
+            (   task ^. TaskUser ==. val uKey
+            &&. task ^. TaskDeadline >. just (val utc)
+            )
+        return (task)
+
+selDeadlineR :: ConnectionPool -> Key User -> UTCTime -> IO [Entity Task]
+selDeadlineR pool uKey utc = flip runSqlPool pool $ do
+    select $ from $ \task -> do
+        where_
+            (   task ^. TaskUser ==. val uKey
+            &&. task ^. TaskDeadline <. just (val utc)
+            )
+        return (task)
+
+selWeightL :: ConnectionPool -> Key User -> Double -> IO [Entity Task]
+selWeightL pool uKey weight = flip runSqlPool pool $ do
+    select $ from $ \task -> do
+        where_
+            (   task ^. TaskUser ==. val uKey
+            &&. task ^. TaskWeight >. just (val weight)
+            )
+        return (task)
+
+selWeightR :: ConnectionPool -> Key User -> Double -> IO [Entity Task]
+selWeightR pool uKey weight = flip runSqlPool pool $ do
+    select $ from $ \task -> do
+        where_
+            (   task ^. TaskUser ==. val uKey
+            &&. task ^. TaskWeight <. just (val weight)
+            )
+        return (task)
+
+selAssign :: ConnectionPool -> Text -> IO [Entity Task]
+selAssign pool assign = flip runSqlPool pool $ do
+    select $ from $ \(task `InnerJoin` user) -> do
+        on  (task ^. TaskUser ==. user ^. UserId)
+        where_
+            (   user ^. UserName ==. val assign
+            )
+        return (task)
 
 setDot :: ConnectionPool -> Key User -> Text -> IO ()
 setDot pool uKey unit = flip runSqlPool pool $ do
