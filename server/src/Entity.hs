@@ -51,29 +51,30 @@ share [mkPersist sqlSettings, mkMigrate "migrateAll"] [persistLowerCase|
 User
     name                Text
     admin               Bool
-    timeZone            Int
     isLazy              Bool
+    timeZone            Int
     resolutionMin       Int
-    defaultDpy          Text Maybe
-    lookUp              Int Maybe
-    lookDown            Int Maybe
+    defaultTimeScale    Text
+    lookUp              Int
+    lookDown            Int
     encrypted           Text Maybe
     UniqueUser          name
     deriving Show
-Task json
-    terminal            Int
-    initial             Int
-    isDummy             Bool
+Task
     isDone              Bool
     isStarred           Bool
+    title               Text Maybe
     link                Text Maybe
     startable           UTCTime Maybe
     deadline            UTCTime Maybe
     weight              Double Maybe
-    title               Text Maybe
-    user                UserId
-    UniqueTask          terminal initial
-    deriving Show Eq
+    assign              UserId
+    deriving Show
+Edge
+    terminal            TaskId
+    initial             TaskId
+    UniqueEdge terminal initial
+    deriving Show
 Organization
     parent              UserId
     child               UserId
@@ -97,7 +98,7 @@ Schedule
     end                 UTCTime
     task                TaskId
     UniqueSchedule begin end task
-    deriving Show Eq
+    deriving Show
 |]
 
 migrateDb :: IO ()

@@ -36,13 +36,13 @@ type alias Model =
     , zone : Zone
     , currentTime : Posix
     , asOfTime : Posix
+    , dot : Dot
     , indicator : Index
+    , selectedTasks : List Int
+    , asOfCurrentTime : Bool
     , underTyping : Bool
     , underHardTyping : Bool
     , underControl : Bool
-    , asOfCurrentTime : Bool
-    , dpy : Dpy
-    , selectedTasks : List Int
     }
 
 
@@ -54,7 +54,7 @@ type alias SubModel =
     { user : User
     , tasks : List Task
     , inputText : Maybe String
-    , message : Maybe Message
+    , message : Message
     }
 
 
@@ -67,8 +67,7 @@ type alias Message =
 type alias User =
     { id : Int
     , name : String
-    , admin : Bool
-    , defaultDpy : Maybe String
+    , defaultDot : String
     , zoneName : Maybe String
     , zoneOffset : Maybe Int
     }
@@ -76,7 +75,6 @@ type alias User =
 
 type alias Task =
     { id : Int
-    , isDummy : Bool
     , isDone : Bool
     , isStarred : Bool
     , title : Maybe String
@@ -84,7 +82,7 @@ type alias Task =
     , startable : Maybe Millis -- POSIX milliseconds
     , deadline : Maybe Millis
     , weight : Maybe Float
-    , user : String
+    , assign : String
     , schedule : List Schedule
     }
 
@@ -104,7 +102,7 @@ type Signature
     | Minus
 
 
-type Dpy
+type Dot
     = Yea
     | Qua
     | Mnt
@@ -121,23 +119,23 @@ init : () -> ( Model, Cmd Msg )
 init _ =
     let
         initSub =
-            { user = User 1 "ANONYMOUS" False Nothing Nothing Nothing
+            { user = User 1 "ANONYMOUS" "D" Nothing Nothing
             , tasks = []
             , inputText = Nothing
-            , message = Nothing
+            , message = Message 0 ""
             }
     in
     ( { sub = initSub
       , zone = Time.utc
       , currentTime = Time.millisToPosix 0
       , asOfTime = Time.millisToPosix 0
+      , dot = Day
       , indicator = 0
+      , selectedTasks = []
       , underTyping = False
       , underHardTyping = False
       , underControl = False
       , asOfCurrentTime = True
-      , dpy = Day
-      , selectedTasks = []
       }
     , Task.perform AdjustTimeZone Time.here
     )
@@ -155,9 +153,9 @@ type Msg
     | SwitchSelect Index
     | Input String
     | TextPost
-    | StarSwitched Index (Result Http.Error ())
+    | StarSwitched Index (Result Http.Error SubModel)
     | SwitchStar Index
-    | TaskFocused Int (Result Http.Error (List Task))
+    | TaskFocused Int (Result Http.Error SubModel)
     | AdjustTimeZone Zone
     | SetZoneName ZoneName
     | SetAsOfTime Posix
@@ -246,31 +244,31 @@ update msg model =
             ( switchSelect model model.indicator, Cmd.none )
 
         CharacterKey '1' ->
-            ( changeDpy model Yea, Cmd.none )
+            ( changeDot model Yea, Cmd.none )
 
         CharacterKey '2' ->
-            ( changeDpy model Qua, Cmd.none )
+            ( changeDot model Qua, Cmd.none )
 
         CharacterKey '3' ->
-            ( changeDpy model Mnt, Cmd.none )
+            ( changeDot model Mnt, Cmd.none )
 
         CharacterKey '4' ->
-            ( changeDpy model Wee, Cmd.none )
+            ( changeDot model Wee, Cmd.none )
 
         CharacterKey '5' ->
-            ( changeDpy model Day, Cmd.none )
+            ( changeDot model Day, Cmd.none )
 
         CharacterKey '6' ->
-            ( changeDpy model Sxh, Cmd.none )
+            ( changeDot model Sxh, Cmd.none )
 
         CharacterKey '7' ->
-            ( changeDpy model Hou, Cmd.none )
+            ( changeDot model Hou, Cmd.none )
 
         CharacterKey '8' ->
-            ( changeDpy model Twm, Cmd.none )
+            ( changeDot model Twm, Cmd.none )
 
         CharacterKey '9' ->
-            ( changeDpy model Min, Cmd.none )
+            ( changeDot model Min, Cmd.none )
 
         CharacterKey 'a' ->
             ( model, showArchives model )
@@ -314,8 +312,8 @@ update msg model =
         TextPost ->
             ( model, textPost model )
 
-        StarSwitched i (Ok _) ->
-            ( starSwitched model i, Cmd.none )
+        StarSwitched i (Ok newSubModel) ->
+            ( starSwitched model i newSubModel, Cmd.none )
 
         StarSwitched _ (Err httpError) ->
             ( messageEH model httpError, Cmd.none )
@@ -338,8 +336,8 @@ update msg model =
             , Cmd.none
             )
 
-        TaskFocused id (Ok newTasks) ->
-            ( taskFocused model id newTasks, Cmd.none )
+        TaskFocused id (Ok newSubModel) ->
+            ( taskFocused model id newSubModel, Cmd.none )
 
         TaskFocused _ (Err httpError) ->
             ( messageEH model httpError, Cmd.none )
@@ -475,9 +473,9 @@ eval sign =
             -1
 
 
-fromDpy : Dpy -> Int
-fromDpy dpy =
-    case dpy of
+fromDot : Dot -> Int
+fromDot dot =
+    case dot of
         Yea ->
             1
 
@@ -565,36 +563,36 @@ returnedHome model m =
                 , asOfCurrentTime = True
             }
     in
-    case m.user.defaultDpy of
-        Just "Y" ->
-            changeDpy newModel Yea
+    case m.user.defaultDot of
+        "Y" ->
+            changeDot newModel Yea
 
-        Just "Q" ->
-            changeDpy newModel Qua
+        "Q" ->
+            changeDot newModel Qua
 
-        Just "M" ->
-            changeDpy newModel Mnt
+        "M" ->
+            changeDot newModel Mnt
 
-        Just "W" ->
-            changeDpy newModel Wee
+        "W" ->
+            changeDot newModel Wee
 
-        Just "D" ->
-            changeDpy newModel Day
+        "D" ->
+            changeDot newModel Day
 
-        Just "6h" ->
-            changeDpy newModel Sxh
+        "6h" ->
+            changeDot newModel Sxh
 
-        Just "h" ->
-            changeDpy newModel Hou
+        "h" ->
+            changeDot newModel Hou
 
-        Just "12m" ->
-            changeDpy newModel Twm
+        "12m" ->
+            changeDot newModel Twm
 
-        Just "m" ->
-            changeDpy newModel Min
+        "m" ->
+            changeDot newModel Min
 
-        Just "s" ->
-            changeDpy newModel Sec
+        "s" ->
+            changeDot newModel Sec
 
         _ ->
             newModel
@@ -626,11 +624,11 @@ setZoneName model zn =
     }
 
 
-taskFocused : Model -> Int -> List Task -> Model
-taskFocused model id tasks =
+taskFocused : Model -> Int -> SubModel -> Model
+taskFocused model id m =
     let
         enumeratedTasks =
-            List.indexedMap Tuple.pair tasks
+            List.indexedMap Tuple.pair m.tasks
 
         enumeratedIds =
             List.map (Tuple.mapSecond .id) enumeratedTasks
@@ -652,7 +650,7 @@ taskFocused model id tasks =
             model.sub
 
         newSub =
-            { sub | tasks = tasks }
+            { sub | tasks = m.tasks }
     in
     { model
         | sub = newSub
@@ -660,30 +658,45 @@ taskFocused model id tasks =
     }
 
 
-starSwitched : Model -> Index -> Model
-starSwitched model i =
-    case Array.get i (Array.fromList model.sub.tasks) of
-        Nothing ->
-            model
-
-        Just task ->
+starSwitched : Model -> Index -> SubModel -> Model
+starSwitched model i m =
+    case m.message.code of
+        400 ->
             let
-                newTask =
-                    { task | isStarred = not task.isStarred }
-
                 sub =
                     model.sub
 
                 newSub =
-                    { sub
-                        | tasks =
-                            Array.toList <|
-                                Array.set i newTask (Array.fromList model.sub.tasks)
-                    }
+                    { sub | message = m.message }
             in
-            { model
-                | sub = newSub
-            }
+            { model | sub = newSub }
+
+        200 ->
+            case Array.get i (Array.fromList model.sub.tasks) of
+                Nothing ->
+                    model
+
+                Just task ->
+                    let
+                        newTask =
+                            { task | isStarred = not task.isStarred }
+
+                        sub =
+                            model.sub
+
+                        newSub =
+                            { sub
+                                | tasks =
+                                    Array.toList <|
+                                        Array.set i newTask (Array.fromList model.sub.tasks)
+                            }
+                    in
+                    { model
+                        | sub = newSub
+                    }
+
+        _ ->
+            model
 
 
 inverseSelect : Model -> Model
@@ -714,7 +727,7 @@ messageEH model httpError =
             model.sub
 
         newSub =
-            { sub | message = Just <| Message 400 (buildMessageEH httpError) }
+            { sub | message = Message 400 (buildMessageEH httpError) }
     in
     { model
         | sub = newSub
@@ -740,20 +753,20 @@ buildMessageEH httpError =
             errorMessage
 
 
-changeDpy : Model -> Dpy -> Model
-changeDpy model dpy =
+changeDot : Model -> Dot -> Model
+changeDot model dot =
     let
         sub =
             model.sub
 
         newSub =
             { sub
-                | message = Just <| Message 200 (String.fromInt (fromDpy dpy) ++ " dpy")
+                | message = Message 200 (String.fromInt (fromDot dot) ++ " dot")
             }
     in
     { model
         | sub = newSub
-        , dpy = dpy
+        , dot = dot
     }
 
 
@@ -801,30 +814,20 @@ textPosted model m =
         newSub =
             { sub
                 | tasks =
-                    case m.message of
-                        Just me ->
-                            case me.code of
-                                200 ->
-                                    m.tasks
-
-                                _ ->
-                                    sub.tasks
+                    case m.message.code of
+                        200 ->
+                            m.tasks
 
                         _ ->
                             sub.tasks
                 , message = m.message
                 , inputText =
-                    case m.message of
-                        Just me ->
-                            case me.code of
-                                200 ->
-                                    Nothing
+                    case m.message.code of
+                        200 ->
+                            Nothing
 
-                                300 ->
-                                    Nothing
-
-                                _ ->
-                                    sub.inputText
+                        300 ->
+                            Nothing
 
                         _ ->
                             sub.inputText
@@ -844,14 +847,9 @@ tasksDoneOrUndone model m =
         newSub =
             { sub
                 | tasks =
-                    case m.message of
-                        Just me ->
-                            case me.code of
-                                200 ->
-                                    m.tasks
-
-                                _ ->
-                                    sub.tasks
+                    case m.message.code of
+                        200 ->
+                            m.tasks
 
                         _ ->
                             sub.tasks
@@ -891,19 +889,19 @@ asOfShift : Model -> Signature -> Model
 asOfShift model sign =
     let
         shifted =
-            if model.dpy == Yea then
+            if model.dot == Yea then
                 dailyShift model.asOfTime sign 365
 
-            else if model.dpy == Qua then
+            else if model.dot == Qua then
                 dailyShift model.asOfTime sign 90
 
-            else if model.dpy == Mnt then
+            else if model.dot == Mnt then
                 dailyShift model.asOfTime sign 30
 
             else
                 let
                     diff =
-                        eval sign * (10 ^ 3) * fromDpy Sec // fromDpy model.dpy
+                        eval sign * (10 ^ 3) * fromDot Sec // fromDot model.dot
                 in
                 posixToMillis model.asOfTime
                     + diff
@@ -928,7 +926,7 @@ dailyShift_ sign count days out =
     else
         let
             daily =
-                eval sign * (10 ^ 3) * fromDpy Sec // fromDpy Day
+                eval sign * (10 ^ 3) * fromDot Sec // fromDot Day
         in
         dailyShift_ sign (count + 1) days (millisToPosix <| daily + posixToMillis out)
 
@@ -968,11 +966,7 @@ switchStar m i =
             Cmd.none
 
         Just task ->
-            Http.post
-                { url = "http://" ++ Config.host ++ ":8080/tasks/star"
-                , body = Http.jsonBody (userTaskIdEncoder m task.id)
-                , expect = Http.expectWhatever (StarSwitched i)
-                }
+            postJson "star" (userTaskEncoder m task.id) (StarSwitched i) subModelDecoder
 
 
 focusTask : Model -> Index -> Cmd Msg
@@ -982,7 +976,7 @@ focusTask m i =
             Cmd.none
 
         Just task ->
-            postJson "focus" (userTaskIdEncoder m task.id) (TaskFocused task.id) tasksDecoder
+            postJson "focus" (userTaskEncoder m task.id) (TaskFocused task.id) subModelDecoder
 
 
 goHome : Model -> Cmd Msg
@@ -992,17 +986,17 @@ goHome m =
 
 doneTasks : Model -> Cmd Msg
 doneTasks m =
-    postJson "done" (userSelTasksEncoder m) TasksDoneOrUndone subModelDecoder
+    postJson "done" (userTasksEncoder m) TasksDoneOrUndone subModelDecoder
 
 
 undoneTasks : Model -> Cmd Msg
 undoneTasks m =
-    postJson "undone" (userSelTasksEncoder m) TasksDoneOrUndone subModelDecoder
+    postJson "undone" (userTasksEncoder m) TasksDoneOrUndone subModelDecoder
 
 
 cloneTasks : Model -> Cmd Msg
 cloneTasks m =
-    postJson "clone" (userSelTasksEncoder m) TasksCloned subModelDecoder
+    postJson "clone" (userTasksEncoder m) TasksCloned subModelDecoder
 
 
 showArchives : Model -> Cmd Msg
@@ -1037,26 +1031,25 @@ userEncoder u =
     Encode.object
         [ ( "elmUserId", Encode.int u.id )
         , ( "elmUserName", Encode.string u.name )
-        , ( "elmUserAdmin", Encode.bool u.admin )
-        , ( "elmUserDefaultDpy", maybe Encode.string u.defaultDpy )
+        , ( "elmUserDefaultDot", Encode.string u.defaultDot )
         , ( "elmUserZoneName", maybe Encode.string u.zoneName )
         , ( "elmUserZoneOffset", maybe Encode.int u.zoneOffset )
         ]
 
 
-userSelTasksEncoder : Model -> Encode.Value
-userSelTasksEncoder m =
+userTasksEncoder : Model -> Encode.Value
+userTasksEncoder m =
     Encode.object
-        [ ( "userSelTasksUser", userEncoder m.sub.user )
-        , ( "userSelTasksIds", Encode.list Encode.int m.selectedTasks )
+        [ ( "elmUserTasksUser", userEncoder m.sub.user )
+        , ( "elmUserTasksTasks", Encode.list Encode.int m.selectedTasks )
         ]
 
 
-userTaskIdEncoder : Model -> Int -> Encode.Value
-userTaskIdEncoder m i =
+userTaskEncoder : Model -> Int -> Encode.Value
+userTaskEncoder m i =
     Encode.object
-        [ ( "userTaskIdUser", userEncoder m.sub.user )
-        , ( "userTaskIdTaskId", Encode.int i )
+        [ ( "elmUserTaskUser", userEncoder m.sub.user )
+        , ( "elmUserTaskTask", Encode.int i )
         ]
 
 
@@ -1070,7 +1063,7 @@ subModelDecoder =
         |> required "elmSubModelUser" userDecoder
         |> required "elmSubModelTasks" (list taskDecoder)
         |> optional "elmSubModelInputText" (nullable string) Nothing
-        |> optional "elmSubModelMessage" (nullable messageDecoder) Nothing
+        |> optional "elmSubModelMessage" messageDecoder (Message 0 "")
 
 
 userDecoder : Decoder User
@@ -1078,8 +1071,7 @@ userDecoder =
     Decode.succeed User
         |> required "elmUserId" int
         |> required "elmUserName" string
-        |> required "elmUserAdmin" bool
-        |> optional "elmUserDefaultDpy" (nullable string) Nothing
+        |> required "elmUserDefaultDot" string
         |> optional "elmUserZoneName" (nullable string) Nothing
         |> optional "elmUserZoneOffset" (nullable int) Nothing
 
@@ -1093,7 +1085,6 @@ taskDecoder : Decoder Task
 taskDecoder =
     Decode.succeed Task
         |> required "elmTaskId" int
-        |> required "elmTaskIsDummy" bool
         |> required "elmTaskIsDone" bool
         |> required "elmTaskIsStarred" bool
         |> optional "elmTaskTitle" (nullable string) Nothing
@@ -1101,7 +1092,7 @@ taskDecoder =
         |> optional "elmTaskStartable" (nullable int) Nothing
         |> optional "elmTaskDeadline" (nullable int) Nothing
         |> optional "elmTaskWeight" (nullable float) Nothing
-        |> required "elmTaskUser" string
+        |> required "elmTaskAssign" string
         |> required "elmTaskSchedule" schedulesDecoder
 
 
@@ -1158,7 +1149,7 @@ view model =
                     [ div [ id "upAndDown" ] []
                     , div [ id "setSelected" ] []
                     , div [ id "setStarred" ] []
-                    , div [ id "setDpy" ] []
+                    , div [ id "setDot" ] []
                     ]
                 ]
             , div [ id "mainContainer" ]
@@ -1172,7 +1163,7 @@ view model =
                         , div [ id "criticalPath", onClick (CharacterKey 'p') ] []
                         ]
                     , div [ class "messageBox" ]
-                        [ text (viewMessage model.sub) ]
+                        [ text model.sub.message.body ]
                     , div [ id "viewCmdBox" ]
                         [ div [ id "focus", onClick (CharacterKey 'f') ] []
                         , div [ id "archives", onClick (CharacterKey 'a') ] []
@@ -1206,71 +1197,61 @@ viewInputValue model =
             str
 
 
-viewDateTimeUnit : Dpy -> String
-viewDateTimeUnit dpy =
-    if dpy == Yea then
+viewDateTimeUnit : Dot -> String
+viewDateTimeUnit dot =
+    if dot == Yea then
         "Y"
 
-    else if dpy == Qua then
+    else if dot == Qua then
         "Q"
 
-    else if dpy == Mnt then
+    else if dot == Mnt then
         "M"
 
-    else if dpy == Wee then
+    else if dot == Wee then
         "W"
 
-    else if dpy == Day then
+    else if dot == Day then
         "D"
 
-    else if dpy == Sxh then
+    else if dot == Sxh then
         "6h"
 
-    else if dpy == Hou then
+    else if dot == Hou then
         "h"
 
-    else if dpy == Twm then
+    else if dot == Twm then
         "12m"
 
-    else if dpy == Min then
+    else if dot == Min then
         "m"
 
-    else if dpy == Sec then
+    else if dot == Sec then
         "s"
 
     else
         "CSTM"
 
 
-viewDateTimeGuide : Dpy -> String
-viewDateTimeGuide dpy =
-    if List.member dpy [ Yea ] then
+viewDateTimeGuide : Dot -> String
+viewDateTimeGuide dot =
+    if List.member dot [ Yea ] then
         "Y"
 
-    else if List.member dpy [ Qua, Mnt ] then
+    else if List.member dot [ Qua, Mnt ] then
         "Y/M"
 
-    else if List.member dpy [ Wee, Day ] then
+    else if List.member dot [ Wee, Day ] then
         "M/D"
 
-    else if List.member dpy [ Sxh, Hou ] then
+    else if List.member dot [ Sxh, Hou ] then
         "/D h:"
 
-    else if List.member dpy [ Twm, Min ] then
+    else if List.member dot [ Twm, Min ] then
         "h:m"
 
     else
         "m's"
-
-
-viewMessage : SubModel -> String
-viewMessage m =
-    case m.message of
-        Just me ->
-            me.body
-
-        Nothing ->
-            ""
 
 
 viewTaskHeader : Model -> Html Msg
@@ -1287,7 +1268,7 @@ viewTaskHeader m =
         , div [ class "star" ] []
         , div [ class "title" ] []
         , div [ class "startable" ]
-            [ text (viewDateTimeUnit m.dpy) ]
+            [ text (viewDateTimeUnit m.dot) ]
         , div [ class "bar" ]
             [ text
                 ("As of "
@@ -1295,7 +1276,7 @@ viewTaskHeader m =
                 )
             ]
         , div [ class "deadline" ]
-            [ text (viewDateTimeGuide m.dpy) ]
+            [ text (viewDateTimeGuide m.dot) ]
         , div [ class "weight" ] []
         , div [ class "assign" ] []
         , div [ class "scroll" ] []
@@ -1412,11 +1393,11 @@ viewTask m ( i, task ) =
                     div [] []
             ]
         , div [ class "startable" ]
-            [ text (viewTimeByDpy m.dpy m.zone task.startable) ]
+            [ text (viewTimeByDot m.dot m.zone task.startable) ]
         , div [ class "bar" ]
             [ text (barString m task) ]
         , div [ class "deadline" ]
-            [ text (viewTimeByDpy m.dpy m.zone task.deadline) ]
+            [ text (viewTimeByDot m.dot m.zone task.deadline) ]
         , div [ class "weight" ]
             [ text (viewWeight task) ]
         , div [ class "assign" ]
@@ -1427,11 +1408,11 @@ viewTask m ( i, task ) =
 
 viewAssign : User -> Task -> String
 viewAssign u t =
-    if u.name == t.user then
+    if u.name == t.assign then
         "me"
 
     else
-        t.user
+        t.assign
 
 
 viewWeight : Task -> String
@@ -1448,8 +1429,8 @@ viewWeight task =
                 String.fromFloat w
 
 
-viewTimeByDpy : Dpy -> Zone -> Maybe Millis -> String
-viewTimeByDpy dpy z mt =
+viewTimeByDot : Dot -> Zone -> Maybe Millis -> String
+viewTimeByDot dot z mt =
     case mt of
         Nothing ->
             "-"
@@ -1477,19 +1458,19 @@ viewTimeByDpy dpy z mt =
                 sec =
                     String.fromInt <| Time.toSecond z p
             in
-            if List.member dpy [ Yea ] then
+            if List.member dot [ Yea ] then
                 yea
 
-            else if List.member dpy [ Qua, Mnt ] then
+            else if List.member dot [ Qua, Mnt ] then
                 String.right 2 yea ++ "/" ++ mon
 
-            else if List.member dpy [ Wee, Day ] then
+            else if List.member dot [ Wee, Day ] then
                 mon ++ "/" ++ day
 
-            else if List.member dpy [ Sxh, Hou ] then
+            else if List.member dot [ Sxh, Hou ] then
                 "/" ++ day ++ " " ++ hou ++ ":"
 
-            else if List.member dpy [ Twm, Min ] then
+            else if List.member dot [ Twm, Min ] then
                 hou ++ ":" ++ min
 
             else
@@ -1505,19 +1486,19 @@ barString : Model -> Task -> String
 barString m t =
     let
         s =
-            position m.dpy m.asOfTime t.startable
+            position m.dot m.asOfTime t.startable
 
         d =
-            position m.dpy m.asOfTime t.deadline
+            position m.dot m.asOfTime t.deadline
     in
-    preString m.dpy m.asOfTime t
+    preString m.dot m.asOfTime t
         |> replace s '['
         |> replace d ']'
         |> String.fromList
 
 
-position : Dpy -> Posix -> Maybe Millis -> Int
-position dpy asof mt =
+position : Dot -> Posix -> Maybe Millis -> Int
+position dot asof mt =
     case mt of
         Nothing ->
             -1
@@ -1531,8 +1512,8 @@ position dpy asof mt =
                 -1
 
             else
-                (fromDpy dpy * millis)
-                    // (fromDpy Sec * 10 ^ 3)
+                (fromDot dot * millis)
+                    // (fromDot Sec * 10 ^ 3)
 
 
 replace : Int -> Char -> List Char -> List Char
@@ -1543,27 +1524,27 @@ replace pos char target =
         |> Array.toList
 
 
-preString : Dpy -> Posix -> Task -> List Char
-preString dpy asofP task =
+preString : Dot -> Posix -> Task -> List Char
+preString dot asofP task =
     let
         asofM =
             Time.posixToMillis asofP
 
-        dot =
-            (10 ^ 3) * fromDpy Sec // fromDpy dpy
+        millisPerDot =
+            (10 ^ 3) * fromDot Sec // fromDot dot
     in
-    List.reverse <| preString_ 0 asofM dot task []
+    List.reverse <| preString_ 0 asofM millisPerDot task []
 
 
 preString_ : Int -> Millis -> Millis -> Task -> List Char -> List Char
-preString_ count left dot task out =
+preString_ count left millisPerDot task out =
     if count >= 48 then
         out
 
     else
         let
             right =
-                left + dot
+                left + millisPerDot
 
             char =
                 if List.any (\sch -> sch.begin < right && left < sch.end) task.schedule then
@@ -1572,7 +1553,7 @@ preString_ count left dot task out =
                 else
                     '.'
         in
-        preString_ (count + 1) right dot task (char :: out)
+        preString_ (count + 1) right millisPerDot task (char :: out)
 
 
 strFromPosix : Zone -> Posix -> String

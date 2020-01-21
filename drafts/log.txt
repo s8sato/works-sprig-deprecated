@@ -291,3 +291,8 @@ implemented cascade done/undone.
 Slash commands now implementing
 
 added several /sel commands
+
+feature/task-as-node
+
+altered from task as edge to one as node
+unified API response to ElmSubModel
