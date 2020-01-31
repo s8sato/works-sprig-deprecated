@@ -86,11 +86,11 @@ YOU CAN ALSO ENTER ONE OF THE FOLLOWING SLASH COMMANDS:
 /dot h
 Set the default time unit represented by a dot to an hour.
 
-/sel -t word 
-Select tasks whose title contains 'word'.
+/sel -t foo bar
+Select tasks whose title contains 'foo' OR 'bar'.
 
-/sel -nt word
-Select tasks whose title does not contains 'word'.
+/sel -nt foo bar
+Select tasks whose title does not contains 'foo' NOR 'bar'.
 
 /sel -s 2020/1/1_12:0< <2020/1/2_0:0
 Select tasks whose startable is in the afternoon of January 1, 2020.
@@ -101,16 +101,19 @@ Select tasks whose deadline is in the afternoon of January 1, 2020.
 /sel -w 30< <300
 Select tasks whose weight is between 30 and 300 hours.
 
-/sel -a Bob
-Select tasks assigned to Bob.
+/sel -a Alice Bob
+Select tasks assigned to Alice OR Bob.
 
-/sel -arch
+/sel -arc
 Select archived tasks.
 
-/sel -star
+/sel -und
+Select undone tasks.
+
+/sel -sta
 Select starred tasks.
 
-/sel -trunk
+/sel -tru
 Select trunks, namely, tasks with no successor.
 
 /sel -bud
@@ -119,12 +122,8 @@ Select buds, namely, tasks with no predecessor.
 /sel -r #777< <#888
 Select the intersection of #777's successors and #888's predecessors.
 
-/sel -t word -s 2020/1/1_12:0< <2020/1/2_0:0 -w 30< <300 -arch -star
+/sel -t foo bar -t baz -d <2020/1/1_0:0 -w 30< -und -tru
 Specify multiple conditions.
-
-/care 1 2
-Care from parents to grandchildren, namely, watch their tasks too,
-provided you have permission for each.
 
 
 
@@ -136,15 +135,9 @@ COMMANDS FOR ADMINISTRATORS:
 Allow Albert to edit sci_team tasks; create, update, and perform.
 Automatically allow to view.
 
-/ban pisces_dep view Albert
-Ban pisces_dep from viewing Albert tasks.
+/ban pisces_dep view zodiac_inc
+Ban pisces_dep from viewing zodiac_inc tasks.
 Automatically ban from editing.
-
-/connect zodiac_inc pisces_dep
-Give zodiac_inc and pisces_dep a parent-child relationship.
-You can, by default,
-view direct parents and all descendants and
-edit direct children.
 
 
 

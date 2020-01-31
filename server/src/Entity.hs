@@ -55,30 +55,23 @@ User
     timeZone            Int
     resolutionMin       Int
     defaultTimeScale    Text
-    lookUp              Int
-    lookDown            Int
     encrypted           Text Maybe
     UniqueUser          name
     deriving Show
 Task
     isDone              Bool
     isStarred           Bool
-    title               Text Maybe
     link                Text Maybe
     startable           UTCTime Maybe
     deadline            UTCTime Maybe
     weight              Double Maybe
+    title               Text Maybe
     assign              UserId
-    deriving Show
-Edge
+    deriving Eq Show
+Path
     terminal            TaskId
     initial             TaskId
     UniqueEdge terminal initial
-    deriving Show
-Organization
-    parent              UserId
-    child               UserId
-    UniqueOrganization  parent child
     deriving Show
 Permission
     subject             UserId
