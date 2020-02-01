@@ -340,14 +340,14 @@ insertOrUpdate' uid ((i,(t,mid,man)):xs) ref (ins,upd) =
             get  <- getMeByTask pool tid
             case get of
                 [] -> 
-                    return $ Left (ElmMessage 400 $ intercalate " " ["Task ID", pack $ show tid, "does not exist."])
+                    return $ Left (ElmMessage 400 $ intercalate " " ["Task ID", pack $ show $ idFromKey tid, "does not exist."])
                 _ -> do
                     isExtT <- isExistingTrunk tid
                     if  isTrunk ref i || (isBud ref i && isExtT) then do
                             task <- buildTask uid t man
                             insertOrUpdate' uid xs ref (ins,((i,tid,task):upd))
                     else
-                        return $ Left (ElmMessage 400 $ intercalate "" ["Invalid use of #", pack $ show tid, "."])
+                        return $ Left (ElmMessage 400 $ intercalate "" ["Invalid use of #", pack $ show $ idFromKey tid, "."])
 
 buildTask :: UserId -> Task -> Maybe AssignName -> IO Task
 buildTask _ t (Just an) = do
@@ -440,7 +440,7 @@ faultPostPermission sbj ((t,mid,man):xs) = do
             es <- getMeByTask pool tid
             case es of
                 [] ->
-                    return $ Just (ElmMessage 400 $ intercalate " " ["Task ID", pack $ show tid, "does not exist."])
+                    return $ Just (ElmMessage 400 $ intercalate " " ["Task ID", pack $ show $ idFromKey tid, "does not exist."])
                 (e:_) -> do
                     let obj = taskAssign $ entityVal e
                     faultPermission Edit sbj obj
@@ -455,6 +455,8 @@ faultPostPermission sbj ((t,mid,man):xs) = do
                 (e:_) -> do
                     let obj = entityKey e
                     faultPermission Edit sbj obj
+        _ ->
+            return Nothing
     let faultList = [faultId, faultAssign]
     if Prelude.all (== Nothing) faultList then
         faultPostPermission sbj xs
@@ -519,7 +521,7 @@ doneTasksReload' (ElmUserTasks elmUser tids') = do
             all <- map entityKey <$> getAllTasksByUser pool uid
             undone <- map entityKey <$> getUndoneTasks pool
             let targets = usAndPreds `intersect` all `intersect` undone
-            sequence_ ( map (setTaskDone pool) targets)
+            sequence_ $ map (setTaskDone pool) targets
             re <- reschedule uid
             case re of
                 Left errMsg' ->
@@ -553,7 +555,7 @@ undoneTasksReload' (ElmUserTasks elmUser tids') = do
             all <- map entityKey <$> getAllTasksByUser pool uid
             done <- map entityKey <$> getDoneTasks pool
             let targets = usAndSuccs `intersect` all `intersect` done
-            sequence_ ( map (setTaskUndone pool) targets)
+            sequence_ $ map (setTaskUndone pool) targets
             re <- reschedule uid
             case re of
                 Left errMsg' ->
@@ -595,7 +597,7 @@ focusTask' (ElmUserTask elmUser tid') = do
     me      <- map entityKey <$> getMeByTask pool tid
     after   <- map entityKey <$> getAfterMeByTask pool tid
     all     <- map entityKey <$> getAllTasksByUser pool uid
-    let targets = all `intersect` (Prelude.concat [before, me, after])
+    let targets = (Prelude.concat [before, me, after]) `intersect` all
     elmTasks <- sequence (map buildElmTaskByTask targets) 
     return $ ElmSubModel elmUser elmTasks Nothing (ElmMessage 200 "")
 
@@ -618,6 +620,10 @@ cloneTasks' (ElmUserTasks elmUser tids') = do
     let nodes = map nodeFromTask tasks
     paths <- map entityVal <$> getPathsByTasks pool tids
     let edges = map edgeFromPath paths
+    print "hoge"
+    print nodes
+    print edges
+    print "hoge"
     let text = textFromGraph (nodes, edges)
     let okMsg = buildOkMsg tasks " tasks cloned."
     return $ ElmSubModel elmUser [] (Just text) okMsg
@@ -724,7 +730,7 @@ buildElmTasksByUser uid = do
     pool <- pgPool
     own    <- map entityKey <$> getOwnTasksByUser pool uid
     undone <- map entityKey <$> getUndoneTasks pool
-    let targets = undone `intersect` own
+    let targets = own `intersect` undone
     sequence (map buildElmTaskByTask targets) 
 
 resetSchedules :: UserId -> [Schedule] -> IO ()
@@ -932,6 +938,17 @@ existsUser name = do
     users <- getUserByName pool name
     return $ (not . Prelude.null $ users, users)
 
+initDb :: IO ()
+initDb = do
+    pool <- pgPool
+    let developer = User "develop" True False 9 60 "Hou" Nothing
+    insUser pool developer
+    let developerDur = 
+            [ Duration (TimeOfDay 8 30 0) (TimeOfDay 12 0 0) (toSqlKey 1 :: UserId)
+            , Duration (TimeOfDay 13 00 0) (TimeOfDay 17 30 0) (toSqlKey 1 :: UserId)
+            ]
+    sequence_ $ map (insDur pool) developerDur
+
 
 
 -- INTERNAL OPERATIONS
@@ -963,7 +980,7 @@ tasksFromText u t =
         triples = map taskFromNode (fst $ graphFromText t)
         tasks = map (universalize u) (map (\(task,_,_) -> task) triples)
     in
-        (\task (_,mid,man) -> (task,mid,man)) <$> tasks <*> triples
+        Prelude.zipWith (\task (_,mid,man) -> (task,mid,man)) tasks triples
 
 edgesFromText :: Text -> [Edge]
 edgesFromText =
@@ -1104,39 +1121,33 @@ aAttr = AttrTaskId    <$  char '#'  <*> decimal
     <|> AssignName    <$  char '@'  <*> takeText
     <|> Title         <$> takeText
 
-spanLink :: [Node] -> [(Int, Int)]
+spanLink :: [Node] -> [Edge]
 spanLink nodes =
     spanLink' nodes nodes nodes []
 
-spanLink' :: [Node] -> [Node] -> [Node] -> [(Int, Int)] -> [(Int, Int)]
+spanLink' :: [Node] -> [Node] -> [Node] -> [Edge] -> [Edge]
 spanLink' [] _ _ out = 
     out
 spanLink' (x:xs) [] ref out = 
     spanLink' xs ref ref out
-spanLink' ((i,as):xs) ((j,bs):ys) ref out
-    | keyMatch as bs =
-        spanLink' ((i,as):xs) ys ref ((i,j):out)
-    | otherwise =
-        spanLink' ((i,as):xs) ys ref out
+spanLink' (x:xs) (y:ys) ref out =
+    spanLink' (x:xs) ys ref (Prelude.concat [spanLink'' x y y [], out])
 
-keyMatch :: [Attr] -> [Attr] -> Bool
-keyMatch findTail findHead =
-    keyMatch' findTail findHead findHead
-
-keyMatch' :: [Attr] -> [Attr] -> [Attr] -> Bool
-keyMatch' [] _ _ =
-    False
-keyMatch' (a:as) [] ref =
-    keyMatch' as ref ref
-keyMatch' (a:as) (b:bs) ref = case a of
-    TailLink t ->
-        case b of
-            HeadLink h ->
-                t == h
-            _ ->
-                keyMatch' (a:as) bs ref
-    _ ->
-        keyMatch' as (b:bs) ref
+spanLink'' :: Node -> Node -> Node -> [Edge] -> [Edge]
+spanLink'' (_,[]) _ _ out =
+    out
+spanLink'' (i,(a:as)) (_,[]) ref out =
+    spanLink'' (i,as) ref ref out
+spanLink'' (i,(a:as)) (j,(b:bs)) ref out =
+    case a of
+        TailLink key ->
+            case b of
+                HeadLink key ->
+                    spanLink'' (i,(a:as)) (j,bs) ref ((i,j):out)
+                _ ->
+                    spanLink'' (i,(a:as)) (j,bs) ref out
+        _ ->
+            spanLink'' (i,as) (j,(b:bs)) ref out
 
 markUp :: [Indent] -> [(Int, Int)]
 markUp xs =
@@ -1254,10 +1265,11 @@ textFromGraph :: Graph -> Text
 textFromGraph g =
     let
         (nodes, edges) = asideLink g
-        indexedIndents = markDown g
+        indexedIndents = markDown (nodes, edges)
         indexedWordss = deNode nodes
     in
-        bindLines indexedIndents indexedWordss
+        trace (Prelude.concat [show nodes, show edges, show indexedIndents, show indexedWordss])
+            $ bindLines indexedIndents indexedWordss
 
 asideLink :: Graph -> ([Node], [Edge])
 asideLink g =
@@ -1382,7 +1394,7 @@ deNode'' a = case a of
     AttrTaskId    i     -> B.singleton '#' <> B.decimal i
     IsDone              -> B.singleton '%'
     IsStarred           -> B.singleton '*'
-    HeadLink      h     -> B.singleton ']' <> B.fromText h
+    HeadLink      h     -> B.fromText h <> B.singleton ']'
     Title         t     -> B.fromText t
     StartableDate y m d -> B.decimal y <>  B.singleton '/' <> B.decimal m <> B.singleton '/' <> B.decimal d <> B.singleton '-'
     StartableTime h m   -> B.decimal h <>  B.singleton ':' <> B.decimal m <> B.singleton '-'
@@ -1399,22 +1411,15 @@ markDown g =
         (_,tree) = g
         ts = trunks g
     in
-        Prelude.concatMap (\t-> markDown' t (pred_ t tree) [] tree tree 0 []) ts
+        Prelude.concatMap (\t-> markDown' t (pred_ t tree) [] tree tree 0 [(t,0)]) ts
 
 markDown' :: Int -> [Int] -> [Int] -> [Edge] -> [Edge] -> Indent -> [(Int, Indent)] -> [(Int, Indent)]
 markDown' _ _ [] [] _ _ out =
     out
 markDown' current (x:xs) remain tre tree depth out =
-    markDown' x (pred_ x tre) (current:remain) (explored current x tre) tree (depth + 1) ((current,depth):out)
+    markDown' x (pred_ x tre) (current:remain) (explored current x tre) tree (depth + 1) ((x, depth + 1):out)
 markDown' current [] (r:rs) tre tree depth out =
-    let
-        succ1 = Prelude.head $ succ_ current tree
-        next = pred_ succ1 tre
-    in
-        if succ1 == r then
-            markDown' r next rs tre tree (depth - 1) out
-        else
-            markDown' succ1 next (r:rs) tre tree (depth - 1) out
+    markDown' r (pred_ r tre) rs tre tree (depth - 1) out
 
 pred_ :: Int -> [Edge] -> [Int]
 pred_ x =

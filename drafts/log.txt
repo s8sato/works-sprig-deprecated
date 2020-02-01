@@ -41,7 +41,8 @@ You do not have permission to edit BOSS tasks.
 You do not have permission to view COMPANY tasks.
 2019-12-24 00:33:03
 
-insUser $ User (pack "develop") True 9 False 60 (Just (pack "Hou")) Nothing Nothing Nothing
+
+User (pack "develop") True False 9 60 (pack "Hou") Nothing
 2019-12-24 15:23:28
 
 西暦3000年とかで日課（繰り返しのあるタスク）をシミュレートできる
@@ -298,3 +299,27 @@ altered from task as edge to one as node
 unified API response to ElmSubModel
 
 passed compile
+
+drop schema public cascade;
+create schema public;
+
+starMan-頭 $6 -2020/02/13
+    c] starMan-左肩 [a $6
+        starMan-左手 $6
+    b] starMan-左脚 $6
+        starMan-左足 $6 2020/02/03-
+    a] starMan-右脚 $6
+        starMan-右足 $6
+    starMan-右肩 [b [c $6
+        starMan-右手 $6
+
+a] biLoop
+    oops [a
+
+a] triLoop
+    uups
+        oops [a
+
+デバッグ
+    hasLoop
+    速度

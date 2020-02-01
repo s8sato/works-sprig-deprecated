@@ -761,7 +761,7 @@ changeDot model dot =
 
         newSub =
             { sub
-                | message = Message 200 (String.fromInt (fromDot dot) ++ " dot")
+                | message = Message 200 ""
             }
     in
     { model

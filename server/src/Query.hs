@@ -523,6 +523,6 @@ getPathsByTasks pool tids = flip runSqlPool pool $ do
     select $ from $ \path -> do
         where_
             (   path ^. PathTerminal `in_` valList tids
-            ||. path ^. PathInitial  `in_` valList tids
+            &&. path ^. PathInitial  `in_` valList tids
             )
         return (path)

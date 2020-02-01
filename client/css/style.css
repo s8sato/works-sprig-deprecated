@@ -1,6 +1,5 @@
 /* div {
     border: solid thin;
-    box-sizing:border-box;
 } */
 
 .dev {
@@ -19,6 +18,7 @@ body {
 div {
     font-family: Courier New,Courier,Lucida Sans Typewriter,Lucida Typewriter,monospace; 
     font-size: 2rem;
+    box-sizing:border-box;
 }
 
 #container {
@@ -257,10 +257,6 @@ div {
 
 .task .title a {
     text-decoration: none;
-}
-
-.task .assign {
-    justify-content: left;
 }
 
 #mainBody .indicator {
