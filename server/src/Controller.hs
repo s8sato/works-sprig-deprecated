@@ -525,7 +525,7 @@ doneTasksReload' (ElmUserTasks elmUser tids') = do
                     return $ ElmSubModel elmUser [] Nothing errMsg' 
                 _ -> do
                     elmTasks <- buildElmTasksByUser uid
-                    let okMsg = buildOkMsg targets " tasks done."
+                    let okMsg = buildOkMsg targets " tasks archived."
                     return $ ElmSubModel elmUser elmTasks Nothing okMsg
 
 usAndPredecessors :: [TaskId] -> IO [TaskId]

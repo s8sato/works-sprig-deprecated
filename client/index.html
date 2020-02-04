@@ -9292,6 +9292,20 @@ var $author$project$Main$view = function (model) {
 										$elm$html$Html$div,
 										_List_fromArray(
 											[
+												$elm$html$Html$Attributes$id('changeDot')
+											]),
+										_List_Nil),
+										A2(
+										$elm$html$Html$div,
+										_List_fromArray(
+											[
+												$elm$html$Html$Attributes$id('asOfShift')
+											]),
+										_List_Nil),
+										A2(
+										$elm$html$Html$div,
+										_List_fromArray(
+											[
 												$elm$html$Html$Attributes$id('upAndDown')
 											]),
 										_List_Nil),
@@ -9299,21 +9313,14 @@ var $author$project$Main$view = function (model) {
 										$elm$html$Html$div,
 										_List_fromArray(
 											[
-												$elm$html$Html$Attributes$id('setSelected')
+												$elm$html$Html$Attributes$id('switchSelect')
 											]),
 										_List_Nil),
 										A2(
 										$elm$html$Html$div,
 										_List_fromArray(
 											[
-												$elm$html$Html$Attributes$id('setStarred')
-											]),
-										_List_Nil),
-										A2(
-										$elm$html$Html$div,
-										_List_fromArray(
-											[
-												$elm$html$Html$Attributes$id('setDot')
+												$elm$html$Html$Attributes$id('switchStar')
 											]),
 										_List_Nil)
 									]))
@@ -9376,30 +9383,10 @@ var $author$project$Main$view = function (model) {
 												$elm$html$Html$div,
 												_List_fromArray(
 													[
-														$elm$html$Html$Attributes$id('reschedule'),
+														$elm$html$Html$Attributes$id('focus'),
 														$elm$html$Html$Events$onClick(
 														$author$project$Main$CharacterKey(
-															_Utils_chr('r')))
-													]),
-												_List_Nil),
-												A2(
-												$elm$html$Html$div,
-												_List_fromArray(
-													[
-														$elm$html$Html$Attributes$id('linksOpen'),
-														$elm$html$Html$Events$onClick(
-														$author$project$Main$CharacterKey(
-															_Utils_chr('l')))
-													]),
-												_List_Nil),
-												A2(
-												$elm$html$Html$div,
-												_List_fromArray(
-													[
-														$elm$html$Html$Attributes$id('criticalPath'),
-														$elm$html$Html$Events$onClick(
-														$author$project$Main$CharacterKey(
-															_Utils_chr('p')))
+															_Utils_chr('f')))
 													]),
 												_List_Nil)
 											])),
@@ -9425,16 +9412,6 @@ var $author$project$Main$view = function (model) {
 												$elm$html$Html$div,
 												_List_fromArray(
 													[
-														$elm$html$Html$Attributes$id('focus'),
-														$elm$html$Html$Events$onClick(
-														$author$project$Main$CharacterKey(
-															_Utils_chr('f')))
-													]),
-												_List_Nil),
-												A2(
-												$elm$html$Html$div,
-												_List_fromArray(
-													[
 														$elm$html$Html$Attributes$id('archives'),
 														$elm$html$Html$Events$onClick(
 														$author$project$Main$CharacterKey(
@@ -9445,7 +9422,7 @@ var $author$project$Main$view = function (model) {
 												$elm$html$Html$div,
 												_List_fromArray(
 													[
-														$elm$html$Html$Attributes$id('trunk'),
+														$elm$html$Html$Attributes$id('trunks'),
 														$elm$html$Html$Events$onClick(
 														$author$project$Main$CharacterKey(
 															_Utils_chr('t')))
@@ -9471,7 +9448,14 @@ var $author$project$Main$view = function (model) {
 															_Utils_chr('h')))
 													]),
 												_List_Nil)
-											]))
+											])),
+										A2(
+										$elm$html$Html$div,
+										_List_fromArray(
+											[
+												$elm$html$Html$Attributes$class('scroll')
+											]),
+										_List_Nil)
 									])),
 								A2(
 								$elm$html$Html$div,

@@ -110,7 +110,7 @@ div {
 
 #staticIconsBox {
     width : inherit;
-    height: 192px;
+    height: 232px;
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -139,7 +139,7 @@ div {
 }
 
 #selectionCmdBox {
-    width : 288px;
+    width : 184px;
     height: inherit;
     display: flex;
     justify-content: space-between;
@@ -161,7 +161,7 @@ div {
 }
 
 #viewCmdBox {
-    width : 240px;
+    width : 184px;
     height: inherit;
     display: flex;
     justify-content: space-between;
@@ -175,7 +175,7 @@ div {
 }
 
 #rSideBar {
-    width : 64px;
+    width : 48px;
     height: inherit;
     background-color: #DDF0E4;
 }
@@ -201,10 +201,6 @@ div {
     display :flex;
     align-items: center;
     justify-content: center;
-}
-
-#taskHeader .scroll {
-    background-color: #DDF0E4;
 }
 
 #tasks {
@@ -305,9 +301,10 @@ div {
     padding-right: 6px;
 }
 
-#mainBody .scroll {
+.scroll {
     width : 16px;
     height: inherit;
+    background-color: #DDF0E4;
 }
 
 #footer {
@@ -343,33 +340,6 @@ div {
     background-image: url("../images/cmd_c_hover.png");
 }
 
-#reschedule {
-    background-image: url("../images/cmd_r_normal.png");
-    background-size: contain;
-}
-
-#reschedule:hover {
-    background-image: url("../images/cmd_r_hover.png");
-}
-
-#linksOpen {
-    background-image: url("../images/cmd_l_normal.png");
-    background-size: contain;
-}
-
-#linksOpen:hover {
-    background-image: url("../images/cmd_l_hover.png");
-}
-
-#criticalPath {
-    background-image: url("../images/cmd_p_normal.png");
-    background-size: contain;
-}
-
-#criticalPath:hover {
-    background-image: url("../images/cmd_p_hover.png");
-}
-
 #focus {
     background-image: url("../images/cmd_f_normal.png");
     background-size: contain;
@@ -388,12 +358,12 @@ div {
     background-image: url("../images/cmd_a_hover.png");
 }
 
-#trunk {
+#trunks {
     background-image: url("../images/cmd_t_normal.png");
     background-size: contain;
 }
 
-#trunk:hover {
+#trunks:hover {
     background-image: url("../images/cmd_t_hover.png");
 }
 
@@ -415,17 +385,27 @@ div {
     background-image: url("../images/cmd_h_hover.png");
 }
 
+#changeDot {
+    background-image: url("../images/cmd_0_normal.png");
+    background-size: contain;
+}
+
+#asOfShift {
+    background-image: url("../images/cmd_wo_normal.png");
+    background-size: contain;
+}
+
 #upAndDown {
     background-image: url("../images/cmd_jk_normal.png");
     background-size: contain;
 }
 
-#setSelected {
+#switchSelect {
     background-image: url("../images/cmd_x_normal.png");
     background-size: contain;
 }
 
-#setStarred {
+#switchStar {
     background-image: url("../images/cmd_s_normal.png");
     background-size: contain;
 }
