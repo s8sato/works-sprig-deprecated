@@ -92,17 +92,20 @@ Select tasks whose title contains 'foo' OR 'bar'.
 /sel -nt foo bar
 Select tasks whose title does not contains 'foo' NOR 'bar'.
 
-/sel -s 2020/1/1_12:0< <2020/1/2_0:0
-Select tasks whose startable is in the afternoon of January 1, 2020.
+/sel -s <2020/1/1_0:0
+Select tasks whose startable is before 2020.
 
-/sel -d 2020/1/1_12:0< <2020/1/2_0:0
-Select tasks whose deadline is in the afternoon of January 1, 2020.
+/sel -d 2020/1/1_0:0<
+Select tasks whose deadline is in 2020 or later.
 
-/sel -w 30< <300
+/sel -w 30< -w <300
 Select tasks whose weight is between 30 and 300 hours.
 
 /sel -a Alice Bob
 Select tasks assigned to Alice OR Bob.
+
+/sel -na Alice Bob
+Select tasks not assigned to Alice NOR Bob.
 
 /sel -arc
 Select archived tasks.
@@ -119,7 +122,7 @@ Select trunks, namely, tasks with no successor.
 /sel -bud
 Select buds, namely, tasks with no predecessor.
 
-/sel -r #777< <#888
+/sel -r 777< -r <888
 Select the intersection of #777's successors and #888's predecessors.
 
 /sel -t foo bar -t baz -d <2020/1/1_0:0 -w 30< -und -tru

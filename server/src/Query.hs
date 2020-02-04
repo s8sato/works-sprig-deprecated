@@ -299,7 +299,7 @@ getUndoneTasks pool = flip runSqlPool pool $ do
     select $ from $ \(task `LeftOuterJoin` schedule) -> do
         on  (task ^. TaskId ==. schedule ^. ScheduleTask)
         where_
-            (   not_ (task ^. TaskIsDone)
+            (   not_ $ task ^. TaskIsDone
             )
         groupBy
             (task ^. TaskId) 
@@ -324,6 +324,20 @@ getDoneTasks pool = flip runSqlPool pool $ do
             ]
         return (task)
 
+getStarredTasks :: ConnectionPool -> IO [Entity Task]
+getStarredTasks pool = flip runSqlPool pool $ do
+    select $ from $ \(task `LeftOuterJoin` schedule) -> do
+        on  (task ^. TaskId ==. schedule ^. ScheduleTask)
+        where_
+            (   task ^. TaskIsStarred
+            )
+        groupBy
+            (task ^. TaskId) 
+        orderBy
+            [ desc (min_ (schedule ^. ScheduleBegin))
+            ]
+        return (task)
+
 delSchedulesByUser :: ConnectionPool -> Key User -> IO ()
 delSchedulesByUser pool uKey = flip runSqlPool pool $ do
     delete $ from $ \schedule ->
@@ -336,84 +350,85 @@ delSchedulesByUser pool uKey = flip runSqlPool pool $ do
                         )
             )
 
-selLike :: ConnectionPool -> Key User -> Text -> IO [Entity Task]
-selLike pool uKey pattern = flip runSqlPool pool $ do
+selTitle :: ConnectionPool -> Text -> IO [Entity Task]
+selTitle pool word = flip runSqlPool pool $ do
     select $ from $ \task -> do
         where_
-            (   task ^. TaskAssign ==. val uKey
-            &&. (task ^. TaskTitle `like` just ((%) ++. val pattern ++. (%)))
+            (   task ^. TaskTitle `like` just ((%) ++. val word ++. (%))
             )
         return (task)
 
-selNotLike :: ConnectionPool -> Key User -> Text -> IO [Entity Task]
-selNotLike pool uKey pattern = flip runSqlPool pool $ do
+selNotTitle :: ConnectionPool -> Text -> IO [Entity Task]
+selNotTitle pool word = flip runSqlPool pool $ do
     select $ from $ \task -> do
         where_
-            (   task ^. TaskAssign ==. val uKey
-            &&. not_ (task ^. TaskTitle `like` just ((%) ++. val pattern ++. (%)))
+            (   not_ $ task ^. TaskTitle `like` just ((%) ++. val word ++. (%))
             )
         return (task)
 
-selStartableL :: ConnectionPool -> Key User -> UTCTime -> IO [Entity Task]
-selStartableL pool uKey utc = flip runSqlPool pool $ do
+selStartableL :: ConnectionPool -> UTCTime -> IO [Entity Task]
+selStartableL pool utc = flip runSqlPool pool $ do
     select $ from $ \task -> do
         where_
-            (   task ^. TaskAssign ==. val uKey
-            &&. task ^. TaskStartable >. just (val utc)
+            (   task ^. TaskStartable >. just (val utc)
             )
         return (task)
 
-selStartableR :: ConnectionPool -> Key User -> UTCTime -> IO [Entity Task]
-selStartableR pool uKey utc = flip runSqlPool pool $ do
+selStartableR :: ConnectionPool -> UTCTime -> IO [Entity Task]
+selStartableR pool utc = flip runSqlPool pool $ do
     select $ from $ \task -> do
         where_
-            (   task ^. TaskAssign ==. val uKey
-            &&. task ^. TaskStartable <. just (val utc)
+            (   task ^. TaskStartable <. just (val utc)
             )
         return (task)
 
-selDeadlineL :: ConnectionPool -> Key User -> UTCTime -> IO [Entity Task]
-selDeadlineL pool uKey utc = flip runSqlPool pool $ do
+selDeadlineL :: ConnectionPool -> UTCTime -> IO [Entity Task]
+selDeadlineL pool utc = flip runSqlPool pool $ do
     select $ from $ \task -> do
         where_
-            (   task ^. TaskAssign ==. val uKey
-            &&. task ^. TaskDeadline >. just (val utc)
+            (   task ^. TaskDeadline >. just (val utc)
             )
         return (task)
 
-selDeadlineR :: ConnectionPool -> Key User -> UTCTime -> IO [Entity Task]
-selDeadlineR pool uKey utc = flip runSqlPool pool $ do
+selDeadlineR :: ConnectionPool -> UTCTime -> IO [Entity Task]
+selDeadlineR pool utc = flip runSqlPool pool $ do
     select $ from $ \task -> do
         where_
-            (   task ^. TaskAssign ==. val uKey
-            &&. task ^. TaskDeadline <. just (val utc)
+            (   task ^. TaskDeadline <. just (val utc)
             )
         return (task)
 
-selWeightL :: ConnectionPool -> Key User -> Double -> IO [Entity Task]
-selWeightL pool uKey weight = flip runSqlPool pool $ do
+selWeightL :: ConnectionPool -> Double -> IO [Entity Task]
+selWeightL pool weight = flip runSqlPool pool $ do
     select $ from $ \task -> do
         where_
-            (   task ^. TaskAssign ==. val uKey
-            &&. task ^. TaskWeight >. just (val weight)
+            (   task ^. TaskWeight >. just (val weight)
             )
         return (task)
 
-selWeightR :: ConnectionPool -> Key User -> Double -> IO [Entity Task]
-selWeightR pool uKey weight = flip runSqlPool pool $ do
+selWeightR :: ConnectionPool -> Double -> IO [Entity Task]
+selWeightR pool weight = flip runSqlPool pool $ do
     select $ from $ \task -> do
         where_
-            (   task ^. TaskAssign ==. val uKey
-            &&. task ^. TaskWeight <. just (val weight)
+            (   task ^. TaskWeight <. just (val weight)
             )
         return (task)
 
 selAssign :: ConnectionPool -> Text -> IO [Entity Task]
-selAssign pool assign = flip runSqlPool pool $ do
+selAssign pool name = flip runSqlPool pool $ do
     select $ from $ \(task `InnerJoin` user) -> do
         on  (task ^. TaskAssign ==. user ^. UserId)
         where_
-            (   user ^. UserName ==. val assign
+            (   user ^. UserName ==. val name
+            )
+        return (task)
+
+selNotAssign :: ConnectionPool -> Text -> IO [Entity Task]
+selNotAssign pool name = flip runSqlPool pool $ do
+    select $ from $ \(task `InnerJoin` user) -> do
+        on  (task ^. TaskAssign ==. user ^. UserId)
+        where_
+            (   not_ $ user ^. UserName ==. val name
             )
         return (task)
 
@@ -525,4 +540,9 @@ getPathsByTasks pool tids = flip runSqlPool pool $ do
             (   path ^. PathTerminal `in_` valList tids
             &&. path ^. PathInitial  `in_` valList tids
             )
+        return (path)
+
+getAllPaths :: ConnectionPool -> IO [Entity Path]
+getAllPaths pool = flip runSqlPool pool $ do
+    select $ from $ \path -> do
         return (path)

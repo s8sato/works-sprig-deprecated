@@ -175,18 +175,16 @@ data SlashCmd
     | SlashBan Text Text Text
 
 data Condition
-    = SelLike Text
-    | SelNotLike Text 
+    = SelTitle Text
+    | SelNotTitle Text 
     | SelStartableL Int Int Int Int Int
     | SelStartableR Int Int Int Int Int
-    | SelStartableLR Int Int Int Int Int Int Int Int Int Int
     | SelDeadlineL Int Int Int Int Int
     | SelDeadlineR Int Int Int Int Int
-    | SelDeadlineLR Int Int Int Int Int Int Int Int Int Int
     | SelWeightL Double
     | SelWeightR Double
-    | SelWeightLR Double Double
     | SelAssign Text
+    | SelNotAssign Text
     | SelArchived
     | SelUndone
     | SelStarred
@@ -194,7 +192,6 @@ data Condition
     | SelBuds
     | SelRelationL Int 
     | SelRelationR Int
-    | SelRelationLR Int Int
   
 
 
@@ -517,7 +514,7 @@ doneTasksReload' (ElmUserTasks elmUser tids') = do
         Just errMsg ->
             return $ ElmSubModel elmUser [] Nothing errMsg
         Nothing -> do
-            usAndPreds <- usAndPredecessors uid tids
+            usAndPreds <- usAndPredecessors tids
             all <- map entityKey <$> getAllTasksByUser pool uid
             undone <- map entityKey <$> getUndoneTasks pool
             let targets = usAndPreds `intersect` all `intersect` undone
@@ -531,10 +528,10 @@ doneTasksReload' (ElmUserTasks elmUser tids') = do
                     let okMsg = buildOkMsg targets " tasks done."
                     return $ ElmSubModel elmUser elmTasks Nothing okMsg
 
-usAndPredecessors :: UserId -> [TaskId] -> IO [TaskId]
-usAndPredecessors uid tids = do
+usAndPredecessors :: [TaskId] -> IO [TaskId]
+usAndPredecessors tids = do
     pool <- pgPool
-    paths <- map entityVal <$> getPathsByTasks pool tids
+    paths <- map entityVal <$> getAllPaths pool
     let edges = map edgeFromPath paths
     let tids' = map idFromKey tids
     let preds' = sortUniq $ Prelude.concatMap (predecessors' edges) tids'
@@ -551,7 +548,7 @@ undoneTasksReload' (ElmUserTasks elmUser tids') = do
         Just errMsg ->
             return $ ElmSubModel elmUser [] Nothing errMsg
         Nothing -> do
-            usAndSuccs <- usAndSuccessors uid tids
+            usAndSuccs <- usAndSuccessors tids
             all <- map entityKey <$> getAllTasksByUser pool uid
             done <- map entityKey <$> getDoneTasks pool
             let targets = usAndSuccs `intersect` all `intersect` done
@@ -565,10 +562,10 @@ undoneTasksReload' (ElmUserTasks elmUser tids') = do
                     let okMsg = buildOkMsg targets " tasks undone."
                     return $ ElmSubModel elmUser elmTasks Nothing okMsg
 
-usAndSuccessors :: UserId -> [TaskId] -> IO [TaskId]
-usAndSuccessors uid tids = do
+usAndSuccessors :: [TaskId] -> IO [TaskId]
+usAndSuccessors tids = do
     pool <- pgPool
-    paths <- map entityVal <$> getPathsByTasks pool tids
+    paths <- map entityVal <$> getAllPaths pool
     let edges = map edgeFromPath paths
     let tids' = map idFromKey tids
     let succs' = sortUniq $ Prelude.concatMap (successors' edges) tids'
@@ -682,38 +679,6 @@ reschedule uid = do
             resetSchedules uid schedules
             return $ Right ()
 
--- debugResche :: IO [TaskFrag]
--- debugResche = do
---     pool <- pgPool
---     user <- Prelude.head <$> map entityVal <$> getUser pool (keyFromId 1 :: UserId)
---     now <- getCurrentTime
---     durs <- map entityVal <$> getDurationsByUser pool (keyFromId 1 :: UserId)
---     tasks <- getUndoneOwnTasksByUser pool (keyFromId 1 :: UserId)
---     return $ map toTaskFrag (map entityVal tasks)
-
--- debugUser :: IO User
--- debugUser = do
---     pool <- pgPool
---     user <- Prelude.head <$> map entityVal <$> getUser pool (keyFromId 1 :: UserId)
---     return user
-
--- debugNow :: IO UTCTime
--- debugNow = do
---     now <- getCurrentTime
---     return now
-
--- debugDurs :: IO [Duration]
--- debugDurs = do
---     pool <- pgPool
---     durs <- map entityVal <$> getDurationsByUser pool (keyFromId 1 :: UserId)
---     return durs
-
--- debugTasks :: IO [Entity Task]
--- debugTasks = do
---     pool <- pgPool
---     tasks <- getUndoneOwnTasksByUser pool (keyFromId 1 :: UserId)
---     return tasks
-
 buildElmTaskByTask :: TaskId -> IO ElmTask
 buildElmTaskByTask tid = do
     pool <- pgPool
@@ -766,90 +731,89 @@ slashSel' _ [] tids =
 slashSel' uid (con:cons) tids = do
     pool <- pgPool
     case parseOnly aCondition con of 
-        Right (SelLike        pattern) -> do
-            sel <- selLike pool uid pattern
+        Right (SelTitle text) -> do
+            let words = filter (/= "") (splitOn " " text)
+            sels <- sequence $ map (selTitle pool) words
+            let sel = Prelude.foldl1 union $ map (map entityKey) sels
+            slashSel' uid cons (tids `intersect` sel)
+
+        Right (SelNotTitle text) -> do
+            let words = filter (/= "") (splitOn " " text)
+            sels <- sequence $ map (selNotTitle pool) words
+            let sel = Prelude.foldl1 union $ map (map entityKey) sels
+            slashSel' uid cons (tids `intersect` sel)
+
+        Right (SelStartableL y m d hou min) -> do
+            let date = fromGregorian (fromIntegral y) m d
+            let clock = secondsToDiffTime . fromIntegral $ 60 * (min + 60 * hou)
+            sel <- selStartableL pool (UTCTime date clock)
             slashSel' uid cons (tids `intersect` (map entityKey sel))
 
-        Right (SelNotLike     pattern) -> do
-            sel <- selNotLike pool uid pattern
+        Right (SelStartableR y m d hou min) -> do
+            let date = fromGregorian (fromIntegral y) m d
+            let clock = secondsToDiffTime . fromIntegral $ 60 * (min + 60 * hou)
+            sel <- selStartableR pool (UTCTime date clock)
             slashSel' uid cons (tids `intersect` (map entityKey sel))
 
-        Right (SelStartableL  lY lM lD lh lm) -> do
-            let dateL = fromGregorian (fromIntegral lY) lM lD
-            let clockL = secondsToDiffTime . fromIntegral $ 60 * (lm + 60 * lh)
-            selL <- selStartableL pool uid (UTCTime dateL clockL)
-            slashSel' uid cons (tids `intersect` (map entityKey selL))
-
-        Right (SelStartableR  rY rM rD rh rm) -> do
-            let dateR = fromGregorian (fromIntegral rY) rM rD
-            let clockR = secondsToDiffTime . fromIntegral $ 60 * (rm + 60 * rh)
-            selR <- selStartableR pool uid (UTCTime dateR clockR)
-            slashSel' uid cons (tids `intersect` (map entityKey selR))
-
-        Right (SelStartableLR lY lM lD lh lm rY rM rD rh rm) -> do
-            let dateL = fromGregorian (fromIntegral lY) lM lD
-            let clockL = secondsToDiffTime . fromIntegral $ 60 * (lm + 60 * lh)
-            selL <- selStartableL pool uid (UTCTime dateL clockL)
-            let dateR = fromGregorian (fromIntegral rY) rM rD
-            let clockR = secondsToDiffTime . fromIntegral $ 60 * (rm + 60 * rh)
-            selR <- selStartableR pool uid (UTCTime dateR clockR)
-            slashSel' uid cons (tids `intersect` (map entityKey selL) `intersect` (map entityKey selR))
-
-        Right (SelDeadlineL   lY lM lD lh lm) -> do
-            let dateL = fromGregorian (fromIntegral lY) lM lD
-            let clockL = secondsToDiffTime . fromIntegral $ 60 * (lm + 60 * lh)
-            selL <- selDeadlineL pool uid (UTCTime dateL clockL)
-            slashSel' uid cons (tids `intersect` (map entityKey selL))
-
-        Right (SelDeadlineR   rY rM rD rh rm) -> do
-            let dateR = fromGregorian (fromIntegral rY) rM rD
-            let clockR = secondsToDiffTime . fromIntegral $ 60 * (rm + 60 * rh)
-            selR <- selDeadlineR pool uid (UTCTime dateR clockR)
-            slashSel' uid cons (tids `intersect` (map entityKey selR))
-
-        Right (SelDeadlineLR  lY lM lD lh lm rY rM rD rh rm) -> do
-            let dateL = fromGregorian (fromIntegral lY) lM lD
-            let clockL = secondsToDiffTime . fromIntegral $ 60 * (lm + 60 * lh)
-            selL <- selDeadlineL pool uid (UTCTime dateL clockL)
-            let dateR = fromGregorian (fromIntegral rY) rM rD
-            let clockR = secondsToDiffTime . fromIntegral $ 60 * (rm + 60 * rh)
-            selR <- selDeadlineR pool uid (UTCTime dateR clockR)
-            slashSel' uid cons (tids `intersect` (map entityKey selL) `intersect` (map entityKey selR))
-
-        Right (SelWeightL     wL) -> do
-            selL <- selWeightL pool uid wL
-            slashSel' uid cons (tids `intersect` (map entityKey selL))
-
-        Right (SelWeightR     wR) -> do
-            selR <- selWeightR pool uid wR
-            slashSel' uid cons (tids `intersect` (map entityKey selR))
-
-        Right (SelWeightLR    wL wR) -> do
-            selL <- selWeightL pool uid wL
-            selR <- selWeightR pool uid wR
-            slashSel' uid cons (tids `intersect` (map entityKey selL) `intersect` (map entityKey selR))
-
-        Right (SelAssign      a) -> do
-            sel <- selAssign pool a
+        Right (SelDeadlineL y m d hou min) -> do
+            let date = fromGregorian (fromIntegral y) m d
+            let clock = secondsToDiffTime . fromIntegral $ 60 * (min + 60 * hou)
+            sel <- selDeadlineL pool (UTCTime date clock)
             slashSel' uid cons (tids `intersect` (map entityKey sel))
 
-        -- Right (SelArchived    ) -> do
+        Right (SelDeadlineR y m d hou min) -> do
+            let date = fromGregorian (fromIntegral y) m d
+            let clock = secondsToDiffTime . fromIntegral $ 60 * (min + 60 * hou)
+            sel <- selDeadlineR pool (UTCTime date clock)
+            slashSel' uid cons (tids `intersect` (map entityKey sel))
 
-        -- Right (SelUndone      ) -> do
+        Right (SelWeightL w) -> do
+            sel <- selWeightL pool w
+            slashSel' uid cons (tids `intersect` (map entityKey sel))
 
-        -- Right (SelStarred     ) -> do
+        Right (SelWeightR w) -> do
+            sel <- selWeightR pool w
+            slashSel' uid cons (tids `intersect` (map entityKey sel))
 
-        -- Right (SelTrunks      ) -> do
+        Right (SelAssign text) -> do
+            let names = filter (/= "") (splitOn " " text)
+            sels <- sequence $ map (selAssign pool) names
+            let sel = Prelude.foldl1 union $ map (map entityKey) sels
+            slashSel' uid cons (tids `intersect` sel)
 
-        -- Right (SelBuds        ) -> do
+        Right (SelNotAssign text) -> do
+            let names = filter (/= "") (splitOn " " text)
+            sels <- sequence $ map (selNotAssign pool) names
+            let sel = Prelude.foldl1 union $ map (map entityKey) sels
+            slashSel' uid cons (tids `intersect` sel)
 
-        Right (SelRelationL   tidL) -> do
-            succs <- usAndSuccessors uid [keyFromId tidL :: TaskId]
+        Right SelArchived -> do
+            sel <- map entityKey <$> getDoneTasks pool
+            slashSel' uid cons (tids `intersect` sel)
+
+        Right SelUndone -> do
+            sel <- map entityKey <$> getUndoneTasks pool
+            slashSel' uid cons (tids `intersect` sel)
+
+        Right SelStarred -> do
+            sel <- map entityKey <$> getStarredTasks pool
+            slashSel' uid cons (tids `intersect` sel)
+
+        Right SelTrunks -> do
+            sel <- map entityKey <$> getTrunks pool
+            slashSel' uid cons (tids `intersect` sel)
+
+        Right SelBuds -> do
+            sel <- map entityKey <$> getBuds pool
+            slashSel' uid cons (tids `intersect` sel)
+
+        Right (SelRelationL tid') -> do
+            succs <- usAndSuccessors [keyFromId tid' :: TaskId]
             slashSel' uid cons (tids `intersect` succs)
 
-        -- Right (SelRelationR   tidR) -> do
-
-        -- Right (SelRelationLR  tidL tidR) -> do
+        Right (SelRelationR tid') -> do
+            preds <- usAndPredecessors [keyFromId tid' :: TaskId]
+            slashSel' uid cons (tids `intersect` preds)
 
         _ ->
             slashSel' uid cons tids
@@ -1787,26 +1751,23 @@ aSlashCmd =
 
 aCondition :: Parser Condition
 aCondition = 
-        SelLike         <$ string "t "     <*> takeText
-    <|> SelNotLike      <$ string "nt "    <*> takeText
+        SelTitle        <$ string "t "     <*> takeText
+    <|> SelNotTitle     <$ string "nt "    <*> takeText
     <|> SelStartableL   <$ string "s "     <*> decimal <* char '/' <*> decimal <* char '/' <*> decimal <* char '_' <*> decimal <* char ':' <*> decimal <* char '<'
     <|> SelStartableR   <$ string "s "     <* char '<' <*> decimal <* char '/' <*> decimal <* char '/' <*> decimal <* char '_' <*> decimal <* char ':' <*> decimal
-    <|> SelStartableLR  <$ string "s "     <*> decimal <* char '/' <*> decimal <* char '/' <*> decimal <* char '_' <*> decimal <* char ':' <*> decimal <* char '<' <* char ' ' <* char '<' <*> decimal <* char '/' <*> decimal <* char '/' <*> decimal <* char '_' <*> decimal <* char ':' <*> decimal
     <|> SelDeadlineL    <$ string "d "     <*> decimal <* char '/' <*> decimal <* char '/' <*> decimal <* char '_' <*> decimal <* char ':' <*> decimal <* char '<'
     <|> SelDeadlineR    <$ string "d "     <* char '<' <*> decimal <* char '/' <*> decimal <* char '/' <*> decimal <* char '_' <*> decimal <* char ':' <*> decimal
-    <|> SelDeadlineLR   <$ string "d "     <*> decimal <* char '/' <*> decimal <* char '/' <*> decimal <* char '_' <*> decimal <* char ':' <*> decimal <* char '<' <* char ' ' <* char '<' <*> decimal <* char '/' <*> decimal <* char '/' <*> decimal <* char '_' <*> decimal <* char ':' <*> decimal
     <|> SelWeightL      <$ string "w "     <*> double <* char '<'
     <|> SelWeightR      <$ string "w "     <* char '<' <*> double
-    <|> SelWeightLR     <$ string "w "     <*> double <* char '<' <* char ' ' <* char '<' <*> double
     <|> SelAssign       <$ string "a "     <*> takeText
+    <|> SelNotAssign    <$ string "na "    <*> takeText
     <|> SelArchived     <$ string "arc"
     <|> SelUndone       <$ string "und"
     <|> SelStarred      <$ string "sta"
     <|> SelTrunks       <$ string "tru"
     <|> SelBuds         <$ string "bud"
-    <|> SelRelationL    <$ string "r "     <* char '#' <*> decimal <* char '<'
-    <|> SelRelationR    <$ string "r "     <* char '<' <* char '#' <*> decimal
-    <|> SelRelationLR   <$ string "r "     <* char '#' <*> decimal <* char '<' <* char ' ' <* char '<' <* char '#' <*> decimal
+    <|> SelRelationL    <$ string "r "     <*> decimal <* char '<'
+    <|> SelRelationR    <$ string "r "     <* char '<' <*> decimal
 
 alterEdge :: Int -> TaskId -> [Edge] -> [Edge]
 alterEdge x tid =
