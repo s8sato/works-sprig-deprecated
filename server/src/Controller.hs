@@ -209,7 +209,7 @@ type API =  "dev"   :> "model"  :> Capture "user"  Int          :> Get  '[JSON] 
     :<|>    "tasks" :> "home"   :> ReqBody '[JSON] ElmUser      :> Post '[JSON] ElmSubModel
     :<|>    "tasks" :> "clone"  :> ReqBody '[JSON] ElmUserTasks :> Post '[JSON] ElmSubModel
     :<|>    "tasks" :> "arch"   :> ReqBody '[JSON] ElmUser      :> Post '[JSON] ElmSubModel
-    :<|>    "tasks" :> "trunk"  :> ReqBody '[JSON] ElmUser      :> Post '[JSON] ElmSubModel
+    :<|>    "tasks" :> "trunks" :> ReqBody '[JSON] ElmUser      :> Post '[JSON] ElmSubModel
     :<|>    "tasks" :> "buds"   :> ReqBody '[JSON] ElmUser      :> Post '[JSON] ElmSubModel
 
 startApp :: IO ()
@@ -241,7 +241,7 @@ server = devSubModel
     :<|> goHome
     :<|> cloneTasks
     :<|> showArchives
-    :<|> showTrunk
+    :<|> showTrunks
     :<|> showBuds
     where
         devSubModel :: Int -> Handler ElmSubModel
@@ -264,8 +264,8 @@ server = devSubModel
         cloneTasks = liftIO . cloneTasks'
         showArchives :: ElmUser -> Handler ElmSubModel
         showArchives = liftIO . showArchives'
-        showTrunk :: ElmUser -> Handler ElmSubModel
-        showTrunk = liftIO . showTrunk'
+        showTrunks :: ElmUser -> Handler ElmSubModel
+        showTrunks = liftIO . showTrunks'
         showBuds :: ElmUser -> Handler ElmSubModel
         showBuds = liftIO . showBuds'
 
@@ -637,13 +637,14 @@ showArchives' elmUser = do
     let okMsg = buildOkMsg elmTasks " archives here."
     return $ ElmSubModel elmUser elmTasks Nothing okMsg
 
-showTrunk' :: ElmUser -> IO ElmSubModel
-showTrunk' elmUser = do
+showTrunks' :: ElmUser -> IO ElmSubModel
+showTrunks' elmUser = do
     pool <- pgPool
     let uid = keyFromId $ elmUserId elmUser :: UserId
     own   <- map entityKey <$> getOwnTasksByUser pool uid
+    undone <- map entityKey <$> getUndoneTasks pool
     trunk <- map entityKey <$> getTrunks pool
-    let targets = own `intersect` trunk
+    let targets = own `intersect` undone `intersect` trunk
     elmTasks <- sequence (map buildElmTaskByTask targets) 
     let okMsg = buildOkMsg elmTasks " trunks here."
     return $ ElmSubModel elmUser elmTasks Nothing okMsg
@@ -653,8 +654,9 @@ showBuds' elmUser = do
     pool <- pgPool
     let uid = keyFromId $ elmUserId elmUser :: UserId
     own  <- map entityKey <$> getOwnTasksByUser pool uid
+    undone <- map entityKey <$> getUndoneTasks pool
     bud  <- map entityKey <$> getBuds pool
-    let targets = own `intersect` bud
+    let targets = own `intersect` undone `intersect` bud
     elmTasks <- sequence (map buildElmTaskByTask targets) 
     let okMsg = buildOkMsg elmTasks " buds here."
     return $ ElmSubModel elmUser elmTasks Nothing okMsg

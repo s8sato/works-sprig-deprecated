@@ -274,7 +274,7 @@ update msg model =
             ( model, showArchives model )
 
         CharacterKey 't' ->
-            ( model, showTrunk model )
+            ( model, showTrunks model )
 
         CharacterKey 'h' ->
             ( model, goHome model )
@@ -755,18 +755,8 @@ buildMessageEH httpError =
 
 changeDot : Model -> Dot -> Model
 changeDot model dot =
-    let
-        sub =
-            model.sub
-
-        newSub =
-            { sub
-                | message = Message 200 ""
-            }
-    in
     { model
-        | sub = newSub
-        , dot = dot
+        | dot = dot
     }
 
 
@@ -1004,9 +994,9 @@ showArchives m =
     postJson "arch" (userEncoder m.sub.user) TasksShown subModelDecoder
 
 
-showTrunk : Model -> Cmd Msg
-showTrunk m =
-    postJson "trunk" (userEncoder m.sub.user) TasksShown subModelDecoder
+showTrunks : Model -> Cmd Msg
+showTrunks m =
+    postJson "trunks" (userEncoder m.sub.user) TasksShown subModelDecoder
 
 
 showBuds : Model -> Cmd Msg

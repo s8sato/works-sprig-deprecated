@@ -6280,15 +6280,9 @@ var $elm$core$Task$attempt = F2(
 var $elm$browser$Browser$Dom$blur = _Browser_call('blur');
 var $author$project$Main$changeDot = F2(
 	function (model, dot) {
-		var sub = model.sub;
-		var newSub = _Utils_update(
-			sub,
-			{
-				message: A2($author$project$Main$Message, 200, '')
-			});
 		return _Utils_update(
 			model,
-			{dot: dot, sub: newSub});
+			{dot: dot});
 	});
 var $author$project$Main$TasksCloned = function (a) {
 	return {$: 'TasksCloned', a: a};
@@ -7612,10 +7606,10 @@ var $author$project$Main$showBuds = function (m) {
 		$author$project$Main$TasksShown,
 		$author$project$Main$subModelDecoder);
 };
-var $author$project$Main$showTrunk = function (m) {
+var $author$project$Main$showTrunks = function (m) {
 	return A4(
 		$author$project$Main$postJson,
-		'trunk',
+		'trunks',
 		$author$project$Main$userEncoder(m.sub.user),
 		$author$project$Main$TasksShown,
 		$author$project$Main$subModelDecoder);
@@ -8049,7 +8043,7 @@ var $author$project$Main$update = F2(
 					case 't':
 						return _Utils_Tuple2(
 							model,
-							$author$project$Main$showTrunk(model));
+							$author$project$Main$showTrunks(model));
 					case 'h':
 						return _Utils_Tuple2(
 							model,

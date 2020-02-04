@@ -325,3 +325,4 @@ a] triLoop
     速度
 
 completed slash-sel command
+revised showTrunks and showBuds
