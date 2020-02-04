@@ -70,7 +70,7 @@ import Data.Time.Clock.POSIX (utcTimeToPOSIXSeconds, posixSecondsToUTCTime)
 import qualified Database.Esqueleto as Q (Value (..), EntityField (..)) 
 
 import Data.Time.Clock (nominalDay)
-import Data.List (sort, maximumBy, intersect, (\\), sortOn, union, last, delete, find)
+import Data.List (sort, maximumBy, intersect, (\\), sortOn, union, last, delete, find, nub)
 import Data.Text.Format (fixed)
 import Data.List.Unique (allUnique, sortUniq, isUnique)
 import Data.Maybe (isNothing, fromJust)
@@ -620,10 +620,6 @@ cloneTasks' (ElmUserTasks elmUser tids') = do
     let nodes = map nodeFromTask tasks
     paths <- map entityVal <$> getPathsByTasks pool tids
     let edges = map edgeFromPath paths
-    print "hoge"
-    print nodes
-    print edges
-    print "hoge"
     let text = textFromGraph (nodes, edges)
     let okMsg = buildOkMsg tasks " tasks cloned."
     return $ ElmSubModel elmUser [] (Just text) okMsg
@@ -1140,10 +1136,13 @@ spanLink'' (i,(a:as)) (_,[]) ref out =
     spanLink'' (i,as) ref ref out
 spanLink'' (i,(a:as)) (j,(b:bs)) ref out =
     case a of
-        TailLink key ->
+        TailLink t ->
             case b of
-                HeadLink key ->
-                    spanLink'' (i,(a:as)) (j,bs) ref ((i,j):out)
+                HeadLink h ->
+                    if t == h then
+                        spanLink'' (i,(a:as)) (j,bs) ref ((i,j):out)
+                    else
+                        spanLink'' (i,(a:as)) (j,bs) ref out
                 _ ->
                     spanLink'' (i,(a:as)) (j,bs) ref out
         _ ->
@@ -1284,7 +1283,7 @@ type Route = [Int]
 
 routeFind :: Graph -> [Route]
 routeFind g =
-    Prelude.concatMap (routeFind' g) (buds g)
+    Prelude.concatMap (routeFind' (snd g)) (buds g)
 
 buds :: Graph -> [Int]
 buds (ns, es) =
@@ -1294,9 +1293,9 @@ trunks :: Graph -> [Int]
 trunks (ns, es) =
     filter (\x -> x `notElem` (map snd es)) (map fst ns)
 
-routeFind' :: Graph -> Int -> [Route]
-routeFind' g bud =
-    routeObserve bud (succ_ bud (snd g)) [] (map (\v -> (v, bud)) (succ_ bud (snd g))) (snd g) [bud] []
+routeFind' :: [Edge] -> Int -> [Route]
+routeFind' es bud =
+    routeObserve bud (succ_ bud es) [] (map (\v -> (v, bud)) (succ_ bud es)) es [bud] []
 
 routeObserve :: Int -> [Int] -> [Int] -> [Edge] -> [Edge] -> Route -> [Route] -> [Route]
 routeObserve _ [] [] _ _ stack out =
@@ -1543,34 +1542,31 @@ scheduleForward user now ds tasks paths =
 
 hasLoop :: [Edge] -> Bool
 hasLoop es =
-    let 
-        trunks = filter (isTrunk es) (map fst es)
-    in
-    Prelude.any (\t -> hasLoop'observe t (pred_ t es) [] (filter (\e -> fst e == t) es) es []) trunks
+    Prelude.any (\x -> hasLoopObserve x (succ_ x es) [] (map (\v -> (v, x)) (succ_ x es)) es [x]) (allVertex es)
 
-hasLoop'observe :: Int -> [Int] -> [Int] -> [Edge] -> [Edge] -> [Int] -> Bool
-hasLoop'observe current [] [] cha chart stack = 
+allVertex :: [Edge] -> [Int]
+allVertex es =
+    nub $ Prelude.concat [map fst es, map snd es]
+
+hasLoopObserve :: Int -> [Int] -> [Int] -> [Edge] -> [Edge] -> Route -> Bool
+hasLoopObserve _ [] [] _ _ stack =
     False
-hasLoop'observe current (x:xs) remain cha chart stack =
-    hasLoop'explore current (x:xs) remain (lightenPred cha chart current x) chart stack
-hasLoop'observe current [] (r:rs) cha chart stack  =
-    hasLoop'explore current [] (r:rs) cha chart stack
+hasLoopObserve current (x:xs) remain cha chart stack =
+    hasLoopExplore current (x:xs) remain (lightenSucc cha chart current x) chart stack
+hasLoopObserve current [] (r:remain) cha chart stack =
+    hasLoopExplore current [] (r:remain) cha chart stack
 
-hasLoop'explore :: Int -> [Int] -> [Int] -> [Edge] -> [Edge] -> [Int] -> Bool
-hasLoop'explore current [] [] cha chart stack = 
+hasLoopExplore :: Int -> [Int] -> [Int] -> [Edge] -> [Edge] -> Route -> Bool
+hasLoopExplore _ [] [] _ _ stack =
     False
-hasLoop'explore current (x:[]) remain cha chart stack =
+hasLoopExplore current (x:[]) remain cha chart stack =
     if x `elem` stack then True else
-    hasLoop'observe x (pred_ x cha) remain cha chart (x : stack)
-hasLoop'explore current (x:_) remain cha chart stack =
+    hasLoopObserve x (succ_ x cha) remain cha chart (x:stack)
+hasLoopExplore current (x:_) remain cha chart stack =
     if x `elem` stack then True else
-    hasLoop'observe x (pred_ x cha) (current:remain) cha chart (x : stack)
-hasLoop'explore current [] (r:rs) cha chart stack  =
-    hasLoop'observe r (pred_ r cha) rs cha chart (Prelude.dropWhile (/= r) stack)
-
-lightenPred :: [Edge] -> [Edge] -> Int -> Int -> [Edge]
-lightenPred cha chart current x =
-    Prelude.concat [filter (/= (current, x)) cha, filter (\e -> fst e == x) chart]
+    hasLoopObserve x (succ_ x cha) (current:remain) cha chart (x:stack)
+hasLoopExplore current [] (r:remain) cha chart stack =
+    hasLoopObserve r (succ_ r cha) remain cha chart (Prelude.dropWhile (/= r) stack)
 
 midnightBy :: UTCTime -> Millis
 midnightBy t = millisFromUTC $ addUTCTime  (fromRational $ (-1)*(toRational $ utctDayTime t)) t

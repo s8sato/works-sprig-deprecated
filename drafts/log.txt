@@ -304,14 +304,15 @@ drop schema public cascade;
 create schema public;
 
 starMan-頭 $6 -2020/02/13
-    c] starMan-左肩 [a $6
-        starMan-左手 $6
-    b] starMan-左脚 $6
-        starMan-左足 $6 2020/02/03-
-    a] starMan-右脚 $6
-        starMan-右足 $6
-    starMan-右肩 [b [c $6
-        starMan-右手 $6
+    starMan-首 $6
+        c] starMan-左肩 [a $6
+            starMan-左手 $6
+        b] starMan-左膝 $6
+            starMan-左足 $6 2020/02/06-
+        a] starMan-右膝 $6
+            starMan-右足 $6
+        starMan-右肩 [b [c $6
+            starMan-右手 $6
 
 a] biLoop
     oops [a
@@ -321,5 +322,11 @@ a] triLoop
         oops [a
 
 デバッグ
-    hasLoop
     速度
+
+今日誕生日なんだ祝って
+
+はい数理物理の担当は私です
+@formir
+訳あって今、不定期でやっています
+少しずつ準備しているので、またご案内します
