@@ -7916,7 +7916,8 @@ var $author$project$Main$textPosted = F2(
 					} else {
 						return sub.tasks;
 					}
-				}()
+				}(),
+				user: m.user
 			});
 		return _Utils_update(
 			model,
@@ -8097,6 +8098,11 @@ var $author$project$Main$update = F2(
 				return _Utils_Tuple2(
 					model,
 					A2($author$project$Main$switchStar, model, index));
+			case 'FocusTask':
+				var index = msg.a;
+				return _Utils_Tuple2(
+					model,
+					A2($author$project$Main$focusTask, model, index));
 			case 'SwitchSelect':
 				var index = msg.a;
 				return _Utils_Tuple2(
@@ -8391,6 +8397,9 @@ var $author$project$Main$viewInputValue = function (model) {
 		var str = _v0.a;
 		return str;
 	}
+};
+var $author$project$Main$FocusTask = function (a) {
+	return {$: 'FocusTask', a: a};
 };
 var $author$project$Main$SwitchSelect = function (a) {
 	return {$: 'SwitchSelect', a: a};
@@ -8897,7 +8906,9 @@ var $author$project$Main$viewTask = F2(
 					$elm$html$Html$div,
 					_List_fromArray(
 						[
-							$elm$html$Html$Attributes$class('bar')
+							$elm$html$Html$Attributes$class('bar'),
+							$elm$html$Html$Events$onClick(
+							$author$project$Main$FocusTask(i))
 						]),
 					_List_fromArray(
 						[
@@ -9322,6 +9333,13 @@ var $author$project$Main$view = function (model) {
 											[
 												$elm$html$Html$Attributes$id('switchStar')
 											]),
+										_List_Nil),
+										A2(
+										$elm$html$Html$div,
+										_List_fromArray(
+											[
+												$elm$html$Html$Attributes$id('focus')
+											]),
 										_List_Nil)
 									]))
 							])),
@@ -9377,16 +9395,6 @@ var $author$project$Main$view = function (model) {
 														$elm$html$Html$Events$onClick(
 														$author$project$Main$CharacterKey(
 															_Utils_chr('c')))
-													]),
-												_List_Nil),
-												A2(
-												$elm$html$Html$div,
-												_List_fromArray(
-													[
-														$elm$html$Html$Attributes$id('focus'),
-														$elm$html$Html$Events$onClick(
-														$author$project$Main$CharacterKey(
-															_Utils_chr('f')))
 													]),
 												_List_Nil)
 											])),

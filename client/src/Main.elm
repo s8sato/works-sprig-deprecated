@@ -155,6 +155,7 @@ type Msg
     | TextPost
     | StarSwitched Index (Result Http.Error SubModel)
     | SwitchStar Index
+    | FocusTask Index
     | TaskFocused Int (Result Http.Error SubModel)
     | AdjustTimeZone Zone
     | SetZoneName ZoneName
@@ -320,6 +321,9 @@ update msg model =
 
         SwitchStar index ->
             ( model, switchStar model index )
+
+        FocusTask index ->
+            ( model, focusTask model index )
 
         SwitchSelect index ->
             ( switchSelect model index, Cmd.none )
@@ -803,7 +807,8 @@ textPosted model m =
 
         newSub =
             { sub
-                | tasks =
+                | user = m.user
+                , tasks =
                     case m.message.code of
                         200 ->
                             m.tasks
@@ -1141,6 +1146,7 @@ view model =
                     , div [ id "upAndDown" ] []
                     , div [ id "switchSelect" ] []
                     , div [ id "switchStar" ] []
+                    , div [ id "focus" ] []
                     ]
                 ]
             , div [ id "mainContainer" ]
@@ -1149,7 +1155,6 @@ view model =
                         [ div [ id "inverseSelect", onClick (CharacterKey 'i') ] []
                         , div [ id "eliminate", onClick (CharacterKey 'e') ] []
                         , div [ id "clone", onClick (CharacterKey 'c') ] []
-                        , div [ id "focus", onClick (CharacterKey 'f') ] []
                         ]
                     , div [ class "messageBox" ]
                         [ text model.sub.message.body ]
@@ -1383,7 +1388,10 @@ viewTask m ( i, task ) =
             ]
         , div [ class "startable" ]
             [ text (viewTimeByDot m.dot m.zone task.startable) ]
-        , div [ class "bar" ]
+        , div
+            [ class "bar"
+            , onClick (FocusTask i)
+            ]
             [ text (barString m task) ]
         , div [ class "deadline" ]
             [ text (viewTimeByDot m.dot m.zone task.deadline) ]

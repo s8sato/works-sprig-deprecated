@@ -826,7 +826,8 @@ slashDot elmUser unit
         pool <- pgPool
         let uid = keyFromId $ elmUserId elmUser :: UserId
         setDot pool uid unit
-        return $ ElmSubModel elmUser [] Nothing (ElmMessage 300 (Data.Text.concat ["Default time unit: ", unit]))
+        let elmUser' = (\(ElmUser i n _ mzn mzo) -> ElmUser i n unit mzn mzo) elmUser
+        return $ ElmSubModel elmUser' [] Nothing (ElmMessage 300 (Data.Text.concat ["Default time unit: ", unit]))
     | otherwise =
         return $ ElmSubModel elmUser [] Nothing (ElmMessage 400 (Data.Text.concat ["Invalid time unit: ", unit]))
 

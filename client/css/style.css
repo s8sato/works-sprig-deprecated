@@ -110,7 +110,7 @@ div {
 
 #staticIconsBox {
     width : inherit;
-    height: 232px;
+    height: 280px;
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -139,7 +139,7 @@ div {
 }
 
 #selectionCmdBox {
-    width : 184px;
+    width : 136px;
     height: inherit;
     display: flex;
     justify-content: space-between;
@@ -343,10 +343,6 @@ div {
 #focus {
     background-image: url("../images/cmd_f_normal.png");
     background-size: contain;
-}
-
-#focus:hover {
-    background-image: url("../images/cmd_f_hover.png");
 }
 
 #archives {
