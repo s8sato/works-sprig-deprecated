@@ -1,6 +1,2 @@
-*.exe
-*.log
-*.out
-/log.txt
-.vagrant/
-.stack-work/
+/.stack-work/
+/pgconf.yaml
