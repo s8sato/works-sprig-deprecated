@@ -1,6 +1,0 @@
-Configuring wai-cors-0.2.7...
-Preprocessing library for wai-cors-0.2.7..
-Building library for wai-cors-0.2.7..
-[1 of 1] Compiling Network.Wai.Middleware.Cors ( src\Network\Wai\Middleware\Cors.hs, .stack-work\dist\e626a42b\build\Network\Wai\Middleware\Cors.o )
-Installing library in C:\sr\snapshots\1b0bbf2a\lib\x86_64-windows-ghc-8.6.5\wai-cors-0.2.7-82625rnaI6d24fCTGe1aTS
-Registering library for wai-cors-0.2.7..

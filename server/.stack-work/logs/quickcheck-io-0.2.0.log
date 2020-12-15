@@ -1,7 +1,0 @@
-Configuring quickcheck-io-0.2.0...
-Preprocessing library for quickcheck-io-0.2.0..
-Building library for quickcheck-io-0.2.0..
-[1 of 2] Compiling Paths_quickcheck_io ( .stack-work\dist\e626a42b\build\autogen\Paths_quickcheck_io.hs, .stack-work\dist\e626a42b\build\Paths_quickcheck_io.o )
-[2 of 2] Compiling Test.QuickCheck.IO ( src\Test\QuickCheck\IO.hs, .stack-work\dist\e626a42b\build\Test\QuickCheck\IO.o )
-Installing library in C:\sr\snapshots\1b0bbf2a\lib\x86_64-windows-ghc-8.6.5\quickcheck-io-0.2.0-AauwaERKIAN1yOSEGpQ8DE
-Registering library for quickcheck-io-0.2.0..

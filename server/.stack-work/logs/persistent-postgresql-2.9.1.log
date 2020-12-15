@@ -1,7 +1,0 @@
-Configuring persistent-postgresql-2.9.1...
-Preprocessing library for persistent-postgresql-2.9.1..
-Building library for persistent-postgresql-2.9.1..
-[1 of 2] Compiling Database.Persist.Postgresql ( Database\Persist\Postgresql.hs, .stack-work\dist\e626a42b\build\Database\Persist\Postgresql.o )
-[2 of 2] Compiling Database.Persist.Postgresql.JSON ( Database\Persist\Postgresql\JSON.hs, .stack-work\dist\e626a42b\build\Database\Persist\Postgresql\JSON.o )
-Installing library in C:\sr\snapshots\1b0bbf2a\lib\x86_64-windows-ghc-8.6.5\persistent-postgresql-2.9.1-HQkAKY7IA0j9LAiMavqQ9O
-Registering library for persistent-postgresql-2.9.1..

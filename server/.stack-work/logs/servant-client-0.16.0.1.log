@@ -1,9 +1,0 @@
-Configuring servant-client-0.16.0.1...
-Preprocessing library for servant-client-0.16.0.1..
-Building library for servant-client-0.16.0.1..
-[1 of 4] Compiling Servant.Client.Internal.HttpClient ( src\Servant\Client\Internal\HttpClient.hs, .stack-work\dist\e626a42b\build\Servant\Client\Internal\HttpClient.o )
-[2 of 4] Compiling Servant.Client   ( src\Servant\Client.hs, .stack-work\dist\e626a42b\build\Servant\Client.o )
-[3 of 4] Compiling Servant.Client.Internal.HttpClient.Streaming ( src\Servant\Client\Internal\HttpClient\Streaming.hs, .stack-work\dist\e626a42b\build\Servant\Client\Internal\HttpClient\Streaming.o )
-[4 of 4] Compiling Servant.Client.Streaming ( src\Servant\Client\Streaming.hs, .stack-work\dist\e626a42b\build\Servant\Client\Streaming.o )
-Installing library in C:\sr\snapshots\1b0bbf2a\lib\x86_64-windows-ghc-8.6.5\servant-client-0.16.0.1-9VLvwQU0MHT4e9QPFbT11Z
-Registering library for servant-client-0.16.0.1..

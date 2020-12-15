@@ -1,6 +1,0 @@
-Configuring th-lift-0.8.1...
-Preprocessing library for th-lift-0.8.1..
-Building library for th-lift-0.8.1..
-[1 of 1] Compiling Language.Haskell.TH.Lift ( src\Language\Haskell\TH\Lift.hs, .stack-work\dist\e626a42b\build\Language\Haskell\TH\Lift.o )
-Installing library in C:\sr\snapshots\1b0bbf2a\lib\x86_64-windows-ghc-8.6.5\th-lift-0.8.1-JflzVlX8OqFGyXRZTILHun
-Registering library for th-lift-0.8.1..

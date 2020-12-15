@@ -1,7 +1,0 @@
-Configuring th-reify-many-0.1.9...
-Preprocessing library for th-reify-many-0.1.9..
-Building library for th-reify-many-0.1.9..
-[1 of 2] Compiling Language.Haskell.TH.ReifyMany.Internal ( src\Language\Haskell\TH\ReifyMany\Internal.hs, .stack-work\dist\e626a42b\build\Language\Haskell\TH\ReifyMany\Internal.o )
-[2 of 2] Compiling Language.Haskell.TH.ReifyMany ( src\Language\Haskell\TH\ReifyMany.hs, .stack-work\dist\e626a42b\build\Language\Haskell\TH\ReifyMany.o )
-Installing library in C:\sr\snapshots\1b0bbf2a\lib\x86_64-windows-ghc-8.6.5\th-reify-many-0.1.9-8b1iHTPwq1rI2fADvq3TMM
-Registering library for th-reify-many-0.1.9..
