@@ -933,7 +933,7 @@ dailyShift_ sign count days out =
 postJson : String -> Encode.Value -> (Result Http.Error a -> Msg) -> Decoder a -> Cmd Msg
 postJson path encoder resulting decoder =
     Http.post
-        { url = "http://" ++ Config.host ++ ":8080/tasks/" ++ path
+        { url = Config.endpoint ++ "/" ++ path
         , body = Http.jsonBody encoder
         , expect = Http.expectJson resulting decoder
         }
