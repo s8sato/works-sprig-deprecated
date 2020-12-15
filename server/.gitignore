@@ -1,0 +1,6 @@
+*.exe
+*.log
+*.out
+/log.txt
+.vagrant/
+.stack-work/
