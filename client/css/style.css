@@ -69,7 +69,7 @@ div {
 }
 
 #submission {
-    width : 136px;
+    width : 86px;
     height: inherit;
     display: flex;
     align-items: center;
@@ -77,8 +77,8 @@ div {
 }
 
 #submitButton {
-    width : 128px;
-    height: 56px;
+    width : 78px;
+    height: 48px;
     background-image: url("../images/sprig_normal.png");
     background-size: contain;
     border-radius: 6px;
