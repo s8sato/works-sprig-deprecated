@@ -16,7 +16,8 @@ body {
 }
 
 div {
-    font-family: Courier New,Courier,Lucida Sans Typewriter,Lucida Typewriter,monospace; 
+    font-family: Fira Code, Courier New; 
+    /* font-family: Courier New,Courier,Lucida Sans Typewriter,Lucida Typewriter,monospace;  */
     font-size: 2rem;
     box-sizing:border-box;
 }
@@ -183,7 +184,7 @@ div {
 #mainBody {
     width : inherit;
     background-color: #DDF0E4;
-    background-image: url("../images/shisocho.png");
+    background-image: url("../images/background.png");
     background-position-x: center;
     flex-grow: 1;
     display: flex;
@@ -355,21 +356,21 @@ div {
 }
 
 #trunks {
-    background-image: url("../images/cmd_t_normal.png");
+    background-image: url("../images/cmd_r_normal.png");
     background-size: contain;
 }
 
 #trunks:hover {
-    background-image: url("../images/cmd_t_hover.png");
+    background-image: url("../images/cmd_r_hover.png");
 }
 
 #buds {
-    background-image: url("../images/cmd_b_normal.png");
+    background-image: url("../images/cmd_l_normal.png");
     background-size: contain;
 }
 
 #buds:hover {
-    background-image: url("../images/cmd_b_hover.png");
+    background-image: url("../images/cmd_l_hover.png");
 }
 
 #home {
@@ -382,7 +383,7 @@ div {
 }
 
 #changeDot {
-    background-image: url("../images/cmd_0_normal.png");
+    background-image: url("../images/cmd_5_normal.png");
     background-size: contain;
 }
 
