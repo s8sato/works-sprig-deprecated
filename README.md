@@ -1,10 +1,20 @@
-# works-sprig
+# works-sprig-deprecated
+
+[new]: https://github.com/satu-n/works-sprig
+[servant]: https://www.servant.dev/
+
+## What's this
+
+* A repository just to show my experience with Haskell/[Servant][servant]
+* This works, but [here][new]'s a rework
+
+## How to run
 
 `client/src/Config.elm`
 
 ```elm
 module Config exposing (endpoint)
-endpoint = "http://localhost:3000/tasks"
+endpoint = "http://localhost:3333/tasks"
 ```
 
 `server/pgconf.yaml`

@@ -16,7 +16,8 @@ body {
 }
 
 div {
-    font-family: Fira Code, Courier New; 
+    font-family: Fira Code, Courier New;
+    color: #666f6a;
     /* font-family: Courier New,Courier,Lucida Sans Typewriter,Lucida Typewriter,monospace;  */
     font-size: 2rem;
     box-sizing:border-box;
@@ -254,6 +255,11 @@ div {
 
 .task .title a {
     text-decoration: none;
+}
+
+.task .bar {
+    font-family: 'Courier New';
+    font-weight: bold;
 }
 
 #mainBody .indicator {
